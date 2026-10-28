@@ -1,12 +1,13 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "dev-workflow",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "从想法、已有代码或文档出发的完整 AI 开发流程：需求挖掘、技术选型和架构、项目搭建和代码规范、AI 审查和风险把关、拆计划、开发、变更分诊、技术探针和发布。",
   "author": {
     "name": "juanchaopan",
     "email": "p8499@126.com"
   },
+  "license": "MIT",
   "skills": [
     "./skills/"
   ]
