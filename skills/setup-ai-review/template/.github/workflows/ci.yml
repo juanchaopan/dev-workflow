@@ -1,0 +1,37 @@
+name: ci
+
+# 必需的自动检查：lint、类型检查、测试、构建。分支规则按 job 名 "ci" 把它设为合并前必须通过。
+# 这里的命令和 CLAUDE.md「自检命令」保持一致，本地能过的，CI 上也应该能过。
+# 有多个组件时，每个组件一个 job，名为 ci 的 job 汇总它们的结果。
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main, master, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # ---- 项目专属：按项目的组件和技术栈改写下面的步骤 ----
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint --if-present
+      - run: npm run typecheck --if-present
+      - run: npm test --if-present
+      - run: npm run build --if-present
+      # ---- 项目专属：结束 ----

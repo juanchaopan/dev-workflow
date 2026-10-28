@@ -1,0 +1,10 @@
+<Project>
+  <!-- 对这个目录下的所有 .NET 项目生效：版本号、可空引用类型、推荐的分析器规则，以及构建时检查 .editorconfig 里的代码风格。 -->
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+</Project>

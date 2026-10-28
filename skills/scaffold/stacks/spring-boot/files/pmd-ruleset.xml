@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="project"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+  <description>
+    PMD 官方的 quickstart 规则集，去掉和 Spring Boot 冲突的规则：
+    UseUtilityClass 会把只有 main 方法的 @SpringBootApplication 启动类当成工具类，但 Spring 需要实例化它。
+  </description>
+  <rule ref="rulesets/java/quickstart.xml">
+    <exclude name="UseUtilityClass"/>
+  </rule>
+</ruleset>

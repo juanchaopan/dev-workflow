@@ -1,0 +1,29 @@
+# ruff 的格式化和 lint 配置。Python 目标版本取自 pyproject.toml 的 requires-python。
+line-length = 100
+
+[lint]
+select = [
+  "E",     # pycodestyle 错误
+  "W",     # pycodestyle 警告
+  "F",     # pyflakes：未使用的变量和导入、未定义的名字
+  "I",     # 导入排序
+  "B",     # bugbear：常见的 bug 写法
+  "UP",    # 用新版本 Python 的写法
+  "SIM",   # 可以简化的写法
+  "N",     # PEP 8 命名
+  "S",     # bandit：安全问题
+  "PTH",   # 用 pathlib 代替 os.path
+  "DTZ",   # 不带时区的 datetime
+  "T20",   # print
+  "ASYNC", # 异步代码里的阻塞调用
+  "RUF",   # ruff 自己的规则
+]
+# 行长交给格式化工具处理，格式化不了的长字符串不报错。
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# 测试里可以用 assert。
+"tests/**" = ["S101"]
+
+[format]
+docstring-code-format = true

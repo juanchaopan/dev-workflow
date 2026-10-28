@@ -1,0 +1,75 @@
+<!--
+  合并进 pom.xml 的 <build><plugins>。{{版本}} 换成 Maven Central 上的最新稳定版本。
+  三个插件都绑定在 verify 阶段：Spotless 检查格式（google-java-format），Checkstyle 查代码问题（规则见 checkstyle.xml），
+  PMD 查常见 bug（规则见 pmd-ruleset.xml）。任何一项不通过，构建就失败。
+-->
+<plugin>
+  <groupId>com.diffplug.spotless</groupId>
+  <artifactId>spotless-maven-plugin</artifactId>
+  <version>{{版本}}</version>
+  <configuration>
+    <java>
+      <googleJavaFormat/>
+      <removeUnusedImports/>
+    </java>
+  </configuration>
+  <executions>
+    <execution>
+      <phase>verify</phase>
+      <goals>
+        <goal>check</goal>
+      </goals>
+    </execution>
+  </executions>
+</plugin>
+
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-checkstyle-plugin</artifactId>
+  <version>{{版本}}</version>
+  <configuration>
+    <configLocation>checkstyle.xml</configLocation>
+    <consoleOutput>true</consoleOutput>
+    <failOnViolation>true</failOnViolation>
+    <violationSeverity>warning</violationSeverity>
+    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+  </configuration>
+  <dependencies>
+    <dependency>
+      <groupId>com.puppycrawl.tools</groupId>
+      <artifactId>checkstyle</artifactId>
+      <version>{{版本}}</version>
+    </dependency>
+  </dependencies>
+  <executions>
+    <execution>
+      <phase>verify</phase>
+      <goals>
+        <goal>check</goal>
+      </goals>
+    </execution>
+  </executions>
+</plugin>
+
+<plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-pmd-plugin</artifactId>
+  <version>{{版本}}</version>
+  <configuration>
+    <rulesets>
+      <ruleset>pmd-ruleset.xml</ruleset>
+    </rulesets>
+    <printFailingErrors>true</printFailingErrors>
+    <failOnViolation>true</failOnViolation>
+    <includeTests>true</includeTests>
+    <linkXRef>false</linkXRef>
+  </configuration>
+  <executions>
+    <execution>
+      <phase>verify</phase>
+      <goals>
+        <goal>check</goal>
+      </goals>
+    </execution>
+  </executions>
+</plugin>

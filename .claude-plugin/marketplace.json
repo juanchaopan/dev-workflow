@@ -1,0 +1,15 @@
+{
+  "name": "dev-workflow",
+  "description": "一套通用的 AI 开发流程插件，适合个人开发者，任何技术栈的新项目和已有项目都能用。",
+  "owner": {
+    "name": "juanchaopan",
+    "email": "p8499@126.com"
+  },
+  "plugins": [
+    {
+      "name": "dev-workflow",
+      "source": "./",
+      "description": "从想法、已有代码或文档出发的完整 AI 开发流程：需求挖掘、技术选型和架构、项目搭建和代码规范、AI 审查和风险把关、拆计划、开发、变更分诊、技术探针和发布。"
+    }
+  ]
+}
