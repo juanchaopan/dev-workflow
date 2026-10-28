@@ -16,10 +16,21 @@ select = [
   "DTZ",   # 不带时区的 datetime
   "T20",   # print
   "ASYNC", # 异步代码里的阻塞调用
+  "C90",   # 圈复杂度
+  "PLR",   # 函数过长、参数过多、分支过多
   "RUF",   # ruff 自己的规则
 ]
 # 行长交给格式化工具处理，格式化不了的长字符串不报错。
-ignore = ["E501"]
+# PLR2004（魔法数字）在测试和常见的界限值上误报太多，交给审查判断。
+ignore = ["E501", "PLR2004"]
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 6
+max-branches = 12
+max-statements = 50
 
 [lint.per-file-ignores]
 # 测试里可以用 assert。

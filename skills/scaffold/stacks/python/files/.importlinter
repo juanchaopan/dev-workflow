@@ -1,0 +1,31 @@
+; Architecture contracts, run by `uv run lint-imports`.
+; This file must stay pure ASCII: import-linter reads it with the system encoding, which breaks on other characters on Windows.
+; Replace PACKAGE with the import name of the package under src/. Layers in parentheses are optional.
+
+[importlinter]
+root_package = PACKAGE
+include_external_packages = True
+
+[importlinter:contract:layers]
+name = Layers: api -> services -> repositories -> domain
+type = layers
+layers =
+    PACKAGE.api
+    PACKAGE.services
+    (PACKAGE.repositories)
+    PACKAGE.domain
+
+[importlinter:contract:domain-pure]
+name = Domain does not depend on web frameworks or databases
+type = forbidden
+source_modules =
+    PACKAGE.domain
+forbidden_modules =
+    fastapi
+    flask
+    django
+    starlette
+    sqlalchemy
+    psycopg
+    pymongo
+allow_indirect_imports = True

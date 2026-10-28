@@ -4,10 +4,12 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
   <description>
-    PMD 官方的 quickstart 规则集，去掉和 Spring Boot 冲突的规则：
-    UseUtilityClass 会把只有 main 方法的 @SpringBootApplication 启动类当成工具类，但 Spring 需要实例化它。
+    PMD 官方的 quickstart 规则集，去掉和 Spring Boot、ArchUnit 冲突的规则：
+    "只有静态成员的类应当禁止实例化"会把只有 main 方法的 @SpringBootApplication 启动类、只有 @ArchTest 静态字段的架构测试类
+    当成工具类，但它们都需要被实例化。这条规则在 PMD 7.18 之前叫 UseUtilityClass，之后改名为 InstantiableUtilityClass，两个名字都排除。
   </description>
   <rule ref="rulesets/java/quickstart.xml">
     <exclude name="UseUtilityClass"/>
+    <exclude name="InstantiableUtilityClass"/>
   </rule>
 </ruleset>

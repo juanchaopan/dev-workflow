@@ -61,12 +61,13 @@ dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
 # 必须拦下的规则：
 # IDE0161 文件范围的命名空间；IDE0065 using 放在命名空间外；IDE0011 if、for 等必须加大括号；
-# IDE0044 只赋值一次的字段加 readonly；IDE1006 上面的命名规则（以上在构建时检查）；
+# IDE0044 只赋值一次的字段加 readonly；IDE1006 上面的命名规则；CA1502 方法的圈复杂度不超过 25（以上在构建时检查）；
 # IDE0049 用 int、string 等关键字而不是 Int32、String；IDE0003 不加多余的 this.（这两条只由 dotnet format 检查）。
 dotnet_diagnostic.IDE0161.severity = warning
 dotnet_diagnostic.IDE0065.severity = warning
 dotnet_diagnostic.IDE0011.severity = warning
 dotnet_diagnostic.IDE0044.severity = warning
 dotnet_diagnostic.IDE1006.severity = warning
+dotnet_diagnostic.CA1502.severity = warning
 dotnet_diagnostic.IDE0049.severity = warning
 dotnet_diagnostic.IDE0003.severity = warning

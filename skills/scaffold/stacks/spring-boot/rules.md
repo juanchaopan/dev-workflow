@@ -5,17 +5,33 @@ paths:
 
 # Spring Boot 规范：{{组件名}}
 
-来源：Google Java Style Guide、阿里巴巴《Java 开发手册》、Spring Boot 官方文档。格式由 Spotless（google-java-format）负责，常见的代码问题由 Checkstyle 和 PMD 检查；这里写需要判断的部分。
+来源：Google Java Style Guide、阿里巴巴《Java 开发手册》、Spring Boot 官方文档。格式由 Spotless（google-java-format）负责，常见的代码问题由 Checkstyle 和 PMD 检查，分层规则由 `ArchitectureTest`（ArchUnit）检查；这里写需要判断的部分。
 
 ## 分层
 
-- controller → service → repository，单向依赖。controller 只负责接收参数、校验和返回；业务逻辑在 service；数据访问在 repository。
-- 按功能分包（`order/`、`user/`），包内再分层；不按层分顶级包。
-- 实体（`@Entity`）不直接作为接口的入参和返回值，用 DTO（推荐 Java record）。实体和 DTO 的转换集中在一处。
+按功能分包，包内分层：
+
+```
+{{根包名}}/
+├── <功能>/
+│   ├── controller/    接收请求、校验参数、调用 service、返回 DTO
+│   ├── service/       业务逻辑和事务边界
+│   ├── repository/    数据访问
+│   ├── domain/        实体和领域规则
+│   └── dto/           接口的入参和返回值
+└── shared/            几个功能共用的配置、异常处理、工具
+```
+
+依赖方向只能是 controller → service → repository，由 `ArchitectureTest` 强制：
+
+- controller 只被外部调用，不被任何层依赖；service 只被 controller 依赖；repository 只被 service 依赖。controller 不能跳过 service 直接访问 repository。
+- controller 不接触实体（`@Entity`），入参和返回值都是 DTO。实体和 DTO 的转换集中在一处。
+- 功能包之间不能循环依赖。一个功能需要另一个功能的数据时，调用对方的 service，不直接访问对方的 repository。
+- 只用构造器注入；不用 `System.out`、`System.err`。
 
 ## 依赖注入和配置
 
-- 只用构造器注入，依赖声明为 final；不在字段上用 `@Autowired`。
+- 依赖声明为 final，通过构造器注入。
 - 配置用 `@ConfigurationProperties` 绑定成类型安全的对象，不到处写 `@Value`。
 - 密钥和密码不写进 `application.yml`，通过环境变量注入；不同环境用 profile 区分。
 
@@ -30,7 +46,7 @@ paths:
 
 - `@Transactional` 放在 service 的公开方法上，不放在 controller 和 repository 上；只读方法用 `readOnly = true`。
 - 注意 JPA 的 N+1 查询：关联默认懒加载，需要时用 fetch join 或 `@EntityGraph`。
-- 数据库结构变更用 Flyway 迁移脚本，脚本合并后不再修改。
+- 数据库结构变更用迁移脚本（Flyway 或 Liquibase，以架构文档的选择为准），脚本合并后不再修改。
 - 金额用 `BigDecimal`，不用 float、double（阿里手册）。
 - 时间用 java.time；存储和传输用 UTC 的 `Instant` 或 `OffsetDateTime`。
 
@@ -44,7 +60,7 @@ paths:
 
 - 不用魔法值：有业务含义的数字和字符串定义成常量或枚举（阿里手册）。
 - 返回集合时返回空集合，不返回 null。可能没有值时用 `Optional` 作返回值，不把它用作字段和参数。
-- 日志用 SLF4J 的占位符写法 `log.info("order {} paid", id)`，不拼接字符串；不打印密码、令牌和完整的个人信息；不用 `System.out`。
+- 日志用 SLF4J 的占位符写法 `log.info("order {} paid", id)`，不拼接字符串；不打印密码、令牌和完整的个人信息。
 - 捕获的异常要么处理掉，要么包装后抛出并带上原因，不吞掉。
 
 ## 测试
