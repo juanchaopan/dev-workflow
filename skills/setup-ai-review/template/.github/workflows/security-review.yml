@@ -2,7 +2,8 @@ name: security-review
 
 # 每个 PR 的安全审查，和 ai-review 里的代码审查分开进行，只看安全问题。
 # 问题以行内评论发出。分支规则要求所有评论线程处理完才能合并，所以每个安全问题要么修掉，要么写明理由后关闭。
-# 发布 PR（release/*）和从 main、master 回合并的 PR 只包含已经审查过的代码，不再审查。
+# 不审查的 PR：发布 PR（release/*）和从 main、master 回合并的 PR，它们只包含已经审查过的代码；
+# 来自 fork 和 Dependabot 的 PR，GitHub 不给它们访问密钥。维护者需要时，在 PR 里评论 @claude 请它做安全审查。
 
 on:
   pull_request:
@@ -20,6 +21,8 @@ jobs:
     if: >-
       ${{
         !github.event.pull_request.draft &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.actor != 'dependabot[bot]' &&
         !startsWith(github.event.pull_request.head.ref, 'release/') &&
         github.event.pull_request.head.ref != 'main' && github.event.pull_request.head.ref != 'master'
       }}

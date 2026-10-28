@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // 给 PR 定风险等级，并判断这次提交是否已有人工确认。
 // 在 GitHub Actions 里运行：读取 PR 改动的文件，对照 .github/risk-rules.txt 得出 low / medium / high，
-// 打上对应的 risk:* 标签。PR 收到新提交时撤掉 human-reviewed 标签，因为人工确认只对看过的那次提交有效。
+// 打上对应的 risk:* 标签。人工确认只对看过的那次提交有效，所以 PR 收到新提交时不算已确认，并撤掉 human-reviewed 标签。
 // 发布 PR（release/* 分支）一律算高风险；同一仓库里从 main 或 master 回合并的 PR 算低风险。
+// 来自 fork 和 Dependabot 的 PR 拿到的令牌是只读的：这时只定级、不改标签，判断结果照样输出。
 // 结果写入 GITHUB_OUTPUT 的 tier 和 approved，供后面的 job 使用。
 //
 // 在本地检验规则：node .github/scripts/risk-classify.mjs --dry-run [--head <分支名>] <文件路径> ...
@@ -89,7 +90,7 @@ if (process.argv[2] === '--dry-run') {
 }
 
 const { REPO, PR_NUMBER, EVENT_ACTION, HEAD_REF, HEAD_REPO, GITHUB_OUTPUT, GITHUB_STEP_SUMMARY } = process.env;
-const gh = (...args) => execFileSync('gh', args, { encoding: 'utf8' }).trim();
+const gh = (...args) => execFileSync('gh', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const lines = (text) => text.split('\n').filter(Boolean);
 const issue = `repos/${REPO}/issues/${PR_NUMBER}`;
 
@@ -97,22 +98,29 @@ const files = lines(gh('api', `repos/${REPO}/pulls/${PR_NUMBER}/files`, '--pagin
 const labels = lines(gh('api', `${issue}/labels`, '--paginate', '--jq', '.[].name'));
 const { tier, reasons } = classify(files, rules, { headRef: HEAD_REF ?? '', sameRepo: HEAD_REPO === REPO });
 const tierLabel = `risk:${tier}`;
+const newCommit = EVENT_ACTION === 'synchronize';
+const approved = labels.includes(APPROVAL_LABEL) && !newCommit;
 
-for (const [name, { color, description }] of Object.entries(LABELS)) {
-  gh('label', 'create', name, '--repo', REPO, '--color', color, '--description', description, '--force');
+function syncLabels() {
+  for (const [name, { color, description }] of Object.entries(LABELS)) {
+    gh('label', 'create', name, '--repo', REPO, '--color', color, '--description', description, '--force');
+  }
+  const removeLabel = (name) => gh('api', '--method', 'DELETE', `${issue}/labels/${encodeURIComponent(name)}`);
+  for (const name of labels.filter((name) => name.startsWith('risk:') && name !== tierLabel)) removeLabel(name);
+  if (!labels.includes(tierLabel)) gh('api', '--method', 'POST', `${issue}/labels`, '-f', `labels[]=${tierLabel}`);
+  if (newCommit && labels.includes(APPROVAL_LABEL)) {
+    removeLabel(APPROVAL_LABEL);
+    gh('api', '--method', 'POST', `${issue}/comments`, '-f',
+      `body=PR 有了新提交，\`${APPROVAL_LABEL}\` 标签已自动撤掉。看过新的改动后，请重新加上。`);
+  }
 }
 
-const removeLabel = (name) => gh('api', '--method', 'DELETE', `${issue}/labels/${encodeURIComponent(name)}`);
-
-for (const name of labels.filter((name) => name.startsWith('risk:') && name !== tierLabel)) removeLabel(name);
-if (!labels.includes(tierLabel)) gh('api', '--method', 'POST', `${issue}/labels`, '-f', `labels[]=${tierLabel}`);
-
-let approved = labels.includes(APPROVAL_LABEL);
-if (approved && EVENT_ACTION === 'synchronize') {
-  removeLabel(APPROVAL_LABEL);
-  approved = false;
-  gh('api', '--method', 'POST', `${issue}/comments`, '-f',
-    `body=PR 有了新提交，\`${APPROVAL_LABEL}\` 标签已自动撤掉。看过新的改动后，请重新加上。`);
+let labelNote = '';
+try {
+  syncLabels();
+} catch (error) {
+  labelNote = `令牌没有写权限（来自 fork 或 Dependabot 的 PR），没有更新标签：${String(error.stderr ?? error.message).trim()}`;
+  console.warn(labelNote);
 }
 
 appendFileSync(GITHUB_OUTPUT, `tier=${tier}\napproved=${approved}\n`);
@@ -121,6 +129,7 @@ appendFileSync(GITHUB_STEP_SUMMARY, [
   '',
   ...reasons.slice(0, 50).map((reason) => `- ${reason}`),
   '',
-  `人工确认：${tier === 'low' ? '不需要' : approved ? '已确认' : `尚未确认（需要 ${APPROVAL_LABEL} 标签）`}`,
+  `人工确认：${tier === 'low' ? '不需要' : approved ? '已确认' : `尚未确认（需要 ${APPROVAL_LABEL} 标签${newCommit ? '，有新提交时要重新加' : ''}）`}`,
+  labelNote ? `\n${labelNote}` : '',
   '',
 ].join('\n'));
