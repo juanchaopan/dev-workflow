@@ -1,0 +1,82 @@
+name: self-test
+
+# 插件自己的体检：脚本的单元测试、插件清单校验，以及每个技术栈的冒烟测试（真建一个项目、跑自检命令、确认违规会被拦下）。
+# 每周一自动跑一次：生成器、工具版本和默认配置变了，这里会先坏掉。定时运行失败时自动开一个 issue。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scripts:
+    name: scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+      - run: node --test "tests/*.test.mjs"
+      - run: npx -y @anthropic-ai/claude-code plugin validate .
+
+  stacks:
+    name: stack (${{ matrix.stack }}${{ matrix.build && format(', {0}', matrix.build) || '' }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stack: angular
+          - stack: react-ts
+          - stack: node-ts
+          - stack: python
+          - stack: spring-boot
+            build: maven
+          - stack: spring-boot
+            build: gradle
+          - stack: dotnet-blazor
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: lts/*
+      - if: ${{ matrix.stack == 'spring-boot' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - if: ${{ matrix.stack == 'python' }}
+        uses: astral-sh/setup-uv@v6
+      - if: ${{ matrix.stack == 'dotnet-blazor' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: bash tests/stacks/${{ matrix.stack }}.sh
+        env:
+          BUILD_TOOL: ${{ matrix.build }}
+          WORK: ${{ runner.temp }}/smoke
+
+  report:
+    name: report
+    needs: [scripts, stacks]
+    if: ${{ failure() && github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create --repo "${{ github.repository }}" \
+            --title "每周体检失败：$(date -u +%Y-%m-%d)" \
+            --body "每周体检有检查失败，多半是某个生成器、工具版本或默认配置变了。查看日志：$RUN_URL
+
+          在本地修复：打开 Claude Code，说明哪个技术栈的冒烟测试失败、贴上日志，请它更新对应的 stack.md 和配置文件，再运行 tests/stacks/ 下对应的脚本确认通过。"
