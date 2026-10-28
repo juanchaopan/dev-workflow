@@ -9,11 +9,32 @@
 # 判定时用的是目标分支上的这份规则，PR 改这个文件不会改变它自己的风险等级。
 
 [high]
+# 流程和规范本身：放宽检查规则、改基线、改 CI，都要人看过
 .github/**
 .githooks/**
 .claude/**
 CLAUDE.md
 REVIEW.md
+AGENTS.md
+.jscpd.json
+**/.dependency-cruiser.cjs
+**/.dependency-cruiser-known-violations.json
+**/ArchitectureTest.java
+**/ArchitectureTests.cs
+**/archunit.properties
+**/archunit_store/**
+**/.importlinter
+**/checkstyle.xml
+**/pmd-ruleset.xml
+**/eslint.config.*
+**/.oxlintrc.json
+**/ruff.toml
+**/mypy.ini
+**/.editorconfig
+**/Directory.Build.props
+# 视觉回归的基准截图：外观变了，要人对照新旧截图确认
+**/*-snapshots/**
+# 业务上敏感的代码
 **/auth/**
 **/billing/**
 **/payment/**

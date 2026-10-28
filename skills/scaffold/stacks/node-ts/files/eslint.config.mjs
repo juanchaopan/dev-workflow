@@ -1,5 +1,5 @@
 // ESLint 配置：typescript-eslint 的严格规则加类型检查，以及函数复杂度和长度的上限。
-// JavaScript 文件（包括本文件和 .dependency-cruiser.cjs）不做类型检查；测试文件不限函数长度（describe 块本身就很长）。
+// JavaScript 文件（本文件、scripts/ 下的脚本、.dependency-cruiser.cjs）不做类型检查；测试文件不限函数长度（describe 块本身就很长）。
 import js from '@eslint/js';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
@@ -30,6 +30,10 @@ export default defineConfig(
   {
     files: ['**/*.{js,mjs,cjs}'],
     extends: [tseslint.configs.disableTypeChecked],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
+  },
+  {
+    files: ['**/*.cjs'],
     languageOptions: { sourceType: 'commonjs', globals: { module: 'writable', require: 'readonly' } },
   },
 );

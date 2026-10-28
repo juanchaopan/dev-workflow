@@ -1,0 +1,64 @@
+name: deploy
+
+# 构建容器镜像推到 GitHub Container Registry，再部署：
+#   推送到集成分支（Git Flow 是 develop，GitHub Flow 是 main）→ 测试环境
+#   推送版本标签 v* → 生产环境（environment: production，需要人工批准）
+# 镜像以提交号打标签，版本发布时再打上版本号。回滚：重新运行旧版本标签的这个工作流，或在平台上切回旧镜像。
+# 说明见 scaffold 技能的 shared/deployment.md。
+# 本文件的占位符写成 <…>；tags 里的 {{version}} 是 docker/metadata-action 自己的写法，原样保留。
+
+on:
+  push:
+    branches: ['<集成分支>']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  image:
+    name: image
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # ---- 项目专属：每个容器化组件一项 ----
+        component:
+          - name: '<组件名>'
+            dir: '<组件目录>'
+        # ---- 项目专属：结束 ----
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.component.name }}
+          tags: |
+            type=sha
+            type=semver,pattern={{version}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.component.dir }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    name: deploy
+    needs: image
+    runs-on: ubuntu-latest
+    environment: ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}
+    steps:
+      # ---- 项目专属：按选定的平台写部署步骤，令牌从当前 environment 的 secrets 读取 ----
+      - run: echo "部署 ${{ github.sha }} 到 ${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}"
+      # ---- 项目专属：结束 ----

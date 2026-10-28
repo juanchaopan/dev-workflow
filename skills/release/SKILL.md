@@ -1,6 +1,6 @@
 ---
 name: release
-description: 发布一个版本：根据上次发布以来的 Conventional Commits 提交算出下一个语义化版本号，更新各组件的版本号和 CHANGELOG.md，按 CLAUDE.md 的分支策略走发布流程（Git Flow：develop → release/x.y.z → main → 打标签 → 合回 develop；GitHub Flow：在 main 上打标签），并创建 GitHub Release。也处理 Git Flow 下 hotfix 合入 main 之后的打标签和回合并。用户说"发布""发版""release""打个版本"时使用。
+description: 发布一个版本：根据上次发布以来的 Conventional Commits 提交算出下一个语义化版本号，更新各组件的版本号和 CHANGELOG.md，按 CLAUDE.md 的分支策略走发布流程（Git Flow：develop → release/x.y.z → main → 打标签 → 合回 develop；GitHub Flow：在 main 上打标签），创建 GitHub Release，并跟进生产部署（需要人工批准时提醒用户）和回滚方式。也处理 Git Flow 下 hotfix 合入 main 之后的打标签和回合并。用户说"发布""发版""release""打个版本"时使用。
 ---
 
 # 发布版本
@@ -12,6 +12,7 @@ description: 发布一个版本：根据上次发布以来的 Conventional Commi
 - 读 CLAUDE.md「分支与提交」，确定是 GitHub Flow 还是 Git Flow；读「组件」一节，确定有哪些组件。各组件的版本号放在哪里，见 scaffold 规范库里对应技术栈 `stack.md` 的"版本号"一节（与本技能同级的 `scaffold/stacks/`）。
 - `git fetch origin --tags`，找出上一个版本标签：`git describe --tags --abbrev=0 origin/main`（还没有标签时，上一版当作 0.0.0，从第一个提交算起）。
 - 有没有合并到 main、但还没打标签的 hotfix：有的话，走下面的"hotfix 收尾"。
+- 读 `.github/workflows/deploy.yml`（如果有）和 `docs/architecture/overview.md` 的部署一节，弄清版本标签推送后会部署到哪里、要不要人工批准。
 
 ### 1. 算版本号
 
@@ -26,14 +27,15 @@ description: 发布一个版本：根据上次发布以来的 Conventional Commi
 
 ### 2. 准备发布内容
 
-1. 更新 `CHANGELOG.md`（不存在就新建）：在最上面加一节 `## <版本号>（<日期>）`，按"新功能""修复""性能""破坏兼容的改动"分组列出改动，每条带 PR 或 issue 编号。文档、CI、杂项类提交不列出来。
+1. 更新 `CHANGELOG.md`（不存在就新建）：在最上面加一节 `## <版本号>（<日期>）`，按"新功能""修复""性能""破坏兼容的改动"分组列出改动，每条带 PR 或 issue 编号。文档、CI、重构、杂项类提交不列出来。
 2. 按各技术栈的方法更新每个组件的版本号。
 3. 运行全部自检命令。
+4. 测试环境里跑的是要发布的这批改动时，请用户在测试环境里确认过再继续。
 
 ### 3a. Git Flow
 
 1. 从 develop 拉出 `release/<版本号>`，提交上面的改动：`chore(release): <版本号>`，推送。
-2. 创建 PR：`gh pr create --base main --head release/<版本号> --title "chore(release): <版本号>"`，正文写上本次发布的 CHANGELOG 内容和回滚方法（回到上一个标签重新部署）。开启自动合并 `gh pr merge --auto --merge`。
+2. 创建 PR：`gh pr create --base main --head release/<版本号> --title "chore(release): <版本号>"`，正文写上本次发布的 CHANGELOG 内容和回滚方法（重新部署上一个版本标签）。开启自动合并 `gh pr merge --auto --merge`。
 3. 告诉用户：发布 PR 一律是高风险，不会再做 AI 审查（里面的代码在合入 develop 时都审过了），请他确认要发布后加 `human-reviewed` 标签。
 4. 合并后：在 main 的合并提交上打标签并推送：`git fetch origin && git tag -a v<版本号> origin/main -m "v<版本号>" && git push origin v<版本号>`。
 5. 回合并：`gh pr create --base develop --head main --title "chore(release): 合回 v<版本号>"`，开启自动合并。这类 PR 算低风险，检查通过后会自动合并。
@@ -45,7 +47,14 @@ description: 发布一个版本：根据上次发布以来的 Conventional Commi
 
 ### 4. GitHub Release
 
-`gh release create v<版本号> --title "v<版本号>" --notes-file <这次的 CHANGELOG 内容>`。仓库里有监听版本标签的部署工作流时，告诉用户部署已经开始，以及去哪里看进度。
+`gh release create v<版本号> --title "v<版本号>" --notes-file <这次的 CHANGELOG 内容>`。
+
+### 5. 生产部署
+
+- 有部署工作流时：版本标签推送后它会开始运行。`gh run list --workflow deploy.yml --limit 3` 找到这次的运行；生产环境需要人工批准时，告诉用户去 GitHub 的 Actions 页面批准（Review deployments）。等部署完成，检查健康检查接口或首页能否正常访问。
+- 平台自带 Git 集成时：告诉用户去平台上确认部署状态。
+- 没有自动部署时：告诉用户需要手动部署哪个版本。
+- 部署后出问题：回滚就是重新部署上一个版本标签（重新运行那个标签的部署工作流，或在平台上切回旧版本）。能用功能开关关掉的问题，优先关开关。
 
 ### hotfix 收尾（Git Flow）
 
@@ -53,9 +62,9 @@ description: 发布一个版本：根据上次发布以来的 Conventional Commi
 
 1. 版本号是上个标签的修订号加 1。
 2. CHANGELOG 和版本号的改动在 hotfix 分支上一起提交；已经合并了的，就从 main 拉 `hotfix/<版本号>-release` 补一个 PR。
-3. 在 main 上打标签、创建 GitHub Release（同 3a 第 4 步、第 4 步）。
+3. 在 main 上打标签、创建 GitHub Release、跟进生产部署（同 3a 第 4 步、第 4 步、第 5 步）。
 4. 回合并到 develop（同 3a 第 5 步）。有冲突时，在本地从 develop 拉出分支，合并 main 并解决冲突，再开 PR 合回 develop。
 
-### 5. 汇报
+### 6. 汇报
 
-说明发布了哪个版本、包含哪些改动、标签和 Release 链接，以及还有什么要用户做的（例如手动部署）。
+说明发布了哪个版本、包含哪些改动、标签和 Release 链接、部署状态，以及还有什么要用户做的（例如批准生产部署）。
