@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // 架构检查：用 dependency-cruiser 按 .dependency-cruiser.cjs 的规则检查模块之间的依赖。
-// dependency-cruiser 读不懂源码时（例如装了它还不支持的 TypeScript 版本）不会报错，而是"0 个模块、0 个违规"地通过，
-// 所以这里一个模块都没分析到时也算失败。
+// dependency-cruiser 读不懂源码时（例如配置的解析器没装上、或者解析器不支持装的 TypeScript 版本）不会报错，
+// 而是"0 个模块、0 个违规"地通过，所以这里一个模块都没分析到时也算失败。
 // 已有项目接入时，可以把现存的违规记成基线（.dependency-cruiser-known-violations.json）：基线里的旧违规不算失败，
 // 新增的违规照样失败。旧违规修掉以后重新生成基线，基线只会越来越小。
 // 用法：node scripts/arch-check.mjs [源码目录，默认 src]
@@ -45,8 +45,8 @@ try {
 const { summary } = report;
 if (summary.totalCruised === 0) {
   console.error(
-    `架构检查没有分析到任何模块，检查等于没做。常见原因：装了 dependency-cruiser 还不支持的 TypeScript 版本，` +
-      `或者源码目录（${sourceDir}）不对。\n${result.stderr}`,
+    `架构检查没有分析到任何模块，检查等于没做。常见原因：.dependency-cruiser.cjs 里配置的解析器没装上` +
+      `（parser: 'swc' 需要 @swc/core），解析器不支持装的 TypeScript 版本，或者源码目录（${sourceDir}）不对。\n${result.stderr}`,
   );
   process.exit(1);
 }

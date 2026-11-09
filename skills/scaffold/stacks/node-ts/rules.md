@@ -5,7 +5,7 @@ paths:
 
 # Node.js 规范：{{组件名}}
 
-来源：typescript-eslint 推荐规则、Node.js 官方文档。格式由 Prettier 负责，类型和常见问题由 TypeScript 严格模式和 ESLint 检查，分层由 dependency-cruiser（`.dependency-cruiser.cjs`，`npm run arch`）检查；这里写需要判断的部分。
+来源：typescript-eslint 推荐规则、Node.js 官方文档。格式由 Prettier 负责，类型和常见问题由 TypeScript 严格模式和 lint（Oxlint 类型感知模式或 typescript-eslint，见本组件的 ADR）检查，分层由 dependency-cruiser（`.dependency-cruiser.cjs`，`npm run arch`）检查；这里写需要判断的部分。
 
 ## 分层
 
@@ -34,12 +34,13 @@ src/
 ## 类型和校验
 
 - 不用 `any`。外部输入（请求体、查询参数、环境变量、消息）在 routes 里用 schema 校验（例如 zod），校验后的类型再往里传。
+- 只当类型用的导入写成 `import type`，架构检查靠它区分"只引用类型"和"运行时依赖"。
 - 配置在启动时一次性读取并校验，缺了就报错退出。
 - 用 ES 模块，相对导入写上 `.js` 扩展名（NodeNext 模块解析的要求）。
 
 ## 异步和错误
 
-- 每个 Promise 都要 await 或显式处理（ESLint 的 no-floating-promises 会检查）。
+- 每个 Promise 都要 await 或显式处理（lint 的 no-floating-promises 会检查）。
 - 错误统一由错误处理中间件转换成响应，不把堆栈返回给调用方。
 - 调用外部服务都设置超时；只对幂等的操作做重试。
 - 请求处理路径上不用同步的文件和加密 API（`readFileSync`、`pbkdf2Sync` 等），它们会卡住整个进程。

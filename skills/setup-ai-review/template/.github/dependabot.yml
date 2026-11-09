@@ -1,6 +1,11 @@
 # 依赖自动升级：Dependabot 每周检查一次，有新版本就开 PR，PR 走和平时一样的检查和审查。
 # 提交信息前缀设成 build 和 ci，带上范围，生成的是 "build(deps): bump ..."，符合 Conventional Commits。
 # 小版本和补丁版本合成一个 PR，大版本单独开 PR，因为大版本常有不兼容的改动，需要单独看升级说明。
+#
+# TypeScript 和读它的工具（typescript-eslint、dependency-cruiser）分在同一组，一起升：TypeScript 出了新的大版本、
+# 而这些工具还没跟上时，这组 PR 的检查会失败（lint 报不支持的版本，架构检查一个模块也分析不到）。
+# 这时不要合并、也不要为了通过检查去放宽规则，让 PR 留着：Dependabot 每周会用工具的新版本重新生成它，
+# 工具跟上以后检查自然通过，合并即可。
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -15,6 +20,7 @@ updates:
         patterns: ["*"]
 
   # ---- 项目专属：每个组件一条。package-ecosystem 按技术栈选：npm、maven、gradle、uv、pip、nuget ----
+  # npm 组件保留 typescript-toolchain 分组；Angular 组件的 TypeScript 跟着 Angular 走，用 ng update 升级，不放进这一组。
   - package-ecosystem: npm
     directory: /
     schedule:
@@ -23,6 +29,8 @@ updates:
       prefix: build
       include: scope
     groups:
+      typescript-toolchain:
+        patterns: ["typescript", "typescript-eslint", "@typescript-eslint/*", "dependency-cruiser"]
       minor-and-patch:
         update-types: [minor, patch]
     open-pull-requests-limit: 5

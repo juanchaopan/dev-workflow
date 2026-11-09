@@ -1,7 +1,8 @@
 name: self-test
 
 # 插件自己的体检：脚本的单元测试（包括画面截图脚本的真实截图）、插件清单校验，以及每个技术栈的冒烟测试（真建一个项目、跑自检命令、确认违规会被拦下）。
-# 每周一自动跑一次：生成器、工具版本和默认配置变了，这里会先坏掉。定时运行失败时自动开一个 issue。
+# 版本和搭项目时一样现查：运行时用当前的 LTS，库和工具用最新版；选了 typescript-eslint 的变体用它支持的最高 TypeScript 版本。
+# 每周一自动跑一次：生成器、工具版本、LTS 和默认配置变了，这里会先坏掉。定时运行失败时自动开一个 issue。
 
 on:
   push:
@@ -30,7 +31,7 @@ jobs:
       - run: npx -y @anthropic-ai/claude-code plugin validate .
 
   stacks:
-    name: stack (${{ matrix.stack }}${{ matrix.build && format(', {0}', matrix.build) || '' }})
+    name: stack (${{ matrix.stack }}${{ matrix.variant && format(', {0}', matrix.variant) || '' }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -39,31 +40,39 @@ jobs:
           - stack: angular
           - stack: react-ts
           - stack: node-ts
+            variant: oxlint
+          - stack: node-ts
+            variant: eslint
           - stack: python
           - stack: spring-boot
-            build: maven
+            variant: maven
           - stack: spring-boot
-            build: gradle
+            variant: gradle
           - stack: dotnet-blazor
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: lts/*
+      - id: lts
+        run: |
+          echo "java=$(node skills/scaffold/shared/versions.mjs lts eclipse-temurin)" >> "$GITHUB_OUTPUT"
+          echo "dotnet=$(node skills/scaffold/shared/versions.mjs lts dotnet)" >> "$GITHUB_OUTPUT"
       - if: ${{ matrix.stack == 'spring-boot' }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: ${{ steps.lts.outputs.java }}
       - if: ${{ matrix.stack == 'python' }}
         uses: astral-sh/setup-uv@v6
       - if: ${{ matrix.stack == 'dotnet-blazor' }}
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: ${{ steps.lts.outputs.dotnet }}.0.x
       - run: bash tests/stacks/${{ matrix.stack }}.sh
         env:
-          BUILD_TOOL: ${{ matrix.build }}
+          BUILD_TOOL: ${{ matrix.stack == 'spring-boot' && matrix.variant || '' }}
+          LINT: ${{ matrix.stack == 'node-ts' && matrix.variant || '' }}
           WORK: ${{ runner.temp }}/smoke
 
   report:
@@ -80,6 +89,6 @@ jobs:
         run: |
           gh issue create --repo "${{ github.repository }}" \
             --title "每周体检失败：$(date -u +%Y-%m-%d)" \
-            --body "每周体检有检查失败，多半是某个生成器、工具版本或默认配置变了。查看日志：$RUN_URL
+            --body "每周体检有检查失败，多半是某个生成器、工具版本、LTS 或默认配置变了。查看日志：$RUN_URL
 
-          在本地修复：打开 Claude Code，说明哪个技术栈的冒烟测试失败、贴上日志，请它更新对应的 stack.md 和配置文件，再运行 tests/stacks/ 下对应的脚本确认通过。"
+          在本地修复：打开 Claude Code，说明哪个技术栈的冒烟测试失败、贴上日志，请它更新对应的 stack.md 和配置文件，再运行 tests/stacks/ 下对应的脚本确认通过。不要用写死旧版本的办法让测试通过。"

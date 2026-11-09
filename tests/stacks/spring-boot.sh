@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Spring Boot 冒烟测试：按 stacks/spring-boot/stack.md 建项目、装规范（BUILD_TOOL=maven 或 gradle），
 # 跑完整构建，再确认 ArchUnit、Checkstyle 会拦下违规。
+# Java 版本跟着本机装的 JDK 走；每周体检装的是当前的 LTS（见 .github/workflows/self-test.yml）。
 # 文件路径一律通过命令行参数交给 node：Windows 的 Git Bash 只会转换参数里的路径，不会转换写在代码字符串里的路径。
 source "$(dirname "$0")/lib.sh"
 F="$STACKS/spring-boot/files"
@@ -13,8 +14,10 @@ case "$BUILD_TOOL" in
 esac
 
 step "创建项目（$BUILD_TOOL）"
+JAVA=$(java_major)
+echo "Java $JAVA"
 cd "$WORK"
-curl -fsSL https://start.spring.io/starter.zip -d type=$TYPE -d language=java -d javaVersion=21 \
+curl -fsSL https://start.spring.io/starter.zip -d type=$TYPE -d language=java -d javaVersion="$JAVA" \
   -d groupId=com.example -d artifactId=demo -d name=demo -d packageName=com.example.demo \
   -d dependencies=web,validation,data-jpa,h2 -o demo.zip
 mkdir -p app && unzip -q demo.zip -d app && rm demo.zip
@@ -201,4 +204,4 @@ should_fail "Checkstyle 和 PMD 拦下坏写法" "${BUILD[@]}"
 rm $M/service/Bad.java
 
 echo
-echo "Spring Boot（$BUILD_TOOL）冒烟测试通过"
+echo "Spring Boot（$BUILD_TOOL，Java $JAVA）冒烟测试通过"

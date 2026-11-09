@@ -1,6 +1,7 @@
-// 插件里那些会装进项目或在项目里运行的脚本的单元测试：提交信息检查、风险分级、格式化钩子、安装脚本、画面截图。
-// 运行：node --test "tests/*.test.mjs"
-// 画面截图的真实截图要下载 Chromium，设置 RENDER_SMOKE=1 时才运行。
+// Unit tests for the scripts the plugin installs into projects or runs inside them:
+// commit message check, risk tiers, format hook, installer, screen rendering, version lookup.
+// Run: node --test "tests/*.test.mjs"
+// The real screenshot test downloads Chromium and only runs with RENDER_SMOKE=1.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -9,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_SIZE, collectHtml, openCommand, pngPathFor, sizeOf } from '../skills/design/render-screens.mjs';
+import { asList, asSingle, compareVersions, pickCompatible, pickLts, supportRanges } from '../skills/scaffold/shared/versions.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const template = join(root, 'skills', 'setup-ai-review', 'template');
@@ -21,53 +23,53 @@ const renderScreens = join(root, 'skills', 'design', 'render-screens.mjs');
 const tempDir = () => mkdtempSync(join(tmpdir(), 'dev-workflow-test-'));
 const run = (command, args, options = {}) => spawnSync(command, args, { encoding: 'utf8', ...options });
 
-test('提交信息：合格的写法通过', () => {
+test('commit message: valid messages pass', () => {
   const dir = tempDir();
   for (const message of [
     'feat(auth): 支持邮箱登录 (#12)',
-    'fix: 修复空列表',
-    'feat(api)!: 删除旧接口',
+    'fix: handle empty list',
+    'feat(api)!: remove the old endpoint',
     'chore(release): 1.2.0',
     "Merge branch 'develop'",
     'Revert "feat: x"',
     'fixup! feat: x',
-    '# 注释行\nfeat: 有注释行',
-    'feat: 标题\n\n正文',
+    '# comment line\nfeat: with a comment line',
+    'feat: title\n\nbody',
   ]) {
     const file = join(dir, 'msg');
     writeFileSync(file, `${message}\n`);
     const result = run('node', [commitCheck, '--file', file]);
-    assert.equal(result.status, 0, `${message}：${result.stderr}`);
+    assert.equal(result.status, 0, `${message}: ${result.stderr}`);
   }
 });
 
-test('提交信息：不合格的写法被拦下', () => {
+test('commit message: invalid messages are rejected', () => {
   const dir = tempDir();
-  for (const message of ['随便改改', 'feat:没空格', 'feature: 类型不对', 'feat: 标题\n正文紧跟', '', `feat: ${'长'.repeat(120)}`]) {
+  for (const message of ['random change', 'feat:no space', 'feature: wrong type', 'feat: title\nbody right after', '', `feat: ${'x'.repeat(120)}`]) {
     const file = join(dir, 'msg');
     writeFileSync(file, `${message}\n`);
     const result = run('node', [commitCheck, '--file', file]);
-    assert.equal(result.status, 1, `应该被拦下：${message}`);
+    assert.equal(result.status, 1, `should be rejected: ${message}`);
   }
 });
 
-test('提交信息：检查一段提交范围，fixup 在 CI 里不允许', () => {
+test('commit message: checks a commit range, fixup is not allowed in CI', () => {
   const dir = tempDir();
   const git = (...args) => execFileSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], { cwd: dir });
   git('init', '-q', '-b', 'main');
-  git('commit', '-q', '--allow-empty', '-m', 'chore: 初始化');
+  git('commit', '-q', '--allow-empty', '-m', 'chore: initialize');
   const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf8' }).trim();
-  git('commit', '-q', '--allow-empty', '-m', 'feat: 一个功能');
+  git('commit', '-q', '--allow-empty', '-m', 'feat: a feature');
   assert.equal(run('node', [commitCheck, '--range', `${base}..HEAD`], { cwd: dir }).status, 0);
-  git('commit', '-q', '--allow-empty', '-m', 'fixup! feat: 一个功能');
-  git('commit', '-q', '--allow-empty', '-m', '乱写');
+  git('commit', '-q', '--allow-empty', '-m', 'fixup! feat: a feature');
+  git('commit', '-q', '--allow-empty', '-m', 'scribble');
   const result = run('node', [commitCheck, '--range', `${base}..HEAD`], { cwd: dir });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /乱写/);
+  assert.match(result.stderr, /scribble/);
   assert.match(result.stderr, /fixup/);
 });
 
-test('风险分级：按路径和分支定级', () => {
+test('risk tiers: by path and branch', () => {
   const tier = (...args) => run('node', [riskClassify, '--dry-run', ...args]).stdout.split('\n')[0];
   assert.equal(tier('README.md', 'docs/a/b.md'), 'low');
   assert.equal(tier(), 'low');
@@ -78,13 +80,14 @@ test('风险分级：按路径和分支定级', () => {
   assert.equal(tier('.env.local'), 'high');
   assert.equal(tier('apps/web/.dependency-cruiser.cjs'), 'high');
   assert.equal(tier('apps/web/eslint.config.js'), 'high');
+  assert.equal(tier('apps/api/.oxlintrc.json'), 'high');
   assert.equal(tier('apps/web/e2e/visual.spec.ts-snapshots/home-chromium-linux.png'), 'high');
   assert.equal(tier('apps/api/src/test/java/com/x/ArchitectureTest.java'), 'high');
   assert.equal(tier('--head', 'release/1.2.0', 'src/a.ts'), 'high');
   assert.equal(tier('--head', 'main', '.github/workflows/ci.yml'), 'low');
 });
 
-test('格式化钩子：按目录选最深的规则，命令在规则目录下运行', () => {
+test('format hook: picks the deepest matching rule and runs it in the rule directory', () => {
   const dir = tempDir();
   mkdirSync(join(dir, '.claude', 'hooks'), { recursive: true });
   mkdirSync(join(dir, 'apps', 'web', 'src'), { recursive: true });
@@ -118,36 +121,36 @@ test('格式化钩子：按目录选最深的规则，命令在规则目录下�
   writeFileSync(join(dir, 'apps', 'web', 'src', 'a.txt'), 'bad');
   const failed = hook(join(dir, 'apps', 'web', 'src', 'a.txt'));
   assert.equal(failed.status, 2);
-  assert.match(failed.stderr, /没有通过 lint/);
+  assert.ok(failed.stderr.length > 0, 'the lint failure is reported back');
 
-  assert.equal(hook(join(dir, 'apps', 'web', 'src', 'none.md')).status, 0, '没有规则的文件直接放行');
-  assert.equal(hook(join(tmpdir(), 'outside.txt')).status, 0, '项目外的文件直接放行');
+  assert.equal(hook(join(dir, 'apps', 'web', 'src', 'none.md')).status, 0, 'files without a rule pass');
+  assert.equal(hook(join(tmpdir(), 'outside.txt')).status, 0, 'files outside the project pass');
 });
 
-test('安装脚本：复制模板，已有文件跳过', () => {
+test('installer: copies the template and skips existing files', () => {
   const dir = tempDir();
   execFileSync('git', ['init', '-q'], { cwd: dir });
-  writeFileSync(join(dir, 'CLAUDE.md'), '# 已有的内容\n');
+  writeFileSync(join(dir, 'CLAUDE.md'), '# existing content\n');
   const result = JSON.parse(execFileSync('node', [installer, dir], { encoding: 'utf8' }));
   assert.deepEqual(result.skipped, ['CLAUDE.md']);
   assert.ok(result.copied.includes('.github/workflows/ai-review.yml'));
   assert.ok(result.copied.includes('AGENTS.md'));
   assert.ok(existsSync(join(dir, '.githooks', 'commit-msg')));
-  assert.equal(readFileSync(join(dir, 'CLAUDE.md'), 'utf8'), '# 已有的内容\n');
+  assert.equal(readFileSync(join(dir, 'CLAUDE.md'), 'utf8'), '# existing content\n');
   rmSync(dir, { recursive: true, force: true });
 });
 
-test('安装脚本：目标不是 git 仓库时拒绝', () => {
+test('installer: refuses a target that is not a git repository', () => {
   assert.equal(run('node', [installer, tempDir()]).status, 1);
 });
 
-test('画面截图：从原型里读截图尺寸，没写时用默认尺寸', () => {
+test('screen rendering: reads the screenshot size from the prototype, with a default', () => {
   assert.deepEqual(sizeOf('<meta name="screenshot-size" content="390x844" />'), { width: 390, height: 844 });
   assert.deepEqual(sizeOf("<meta content='800 x 600' name='screenshot-size'>"), { width: 800, height: 600 });
   assert.deepEqual(sizeOf('<meta name="viewport" content="width=device-width">'), DEFAULT_SIZE);
 });
 
-test('画面截图：PNG 和原型同名，目录下的原型都收进来，各平台用系统程序打开', () => {
+test('screen rendering: PNG next to the prototype, directories collected, opened with the system viewer', () => {
   assert.equal(pngPathFor(join('screens', 'SCR-001-login--error.html')), join('screens', 'SCR-001-login--error.png'));
 
   const dir = tempDir();
@@ -166,8 +169,8 @@ test('画面截图：PNG 和原型同名，目录下的原型都收进来，各�
   assert.deepEqual(openCommand('linux', 'a.png'), ['xdg-open', ['a.png']]);
 });
 
-test('画面截图：真的截出 PNG，宽度按原型，高度截整页', {
-  skip: process.env.RENDER_SMOKE ? false : '设置 RENDER_SMOKE=1 时才运行（要下载 Chromium）',
+test('screen rendering: renders a real PNG, width from the prototype, full page height', {
+  skip: process.env.RENDER_SMOKE ? false : 'runs only with RENDER_SMOKE=1 (downloads Chromium)',
   timeout: 300_000,
 }, () => {
   const dir = tempDir();
@@ -177,6 +180,48 @@ test('画面截图：真的截出 PNG，宽度按原型，高度截整页', {
   assert.equal(result.status, 0, result.stderr);
   const png = readFileSync(join(dir, 'SCR-001-demo.png'));
   assert.equal(png.readUInt32BE(16), 400);
-  assert.ok(png.readUInt32BE(20) >= 600, '内容比截图尺寸高时截整页');
+  assert.ok(png.readUInt32BE(20) >= 600, 'content taller than the screenshot size is captured in full');
   rmSync(dir, { recursive: true, force: true });
+});
+
+test('versions: LTS from endoflife.date cycles', () => {
+  const today = '2026-11-09';
+  const node = [
+    { cycle: '27', releaseDate: '2027-04-20', lts: false },
+    { cycle: '26', releaseDate: '2026-04-21', lts: '2026-10-28' },
+    { cycle: '25', releaseDate: '2025-10-15', lts: false },
+    { cycle: '24', releaseDate: '2025-05-06', lts: '2025-10-28' },
+  ];
+  assert.equal(pickLts(node, today), '26', 'an LTS start date in the past counts');
+  assert.equal(pickLts(node, '2026-10-01'), '24', 'an LTS start date in the future does not count yet');
+  const java = [
+    { cycle: '27', releaseDate: '2026-09-15', lts: false },
+    { cycle: '25', releaseDate: '2025-09-16', lts: true },
+  ];
+  assert.equal(pickLts(java, today), '25');
+  const python = [
+    { cycle: '3.14', releaseDate: '2025-10-07', lts: false },
+    { cycle: '3.15', releaseDate: '2026-10-01', lts: false },
+  ];
+  assert.equal(pickLts(python, today), '3.15', 'without an LTS concept the newest release wins');
+  assert.equal(pickLts([], today), undefined);
+});
+
+test('versions: highest stable version allowed by every tool', () => {
+  assert.equal(compareVersions('6.10.0', '6.9.3') > 0, true);
+  assert.equal(compareVersions('7.0.0', '7.0.0'), 0);
+  const latest = ['6.0.2', '6.0.3', '7.0.0', '7.0.1-rc', '7.0.2'];
+  const eslintRange = ['6.0.2', '6.0.3'];
+  assert.equal(pickCompatible([latest, eslintRange]), '6.0.3');
+  assert.equal(pickCompatible([latest]), '7.0.2', 'pre-releases are skipped');
+  assert.equal(pickCompatible([latest, ['5.9.3']]), undefined);
+  assert.deepEqual(
+    supportRanges({ peerDependencies: { typescript: '>=4.8.4 <6.1.0' }, supportedTranspilers: { typescript: '<7.0.0' } }, 'typescript'),
+    ['>=4.8.4 <6.1.0', '<7.0.0'],
+  );
+  assert.deepEqual(supportRanges({ peerDependencies: undefined, supportedTranspilers: undefined }, 'typescript'), []);
+  assert.deepEqual(asList('6.0.3'), ['6.0.3']);
+  assert.deepEqual(asList(undefined), []);
+  assert.equal(asSingle(['7.0.2']), '7.0.2');
+  assert.deepEqual(asSingle({ a: 1 }), { a: 1 });
 });

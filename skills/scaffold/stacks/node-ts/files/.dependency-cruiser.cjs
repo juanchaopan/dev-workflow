@@ -1,5 +1,7 @@
 // 架构规则：routes → services → repositories 分层、领域层不依赖框架和数据库、功能之间隔离。
 // 说明见 .claude/rules/ 里本组件的规范。由 scripts/arch-check.mjs 运行（npm run arch），违反任何一条，自检和 CI 都会失败。
+// 源码用 SWC 解析（需要 @swc/core），不经过 TypeScript 的 JS API，所以任何 TypeScript 版本都能分析，也能区分 type-only 导入。
+// SWC 不读 tsconfig 的 paths 别名：以后加了别名，在 options 里配 enhancedResolveOptions.alias，并确认架构检查仍能拦下违规。
 module.exports = {
   forbidden: [
     {
@@ -57,7 +59,6 @@ module.exports = {
   options: {
     doNotFollow: { path: 'node_modules' },
     exclude: { path: '[.]test[.]ts$' },
-    tsConfig: { fileName: 'tsconfig.json' },
-    tsPreCompilationDeps: true,
+    parser: 'swc',
   },
 };

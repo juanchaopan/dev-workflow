@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的官方生成器创建每个组件，按架构文档选定的决策点装上规范库里对应技术栈的代码规范、架构检查（分层规则由工具强制）、lint 和格式化配置，需要时装上设计令牌、Storybook 和视觉回归测试；生成本地用 docker compose 跑多实例的配置和部署流水线（测试环境、生产环境、PR 预览）；建 GitHub 仓库，最后调用 /setup-ai-review 装上审查流程。也能给已有项目补装某个技术栈的规范，现存问题用基线记下、不阻塞。规范库现有 Angular、Spring Boot（Maven 或 Gradle）、Python、React（TypeScript）、Node.js（TypeScript）、.NET Blazor。在 /design 之后使用，完成后接 /roadmap。
+description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的官方生成器创建每个组件，版本当场现查（运行时用当前的 LTS，库和工具用最新版，不写死任何版本号；某个工具还不支持新的大版本时，把情况告诉用户、让他选换工具还是用旧一点的版本），按架构文档选定的决策点装上规范库里对应技术栈的代码规范、架构检查（分层规则由工具强制）、lint 和格式化配置，需要时装上设计令牌、Storybook 和视觉回归测试；生成本地用 docker compose 跑多实例的配置和部署流水线（测试环境、生产环境、PR 预览）；建 GitHub 仓库，最后调用 /setup-ai-review 装上审查流程。也能给已有项目补装某个技术栈的规范，现存问题用基线记下、不阻塞。规范库现有 Angular、Spring Boot（Maven 或 Gradle）、Python、React（TypeScript）、Node.js（TypeScript）、.NET Blazor。在 /design 之后使用，完成后接 /roadmap。
 ---
 
 # 搭建项目
@@ -12,6 +12,7 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
   - `rules.md`：给 AI 看的代码规范，包括分层规则，复制到项目的 `.claude/rules/`。
   - `files/`：lint、格式化和架构检查的配置，复制到组件目录。
 - `shared/`：几个技术栈共用的东西。
+  - `versions.mjs`：现查版本：运行时当前的 LTS；一个 npm 包在给定的工具都支持的前提下能用的最高版本。
   - `arch-check.mjs`：dependency-cruiser 的包装脚本（Angular、React、Node 用）。
   - `visual-testing.md`、`playwright.config.ts`：设计令牌、Storybook、视觉回归测试。
   - `deployment.md`、`deploy.yml`：环境、部署平台、PR 预览和部署流水线。
@@ -22,11 +23,32 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 - **新项目**：做第 0 到 11 步。
 - **给已有项目装规范**（用户直接要求，或 /onboard 调用）：做第 0、4、5、10 步。识别技术栈用各 `stack.md` 里的"识别方法"。配置文件已经存在时，不要覆盖：比较差异，告诉用户打算怎么合并，同意后再改。目录结构和规范库的分层约定对不上时，不要大规模搬动代码；先只装工具和规则，现存的违规按 onboard 技能第 7 步的方法记成基线。改动通过分支和 /open-pr 提交。
 
+## 版本：现查，不写死；有取舍时让用户选
+
+搭出来的项目要用搭建那一天的最新版本，而这份规范库不知道那一天的最新版本是多少，所以任何版本号都不写进文档和配置，一律当场查：
+
+| 什么 | 怎么查 |
+|---|---|
+| 运行时（Node.js、Java、.NET） | 当前的 LTS：`node <本技能目录>/shared/versions.mjs lts <产品>`，产品名 `nodejs`、`eclipse-temurin`、`dotnet` |
+| Python | 最新的稳定版本：`node <本技能目录>/shared/versions.mjs lts python` |
+| 生成器 | 用 `@latest`，或者生成器自己的最新版（例如 `npx -y @angular/cli@latest`、Spring Initializr 的默认值） |
+| 库和工具 | 最新版 |
+| Maven 插件和依赖 | Maven Central 元数据里的 `<release>`，见 Spring Boot 的 `stack.md` |
+
+规范库选的工具尽量不限制版本（例如架构检查用 SWC 解析源码，Node.js 的 lint 默认用 Oxlint，都不依赖 TypeScript 的 JS API），大多数时候直接用最新版，不用问。
+
+有冲突时由用户决定，不替他默认：某个选定的工具还不支持新的大版本时（`stack.md` 的"版本"一节写了怎么用 `versions.mjs npm <包> <工具>...` 现查），停下来告诉用户：最新版是多少、哪个工具支持到多少、为什么；再用 AskUserQuestion 让他选：
+
+- 用最新版，换成已经支持它的工具或配置（`stack.md` 里写了有哪些），说清换了以后少了什么；
+- 保留这个工具，用它支持的最高版本，说清会落后多少；工具跟上以后，已经搭好的项目由 Dependabot 跟进（第 10 步）。
+
+选择和理由写进这个组件技术细节的 ADR。不要自己写死旧版本，也不要为了用新版本悄悄关掉检查。版本跟着框架走的（例如 Angular、NestJS 的 TypeScript），用框架支持的版本，不单独升级。
+
 ## 步骤
 
 ### 0. 读设计
 
-读 `docs/architecture/overview.md` 和 `docs/adr/`，列出每个组件：名称、目录、技术栈，以及 ADR 里记下的决策点结果（构建工具、数据访问方式、组件分层、是否用 Storybook 和视觉回归测试等）、部署方式。没有架构文档就告诉用户先运行 /architect。某个决策点 ADR 里没写时，按 `stack.md` 决策点表里的推荐项问用户。组件的技术栈在规范库里没有时，告诉用户：可以照常创建，但需要另外补一套规范（照着 `stacks/` 里的某个目录写一套新的，至少包括 lint、格式化和架构检查）。
+读 `docs/architecture/overview.md` 和 `docs/adr/`，列出每个组件：名称、目录、技术栈，以及 ADR 里记下的决策点结果（构建工具、lint 工具、数据访问方式、组件分层、是否用 Storybook 和视觉回归测试等）、部署方式。没有架构文档就告诉用户先运行 /architect。某个决策点 ADR 里没写时，按 `stack.md` 决策点表里的推荐项问用户。组件的技术栈在规范库里没有时，告诉用户：可以照常创建，但需要另外补一套规范（照着 `stacks/` 里的某个目录写一套新的，至少包括 lint、格式化和架构检查）。
 
 再读 `docs/design/README.md`：画面原型用的 `docs/design/screens/tokens.css` 是前端设计令牌的来源。新项目还没有 `docs/design/` 时，提醒用户 /roadmap 拆 issue 之前要先运行 /design；用户想先搭项目也可以继续。
 
@@ -46,9 +68,11 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 
 只有一个组件时，可以直接放在仓库根目录。把目录树给用户看，确认后再创建。
 
-### 2. 检查工具
+### 2. 检查工具和版本
 
-按各技术栈 `stack.md` 的"需要的工具"逐个检查，例如运行 `node --version`、`java --version`、`dotnet --version`、`uv --version`、`docker --version`。缺少的工具告诉用户怎么装，不要自己装系统级软件。
+按各技术栈 `stack.md` 的"需要的工具"逐个检查，例如运行 `node --version`、`java --version`、`dotnet --version`、`uv --version`、`docker --version`。运行时再和"版本"一节查到的当前 LTS 比一比：本机的版本更旧时，告诉用户当前的 LTS 是多少、怎么升级，由用户决定先升级还是先用本机的版本搭（ADR 里选定了别的版本时，按 ADR）。缺少的工具告诉用户怎么装，不要自己装系统级软件。
+
+再按各 `stack.md` 的"版本"一节检查有没有版本冲突，有的话按"版本"一节的做法请用户选。
 
 ### 3. 创建组件
 
@@ -56,7 +80,7 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 
 ### 4. 装规范和检查
 
-对每个组件，按 `stack.md` 的"创建后"一节做完每一步，按决策点的结果选择对应的分支（例如 Maven 或 Gradle）。这一节包括：
+对每个组件，按 `stack.md` 的"创建后"一节做完每一步，按决策点的结果选择对应的分支（例如 Maven 或 Gradle、Oxlint 或 typescript-eslint）。这一节包括：
 
 - lint、格式化、复杂度和长度上限的配置；
 - 架构检查（dependency-cruiser、ArchUnit、import-linter 或 ArchUnitNET），以及 `rules.md` 约定的分层目录；
@@ -74,7 +98,7 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 
 按架构文档的部署设计写 `infra/docker-compose.yml`：
 
-- 每个组件一个服务，用组件目录下的 Dockerfile 构建（按技术栈的常规做法写多阶段构建的 Dockerfile）。
+- 每个组件一个服务，用组件目录下的 Dockerfile 构建（按技术栈的常规做法写多阶段构建的 Dockerfile，基础镜像用和组件相同的运行时版本）。
 - 无状态组件按部署设计设置多个实例（`deploy.replicas`），前面放一个反向代理做负载均衡，这样本地就能看到多实例的效果。
 - 数据库、缓存、消息队列等依赖用官方镜像，数据放在命名卷里。
 - 每个服务配健康检查，依赖关系用 `depends_on` 加 `condition: service_healthy`。
@@ -108,8 +132,8 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 
 ### 10. 装审查流程
 
-用 Skill 工具运行 `setup-ai-review`。告诉它：这是 /scaffold 刚搭出来（或刚装好规范）的项目，组件、目录、自检命令和 CI 步骤都在各技术栈的 `stack.md` 里，`.claude/hooks/format.config.json` 按各 `stack.md` 的"格式化钩子规则"写，每条规则的 `dir` 填组件目录；Dependabot 按每个组件的包管理器配置。
+用 Skill 工具运行 `setup-ai-review`。告诉它：这是 /scaffold 刚搭出来（或刚装好规范）的项目，组件、目录、自检命令和 CI 步骤都在各技术栈的 `stack.md` 里，`.claude/hooks/format.config.json` 按各 `stack.md` 的"格式化钩子规则"写，每条规则的 `dir` 填组件目录；Dependabot 按每个组件的包管理器配置，npm 组件保留模板里 TypeScript 工具链一起升级的分组。
 
 ### 11. 汇报和下一步
 
-汇报：建了哪些组件、各装了哪套规范和哪些检查、决策点的结果、自检结果、本地怎么启动、部署流水线和用户还要做的平台配置、仓库地址。告诉用户接下来运行 /roadmap，按需求和设计拆成 issue；还没有做 /design 的，先运行 /design。
+汇报：建了哪些组件、用了哪些版本（运行时、框架、TypeScript 等）、版本上有过哪些取舍和用户的选择、各装了哪套规范和哪些检查、决策点的结果、自检结果、本地怎么启动、部署流水线和用户还要做的平台配置、仓库地址。告诉用户接下来运行 /roadmap，按需求和设计拆成 issue；还没有做 /design 的，先运行 /design。

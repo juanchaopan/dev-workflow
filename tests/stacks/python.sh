@@ -4,8 +4,10 @@ source "$(dirname "$0")/lib.sh"
 F="$STACKS/python/files"
 
 step "创建项目"
+PY=$(lts python)
+echo "Python $PY"
 cd "$WORK"
-uv init --package --python 3.13 --name demo-py app
+uv init --package --python "$PY" --name demo-py app
 cd app
 
 step "装规范"
@@ -75,4 +77,4 @@ should_fail "函数复杂度超标" uv run ruff check .
 rm $P/domain/complex.py
 
 echo
-echo "Python 冒烟测试通过"
+echo "Python 冒烟测试通过（Python $PY）"

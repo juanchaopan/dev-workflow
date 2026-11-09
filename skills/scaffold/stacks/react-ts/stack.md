@@ -41,7 +41,7 @@ create-vite 不认识 `--no-interactive` 时去掉这个参数。
 
 在组件目录下：
 
-1. 把 TypeScript 固定在 6.x：`npm install -D "typescript@^6"`。新版模板默认装 TypeScript 7，但 dependency-cruiser 还不支持它，架构检查会因此什么都分析不到。dependency-cruiser 支持 7 以后（看它的 peerDependencies：`npm view dependency-cruiser peerDependencies`），再去掉这个限制。
+1. TypeScript 用模板装的版本（npm 上的最新版），不要改。架构检查用 SWC 解析源码，模板的 oxlint 也不依赖 TypeScript 的 JS API，都不会限制 TypeScript 的版本。旧版模板的 linter 是 ESLint 加 typescript-eslint 时，按 Node.js 技术栈 stack.md 的"版本"一节现查 typescript-eslint 支持的版本；比最新版旧时，把情况告诉用户、让他选（换成 oxlint，或者用查出的版本）。
 2. `@types/node` 的主版本和项目用的 Node.js 主版本对齐（例如 Node 24 用 `npm install -D "@types/node@^24"`），否则装 Storybook 这类工具时会出现 peer 依赖冲突。
 3. 在模板的 linter 配置里加上复杂度和长度的上限。React 组件的 JSX 比较长，函数长度上限放宽到 100 行。oxlint 加在 `.oxlintrc.json` 的 `rules` 里：
 
@@ -52,7 +52,7 @@ create-vite 不认识 `--no-interactive` 时去掉这个参数。
    ```
 
    并加上 `"ignorePatterns": ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx", ".dependency-cruiser.cjs"]`。用 ESLint 时，在 `eslint.config.js` 里加同样的三条规则（不带 `eslint/` 前缀）。
-4. 架构检查：`npm install -D dependency-cruiser`；把 `files/.dependency-cruiser.cjs` 复制到组件目录，把 scaffold 技能 `shared/arch-check.mjs` 复制到组件的 `scripts/` 目录；`npm pkg set scripts.arch="node scripts/arch-check.mjs"`。
+4. 架构检查：`npm install -D dependency-cruiser @swc/core`；把 `files/.dependency-cruiser.cjs` 复制到组件目录，把 scaffold 技能 `shared/arch-check.mjs` 复制到组件的 `scripts/` 目录；`npm pkg set scripts.arch="node scripts/arch-check.mjs"`。
 5. 单元测试：`npm install -D prettier vitest jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event`；把 `files/` 下的 `.prettierrc.json`、`.prettierignore`、`src/test/setup.ts` 复制到对应位置。在 `vite.config.ts` 第一行加 `/// <reference types="vitest/config" />`，在 `defineConfig` 里加：
 
    ```ts

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # React 冒烟测试：按 stacks/react-ts/stack.md 建项目、装规范，跑自检命令，再确认架构检查和复杂度上限会拦下违规。
+# TypeScript 用模板装的最新版；架构检查用 SWC 解析，不受 TypeScript 版本限制。
 source "$(dirname "$0")/lib.sh"
 F="$STACKS/react-ts/files"
 
@@ -8,9 +9,11 @@ cd "$WORK"
 npm create vite@latest app -- --template react-ts --no-interactive
 cd app
 npm install
+TS_VERSION=$(npx tsc --version)
+echo "$TS_VERSION"
 
 step "装规范"
-npm install -D "typescript@^6" "@types/node@^$(node_major)" dependency-cruiser prettier vitest jsdom \
+npm install -D "@types/node@^$(node_major)" dependency-cruiser @swc/core prettier vitest jsdom \
   @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event
 node -e "
 const fs = require('fs');
@@ -120,7 +123,7 @@ npm run format
 step "自检命令"
 should_pass "格式检查" npm run format:check
 should_pass "lint" npm run lint
-should_pass "架构检查" npm run arch
+should_pass "架构检查（展示组件只引用 data-access 的类型，允许）" npm run arch
 should_pass "类型检查" npm run typecheck
 should_pass "测试" npm test
 should_pass "构建" npm run build
@@ -129,11 +132,11 @@ step "违规会被拦下"
 COMPONENT=src/features/orders/components/OrderList.tsx
 cp $COMPONENT "$WORK/OrderList.tsx.bak"
 printf "import { listOrders } from '../data-access/orders-api';\nexport const load = listOrders;\n" >> $COMPONENT
-should_fail "展示组件调用 data-access" npm run arch
+should_fail "展示组件在运行时调用 data-access" npm run arch
 cp "$WORK/OrderList.tsx.bak" $COMPONENT
 node -e "let b='export function f(x: number): number {\n  let r = 0;\n';for(let i=0;i<12;i++)b+='  if (x === '+i+') {\n    r += '+i+';\n  }\n';b+='  return r;\n}\n';require('fs').writeFileSync('src/shared/lib/complex.ts',b);"
 should_fail "函数复杂度超标" npx oxlint src/shared/lib/complex.ts
 rm src/shared/lib/complex.ts
 
 echo
-echo "React 冒烟测试通过"
+echo "React 冒烟测试通过（$TS_VERSION）"

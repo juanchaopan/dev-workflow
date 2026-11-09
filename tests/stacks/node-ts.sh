@@ -1,18 +1,40 @@
 #!/usr/bin/env bash
-# Node.js 冒烟测试：按 stacks/node-ts/stack.md 手动初始化项目、装规范，跑自检命令，再确认分层规则和类型检查会拦下违规。
+# Node.js 冒烟测试：按 stacks/node-ts/stack.md 手动初始化项目、装规范，跑自检命令，再确认分层规则和类型感知的 lint 会拦下违规。
+# LINT=oxlint（默认，用最新的 TypeScript）或 LINT=eslint（typescript-eslint，用它支持的最高 TypeScript 版本）。
 source "$(dirname "$0")/lib.sh"
 F="$STACKS/node-ts/files"
+LINT=${LINT:-oxlint}
 
-step "创建项目"
+case "$LINT" in
+  oxlint)
+    TS=latest
+    LINT_PACKAGES=(oxlint oxlint-tsgolint)
+    LINT_CONFIG=.oxlintrc.json
+    LINT_SCRIPT="oxlint --type-aware --deny-warnings"
+    LINT_FILE=(npx oxlint --type-aware --deny-warnings)
+    ;;
+  eslint)
+    TS=$(npm_compatible typescript typescript-eslint)
+    LINT_PACKAGES=(eslint @eslint/js typescript-eslint)
+    LINT_CONFIG=eslint.config.mjs
+    LINT_SCRIPT="eslint ."
+    LINT_FILE=(npx eslint)
+    ;;
+  *) die "LINT 只能是 oxlint 或 eslint" ;;
+esac
+
+step "创建项目（$LINT）"
 mkdir -p "$WORK/app" && cd "$WORK/app"
 npm init -y
 npm pkg set type=module
-npm install -D "typescript@^6" @types/node tsx vitest eslint @eslint/js typescript-eslint prettier dependency-cruiser
+npm install -D "typescript@$TS" "@types/node@^$(node_major)" tsx vitest prettier dependency-cruiser @swc/core "${LINT_PACKAGES[@]}"
+TS_VERSION=$(npx tsc --version)
+echo "$TS_VERSION"
 
 step "装规范"
-cp "$F/tsconfig.json" "$F/tsconfig.build.json" "$F/eslint.config.mjs" "$F/.prettierrc.json" "$F/.prettierignore" "$F/.gitignore" "$F/.dependency-cruiser.cjs" .
+cp "$F/tsconfig.json" "$F/tsconfig.build.json" "$F/$LINT_CONFIG" "$F/.prettierrc.json" "$F/.prettierignore" "$F/.gitignore" "$F/.dependency-cruiser.cjs" .
 mkdir -p scripts && cp "$SHARED/arch-check.mjs" scripts/
-npm pkg set scripts.build="tsc -p tsconfig.build.json" scripts.lint="eslint ." scripts.arch="node scripts/arch-check.mjs" \
+npm pkg set scripts.build="tsc -p tsconfig.build.json" scripts.lint="$LINT_SCRIPT" scripts.arch="node scripts/arch-check.mjs" \
   scripts.typecheck="tsc --noEmit" scripts.test="vitest run" scripts.format="prettier --write ." scripts.format:check="prettier --check ."
 
 step "按分层建目录和示例代码"
@@ -98,9 +120,12 @@ cp $ROUTES "$WORK/order-routes.ts.bak"
 printf "import { findAll } from '../repositories/order-repository.js';\nexport const all = findAll;\n" >> $ROUTES
 should_fail "routes 跳过 services 直接访问 repositories" npm run arch
 cp "$WORK/order-routes.ts.bak" $ROUTES
+printf "import { listOrders } from '../orders/services/order-service.js';\nexport const x = listOrders;\n" > src/shared/uses-feature.ts
+should_fail "shared 依赖功能" npm run arch
+rm src/shared/uses-feature.ts
 printf "async function save(): Promise<void> {\n  await Promise.resolve();\n}\nvoid 0;\nsave();\n" > src/shared/floating.ts
-should_fail "没有 await 的 Promise" npx eslint src/shared/floating.ts
+should_fail "没有 await 的 Promise（类型感知规则）" "${LINT_FILE[@]}" src/shared/floating.ts
 rm src/shared/floating.ts
 
 echo
-echo "Node.js 冒烟测试通过"
+echo "Node.js 冒烟测试通过（$LINT，$TS_VERSION）"
