@@ -52,3 +52,17 @@ Step 6 of /design checks against this list. For each problem say where it is, wh
 - State machines: every state except final ones has a way out; invalid transitions are handled; concurrent edits of the same record are handled.
 - Decision tables: all combinations of conditions are covered, and no two rows have the same conditions with different results.
 - Calculations: precision and rounding, zero, negative numbers, upper limits and empty values, each with an example.
+
+## Current system (existing systems only)
+
+Against `docs/design/as-is/`:
+
+- Every old element in the areas in scope is "Used by" a design element or "Dropped" with a reason.
+- Every old field rule and business rule (CUR-RUL) touching the scope has a decision (keep, change, drop) in the "From the current system" section of a design element; none is carried over silently.
+- Every finding (FND) touching the scope has a resolution; security findings are resolved, not dropped.
+- A kept calculation gives the same result as the old worked example; a changed one states its new result.
+- Every old column that holds data is mapped to a new column, archived or dropped with the user's decision; dirty data found by profiling has a handling.
+- Every value found in the old data (e.g. an unknown status code) is valid in the new design or has a conversion.
+- Every old interface with outside callers has a compatibility decision (compatible, versioned, or changed with the callers by a date).
+- Every old scheduled job is kept, changed or dropped, and nothing that ran silently (e.g. a nightly data fix) disappears unnoticed.
+- Old permission checks that the server did not enforce are enforced by the new interfaces.

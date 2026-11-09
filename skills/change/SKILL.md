@@ -40,19 +40,19 @@ As in /kickoff: AskUserQuestion in the user's language, 2 to 4 questions per rou
 ### 0. Read the current state
 
 - Given an issue number: `gh issue view <number> --comments`.
-- Read CLAUDE.md, `docs/README.md`, `docs/product/`, `docs/architecture/overview.md`, `docs/adr/`, `docs/design/` and `docs/roadmap.md`.
-- When the project has no `docs/` yet, first run `onboard` with the Skill tool to document the current state.
+- Read CLAUDE.md, `docs/README.md`, `docs/product/`, `docs/architecture/overview.md`, `docs/adr/`, `docs/design/` and `docs/roadmap.md`. For a taken-over system, also the index of `docs/design/as-is/README.md`: the old elements and findings the change touches.
+- When the project has no `docs/` yet, first run `onboard` with the Skill tool to gather the evidence of the current state.
 - Find the relevant code: which modules, classes and interfaces will change, how many places call them, how they are structured today.
 
 ### 1. Rate it
 
-Say which REQs, ADRs, design elements (screens, entities, interfaces, logic), modules, classes and interfaces the change touches, and therefore which level each axis gets. For design impact look at three things: once the new logic is in, will existing functions grow layer upon layer of conditionals; will two ways of doing the same thing coexist; can existing interfaces express the new requirement without changing their signatures. Ask the user to confirm both levels with AskUserQuestion (recommend your own rating).
+Say which REQs, ADRs, design elements (screens, entities, interfaces, logic), old elements and findings, modules, classes and interfaces the change touches, and therefore which level each axis gets. For design impact look at three things: once the new logic is in, will existing functions grow layer upon layer of conditionals; will two ways of doing the same thing coexist; can existing interfaces express the new requirement without changing their signatures. Ask the user to confirm both levels with AskUserQuestion (recommend your own rating).
 
 When something is uncertain and needs trying out first (e.g. the performance of a new approach, whether a third-party service works), suggest /spike and continue once the conclusion is in.
 
 ### 2. Handle by requirement level
 
-**L0**: without an issue, create one following the bug template (steps to reproduce, expected, actual) with the label `type:bug`. Ask how to reproduce it. Compare with the design: when the implementation deviates from the design, fix it to match the design; when the design was unclear and led the implementation astray, clarify the design first (step 3).
+**L0**: without an issue, create one following the bug template (steps to reproduce, expected, actual) with the label `type:bug`. Ask how to reproduce it. Compare with the design: when the implementation deviates from the design, fix it to match the design; when the design was unclear and led the implementation astray, clarify the design first (step 3). In a taken-over system without a design for this part, check whether a finding already describes it, and ask whether anyone relies on the current behavior before calling it a bug (old behavior is sometimes policy).
 
 **L1**:
 1. Ask 1 or 2 rounds against the relevant items of `references/requirement-holes.md` in the kickoff skill (the kickoff directory next to this skill): who uses it, how, edge cases and failures, how it fits existing features.
@@ -74,7 +74,7 @@ When something is uncertain and needs trying out first (e.g. the performance of 
 
 When the change touches screens, fields, validation, messages, data structures, interfaces or business logic, run `design` with the Skill tool and tell it this is a call from /change and which REQs and design elements are in scope (new, changed, deprecated). It changes only those parts: changed screens get new prototypes and screenshots and are confirmed with the user one by one; data, interface and logic changes are confirmed too; finally it checks the change against the rest of the design.
 
-When the project has no `docs/design/` yet (e.g. an onboarded legacy project), it first documents the current state of the screens, tables and interfaces this change touches from the code, then changes that.
+In a taken-over system, an element the change touches for the first time has no target definition yet: /design redesigns it from the evidence in `docs/design/as-is/` (gathering the evidence first for an area that has none), and the user decides on every old rule and finding involved before the change is applied on top.
 
 Skip this step for purely technical changes the user cannot notice (e.g. performance work, dependency upgrades, internal refactoring).
 
@@ -98,7 +98,7 @@ Skip this step for purely technical changes the user cannot notice (e.g. perform
 
 ### 5. Split issues
 
-Follow the structure of `templates/issue.md` in the roadmap skill (the roadmap directory next to this skill): acceptance criteria come from the changed design and cite the design element IDs and confirmed screenshots. Labels are `type:feature`, `type:bug`, `type:refactor`, `type:chore` and `type:spike`; put each issue in a suitable milestone and state the dependencies between issues.
+Follow the structure of `templates/issue.md` in the roadmap skill (the roadmap directory next to this skill): acceptance criteria come from the changed design and cite the design element IDs and confirmed screenshots; in a taken-over system, also the old elements replaced and the decisions on old rules. Labels are `type:feature`, `type:bug`, `type:refactor`, `type:chore` and `type:spike`; put each issue in a suitable milestone and state the dependencies between issues.
 
 ### 6. Write a change record
 

@@ -1,6 +1,6 @@
 ---
 name: kickoff
-description: Requirements discovery from wherever the user starts — a half-formed idea, an existing code directory (to improve or modernize), an existing document (requirements, tender, meeting notes, competitor analysis) or a problem (too slow, keeps failing, user complaints). Asks rounds of multiple-choice questions to pin down goals, users, the full feature list, scenarios, business rules, edge cases, scale constraints and scope, looks for logical holes after each round with suggestions, and writes the same set of requirement documents under docs/product/. Stays at the requirement level; screens, fields, validation and table structure are confirmed one by one in /design. Use when the user says "I have an idea", "help me sort out the requirements", "new project", "how do we modernize this old system", "turn this document into requirements" or "kickoff". Followed by /architect, then /design.
+description: Requirements discovery from wherever the user starts: a half-formed idea, existing code (to improve, modernize or rewrite), a document (requirements, tender, meeting notes) or a problem (too slow, keeps failing, complaints). Asks rounds of multiple-choice questions to pin down goals, users, the full feature list, scenarios, business rules, edge cases, scale constraints and scope, looks for logical holes after each round, and writes the requirement documents under docs/product/. For existing code it builds on /onboard's evidence without trusting it: what to keep, change or drop, whether screens and style are redone, and the findings that change requirements. Stays at the requirement level; screens, fields, validation and tables are confirmed in /design. Use for "I have an idea", "help me sort out the requirements", "new project", "how do we modernize this old system", "turn this document into requirements" or "kickoff". Followed by /architect, then /design.
 ---
 
 # Requirements discovery
@@ -34,9 +34,10 @@ Look at what the user gave you, then at what is in the current directory:
 
 | Situation | Entry | What to do |
 |---|---|---|
-| `docs/product/requirements.md` already exists | Existing requirements | Tell the user the requirements already exist and that new features or changed requirements go through /change. Continue only if the user insists on starting over |
+| `docs/product/requirements.md` already exists and is not only /onboard's inferred features | Existing requirements | Tell the user the requirements already exist and that new features or changed requirements go through /change. Continue only if the user insists on starting over |
 | Only an idea | **Idea** | Follow "Idea" below |
-| Points at a code directory, or the current directory has code but no `docs/` | **Existing code** | First run `onboard` with the Skill tool to document the current state, then follow "Existing code" |
+| Points at a code directory, or the current directory has code but no `docs/design/as-is/` | **Existing code** | First run `onboard` with the Skill tool to gather the evidence, then follow "Existing code" |
+| /onboard has run (`docs/design/as-is/` exists) | **Existing code** | Follow "Existing code" |
 | A document (file, link, pasted text) | **Document** | Follow "Document" |
 | Describes a problem | **Problem** | Follow "Problem" |
 
@@ -55,16 +56,25 @@ For a new project, also ask for the project name (a short English name used for 
 7. **Round 6 — scope and priorities**: what the first version (MVP) does, what comes later, what is explicitly out.
 8. Go to "Final hole check".
 
-## Existing code (improve, extend or modernize)
+## Existing code (maintain, extend, modernize or rewrite)
 
-/onboard has documented the current state: `docs/architecture/overview.md` (current architecture), `docs/product/requirements.md` (existing features inferred from code, status "Implemented") and `docs/architecture/tech-debt.md` (tech debt and quality baseline). Build on that and ask:
+/onboard has gathered evidence and the user has chosen a direction (maintain, extend, modernize, rewrite):
 
-1. **Round 1 — why change**: what hurts most (hard to change, slow, unstable, outdated and unmaintained technology, security and compliance, cost, cannot add features); what happens if nothing changes; any deadline (e.g. a framework's end of life).
+- `docs/architecture/overview.md`: the current architecture and its contradictions.
+- `docs/product/requirements.md`: existing features inferred from code, status "Implemented".
+- `docs/design/as-is/`: the current design — screens (real screenshots where it ran), data and what it actually contains, interfaces and their callers, business rules (CUR-RUL) — and the findings (FND: suspected bugs, contradictions, things that do not run, dirty data, hidden behavior).
+- `docs/architecture/tech-debt.md`: tech debt and the quality baseline.
+
+None of it is correct just because the old system does it. Build on it, and ask:
+
+1. **Round 1 — why change**: what hurts most (hard to change, slow, unstable, parts that do not work, outdated and unmaintained technology, security and compliance, cost, cannot add features, users dislike the screens); what happens if nothing changes; any deadline (e.g. a framework's end of life).
 2. **Round 2 — goals**: what must be true afterwards, measurably (e.g. "a new feature takes three days instead of two weeks", "P95 response time drops from 3 s to 500 ms"); whether the target users and usage change.
-3. **Round 3 — what to keep**: of the features /onboard inferred, which must stay exactly as they are, which can change, which go away (multi-select); whether data is migrated as is; whether external interfaces and URLs may change.
-4. **Round 4 — transition**: acceptable downtime; whether old and new can run side by side for a while; business that must not break (e.g. payments); one cutover or gradual replacement (/architect designs the details; here ask for the user's constraints and risk tolerance).
-5. **Round 5 — scale and constraints**: as Round 5 of "Idea", but first confirm the current numbers (users, data volume, current deployment) with the user, then ask about expectations.
-6. Go to "Final hole check". When writing requirements, kept features stay "Implemented", changed ones say exactly what they change into, dropped ones become "Deprecated", new features are "Active".
+3. **Round 3 — what to keep**: of the features /onboard found, which stay as they are, which change, which go away (multi-select; features nobody uses and features that do not work come first). Whether all existing data is migrated, archived or partly dropped. Whether external interfaces and URLs that other systems or users depend on may change.
+4. **Round 4 — screens and style** (with a UI): keep the current look, restyle (new colors, fonts and controls, same layouts), or redesign layouts and interactions; whether users must be able to work without retraining; devices and screen sizes now and in the future. /design follows this when it redesigns each screen.
+5. **Round 5 — findings that change requirements**: of the findings, those that decide what the system should do rather than how one screen behaves — e.g. a hidden rule users depend on ("customer 1042 never pays shipping"), a behavior that looks like a bug but may be policy, a permission the server never checked, a feature that never worked. Ask with the evidence, at most 4 per round; write the decision into the matching requirement and into the "Resolution" column of the finding. Findings about a single field or screen are left for /design.
+6. **Round 6 — transition**: acceptable downtime; whether old and new can run side by side for a while; business that must not break (e.g. payments); one cutover or gradual replacement (/architect designs the details; here ask for the user's constraints and risk tolerance). For a rewrite, also when the old system is switched off and who checks the migrated data.
+7. **Round 7 — scale and constraints**: as Round 5 of "Idea", but first confirm the current numbers (users, data volume from the profiling, current deployment) with the user, then ask about expectations.
+8. Go to "Final hole check". When writing requirements, features that stay in the old code as they are remain "Implemented"; features rebuilt in the target system (modernize, rewrite) and changed features become "Active", saying exactly what they become, with the old implementation under "Related"; dropped ones become "Deprecated"; new features are "Active". Sources cite the evidence (e.g. "CUR-SCR-004, confirmed by user").
 
 ## Document
 
@@ -85,7 +95,7 @@ For a new project, also ask for the project name (a short English name used for 
 
 ## Final hole check
 
-Go through everything against `references/requirement-holes.md` and list the problems: contradictions, missing roles or flows, features missing from the feature list, goals that cannot be measured, expectations that do not match the scale, scope that is too large, requirements that conflict with the current system. Give a suggestion for each. Let the user choose with AskUserQuestion where a decision is needed.
+Go through everything against `references/requirement-holes.md` and list the problems: contradictions, missing roles or flows, features missing from the feature list, goals that cannot be measured, expectations that do not match the scale, scope that is too large, requirements that conflict with the current system, findings that change requirements but are still open. Give a suggestion for each. Let the user choose with AskUserQuestion where a decision is needed.
 
 ## Write the documents
 
@@ -94,9 +104,9 @@ Write them from this skill's `templates/`, in the project's document language: t
 | File | Content |
 |---|---|
 | `docs/README.md` | Documentation index (only when the file does not exist) |
-| `docs/product/vision.md` | One-line positioning, target users, success criteria, scope, constraints, assumptions; for existing code also "Current state" and "Why change" |
+| `docs/product/vision.md` | One-line positioning, target users, success criteria, scope, constraints, assumptions; for existing code also "Current state", "Why change" and the decision on screens and style |
 | `docs/product/requirements.md` | Requirements numbered from REQ-001 (continue existing numbering), at least one per feature, each with a user story and acceptance criteria (Given/When/Then), priority, status and source |
-| `docs/product/glossary.md` | Business terms and the one name to use for each |
+| `docs/product/glossary.md` | Business terms and the one name to use for each; for existing code, also the old names used in code and data where they differ |
 | `docs/product/open-questions.md` | Open questions with the requirements they affect and the latest date they must be settled; mark those that need /spike |
 
 ## Confirm and commit
@@ -105,4 +115,4 @@ Summarize the key points for the user (do not paste whole documents) and ask wha
 
 ## Next step
 
-Tell the user to run /architect next to settle technology and architecture, then /design to confirm every screen, field, data structure and interface. For existing code, /architect designs the target architecture and the migration steps; when something needs verifying first, suggest /spike.
+Tell the user to run /architect next to settle technology and architecture, then /design to confirm every screen, field, data structure and interface. For existing code, /architect designs the target architecture and the migration steps, and /design redesigns each element from the evidence, with the user deciding on every old rule and finding; when something needs verifying first, suggest /spike.

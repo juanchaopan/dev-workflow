@@ -1,15 +1,16 @@
 // Unit tests for the scripts the plugin installs into projects or runs inside them:
-// commit message check, risk tiers, format hook, installer, screen rendering, version lookup.
+// commit message check, risk tiers, format hook, installer, screen rendering, current-system screen capture, version lookup.
 // Run: node --test "tests/*.test.mjs"
-// The real screenshot test downloads Chromium and only runs with RENDER_SMOKE=1.
+// The real screenshot tests download Chromium and only run with RENDER_SMOKE=1.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { DEFAULT_SIZE, collectHtml, openCommand, pngPathFor, sizeOf } from '../skills/design/render-screens.mjs';
+import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { DEFAULT_SIZE, collectScreens, openCommand, parseSize, pngPathFor, sizeOf } from '../skills/design/render-screens.mjs';
+import { captureArgs, parseArgs, readList } from '../skills/onboard/capture-screens.mjs';
 import { asList, asSingle, compareVersions, pickCompatible, pickLts, supportRanges } from '../skills/scaffold/shared/versions.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,9 +20,18 @@ const riskClassify = join(template, '.github', 'scripts', 'risk-classify.mjs');
 const formatHook = join(template, '.claude', 'hooks', 'format.mjs');
 const installer = join(root, 'skills', 'setup-ai-review', 'install.mjs');
 const renderScreens = join(root, 'skills', 'design', 'render-screens.mjs');
+const captureScreens = join(root, 'skills', 'onboard', 'capture-screens.mjs');
+const renderSmoke = {
+  skip: process.env.RENDER_SMOKE ? false : 'runs only with RENDER_SMOKE=1 (downloads Chromium)',
+  timeout: 300_000,
+};
 
 const tempDir = () => mkdtempSync(join(tmpdir(), 'dev-workflow-test-'));
 const run = (command, args, options = {}) => spawnSync(command, args, { encoding: 'utf8', ...options });
+const pngSize = (file) => {
+  const png = readFileSync(file);
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+};
 
 test('commit message: valid messages pass', () => {
   const dir = tempDir();
@@ -148,17 +158,22 @@ test('screen rendering: reads the screenshot size from the prototype, with a def
   assert.deepEqual(sizeOf('<meta name="screenshot-size" content="390x844" />'), { width: 390, height: 844 });
   assert.deepEqual(sizeOf("<meta content='800 x 600' name='screenshot-size'>"), { width: 800, height: 600 });
   assert.deepEqual(sizeOf('<meta name="viewport" content="width=device-width">'), DEFAULT_SIZE);
+  assert.deepEqual(sizeOf('<meta name="screenshot-size" content="wide">'), DEFAULT_SIZE);
+  assert.deepEqual(parseSize('1440X900'), { width: 1440, height: 900 });
+  assert.equal(parseSize('1440'), undefined);
+  assert.equal(parseSize(undefined), undefined);
 });
 
-test('screen rendering: PNG next to the prototype, directories collected, opened with the system viewer', () => {
+test('screen rendering: PNG next to the prototype; directories give HTML, named PNGs are passed through', () => {
   assert.equal(pngPathFor(join('screens', 'SCR-001-login--error.html')), join('screens', 'SCR-001-login--error.png'));
 
   const dir = tempDir();
   mkdirSync(join(dir, 'sub'));
-  for (const name of ['SCR-001-a.html', join('sub', 'SCR-002-b.html'), 'tokens.css', 'SCR-001-a.md']) {
+  for (const name of ['SCR-001-a.html', 'SCR-001-a.png', join('sub', 'SCR-002-b.html'), 'tokens.css', 'SCR-001-a.md', 'CUR-SCR-001-a.png']) {
     writeFileSync(join(dir, name), '');
   }
-  assert.deepEqual(collectHtml([dir, join(dir, 'SCR-001-a.html'), join(dir, 'tokens.css')]), [
+  assert.deepEqual(collectScreens([dir, join(dir, 'SCR-001-a.html'), join(dir, 'tokens.css'), join(dir, 'CUR-SCR-001-a.png')]), [
+    join(dir, 'CUR-SCR-001-a.png'),
     join(dir, 'SCR-001-a.html'),
     join(dir, 'sub', 'SCR-002-b.html'),
   ]);
@@ -169,18 +184,50 @@ test('screen rendering: PNG next to the prototype, directories collected, opened
   assert.deepEqual(openCommand('linux', 'a.png'), ['xdg-open', ['a.png']]);
 });
 
-test('screen rendering: renders a real PNG, width from the prototype, full page height', {
-  skip: process.env.RENDER_SMOKE ? false : 'runs only with RENDER_SMOKE=1 (downloads Chromium)',
-  timeout: 300_000,
-}, () => {
+test('screen rendering: renders a real PNG, width from the prototype, full page height', renderSmoke, () => {
   const dir = tempDir();
   writeFileSync(join(dir, 'SCR-001-demo.html'),
     '<!doctype html><meta charset="utf-8"><meta name="screenshot-size" content="400x300"><div style="height:600px">Screen</div>');
   const result = run('node', [renderScreens, dir], { cwd: dir });
   assert.equal(result.status, 0, result.stderr);
-  const png = readFileSync(join(dir, 'SCR-001-demo.png'));
-  assert.equal(png.readUInt32BE(16), 400);
-  assert.ok(png.readUInt32BE(20) >= 600, 'content taller than the screenshot size is captured in full');
+  const { width, height } = pngSize(join(dir, 'SCR-001-demo.png'));
+  assert.equal(width, 400);
+  assert.ok(height >= 600, 'content taller than the screenshot size is captured in full');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('screen capture: validates the list and builds Playwright arguments', () => {
+  const [entry, sized] = readList(JSON.stringify([
+    { url: 'http://localhost:8080/orders', file: 'docs/design/as-is/screens/CUR-SCR-001-orders.png' },
+    { url: 'https://example.test/m', file: 'm.png', size: '390x844' },
+  ]));
+  assert.equal(entry.file, resolve('docs/design/as-is/screens/CUR-SCR-001-orders.png'));
+  assert.deepEqual(entry.size, DEFAULT_SIZE);
+  assert.deepEqual(sized.size, { width: 390, height: 844 });
+  assert.deepEqual(captureArgs(entry), ['screenshot', '--viewport-size=1280,800', '--full-page', entry.url, entry.file]);
+  assert.deepEqual(captureArgs(sized, 'auth.json'),
+    ['screenshot', '--viewport-size=390,844', '--full-page', '--load-storage=auth.json', sized.url, sized.file]);
+
+  assert.throws(() => readList('[]'), /non-empty/);
+  assert.throws(() => readList('[{"url":"javascript:alert(1)","file":"a.png"}]'), /url/);
+  assert.throws(() => readList('[{"url":"http://x","file":"a.jpg"}]'), /png/);
+  assert.throws(() => readList('[{"url":"http://x","file":"a.png","size":"big"}]'), /size/);
+
+  assert.deepEqual(parseArgs(['--storage', 's.json', '--open', 'list.json']), { open: true, storage: 's.json', list: 'list.json' });
+  assert.deepEqual(parseArgs(['list.json']), { open: false, storage: undefined, list: 'list.json' });
+});
+
+test('screen capture: captures a real page into a new directory', renderSmoke, () => {
+  const dir = tempDir();
+  writeFileSync(join(dir, 'page.html'), '<!doctype html><meta charset="utf-8"><div style="height:500px">Current screen</div>');
+  writeFileSync(join(dir, 'list.json'), JSON.stringify([
+    { url: pathToFileURL(join(dir, 'page.html')).href, file: join('as-is', 'screens', 'CUR-SCR-001-page.png'), size: '360x200' },
+  ]));
+  const result = run('node', [captureScreens, 'list.json'], { cwd: dir });
+  assert.equal(result.status, 0, result.stderr);
+  const { width, height } = pngSize(join(dir, 'as-is', 'screens', 'CUR-SCR-001-page.png'));
+  assert.equal(width, 360);
+  assert.ok(height >= 500);
   rmSync(dir, { recursive: true, force: true });
 });
 

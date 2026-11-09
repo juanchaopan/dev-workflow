@@ -39,6 +39,16 @@ Indexes:
 
 - `{{index name}}`: `{{columns}}`, {{unique / non-unique}}, {{for which query}}
 
+### From the current system
+
+Only for an entity whose data comes from the current system (CUR-ENT-xxx in `as-is/data.md`). Every old column holding data appears once.
+
+| Old table.column | New column | Conversion | Dirty data and its handling |
+|---|---|---|---|
+| {{orders.status}} | {{status}} | {{0 → 'draft', 1 → 'submitted', 2 → 'paid', 3 → 'cancelled'}} | {{412 rows with 9: become 'cancelled' (FND-004, confirmed YYYY-MM-DD)}} |
+| {{orders.customer_name}} | {{customer_name}} | {{trimmed}} | {{3% empty: filled from the customer record}} |
+| {{orders.legacy_flag}} | {{none}} | {{archived to the export file}} | {{}} |
+
 ## Files, configuration and messages
 
 Write this section for systems without a database, or when files, configuration or messages are read or written besides the database. One subsection each:

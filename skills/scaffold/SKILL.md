@@ -20,8 +20,8 @@ This skill's directory (the Base directory shown when the skill loads) contains:
 
 ## Two uses
 
-- **New project**: steps 0 to 11.
-- **Add standards to an existing project** (asked by the user, or called by /onboard): steps 0, 4, 5 and 10. Recognize stacks with the "How to recognize it" section of each `stack.md`. Do not overwrite existing configuration files: compare them, tell the user how you plan to merge, and change them after approval. When the directory structure does not match the library's layering conventions, do not move code around on a large scale; install the tools and rules first and record existing violations as a baseline as in step 7 of the onboard skill. Changes go through a branch and /open-pr.
+- **New project**: steps 0 to 11. This includes the new system of a rewrite, which /onboard documented the old one for.
+- **Add standards to an existing project** (asked by the user, or called by /onboard): steps 0, 4, 5 and 10. Recognize stacks with the "How to recognize it" section of each `stack.md`. Do not overwrite existing configuration files: compare them, tell the user how you plan to merge, and change them after approval. When the directory structure does not match the library's layering conventions, do not move code around on a large scale; install the tools and rules first and record existing violations as a baseline as in step 8 of the onboard skill. Changes go through a branch and /open-pr.
 
 Talk to the user in their language. Project documents follow the project's document language (the `Language` line in its CLAUDE.md, otherwise the user's language).
 

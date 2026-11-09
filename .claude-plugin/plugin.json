@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "dev-workflow",
-  "version": "2.0.0",
-  "description": "A complete AI development workflow starting from an idea, existing code or a document: requirements discovery, technology choices and architecture, detailed design of screens and data (prototype screenshots confirmed one by one), project scaffolding on the latest versions with code standards, AI review and risk gates, planning, development one issue at a time or several in parallel, change triage, technical spikes and releases.",
+  "version": "2.1.0",
+  "description": "A complete AI development workflow starting from an idea, existing code or a document: requirements discovery, technology choices and architecture, detailed design of screens and data (prototype screenshots confirmed one by one), taking over old systems by gathering evidence of what they really do and redesigning from it, project scaffolding on the latest versions with code standards, AI review and risk gates, planning, development one issue at a time or several in parallel, change triage, technical spikes and releases.",
   "author": {
     "name": "juanchaopan",
     "email": "p8499@126.com"

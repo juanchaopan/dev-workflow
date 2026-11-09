@@ -12,14 +12,16 @@ These documents are the project's shared memory. AI reads the relevant parts bef
 | `architecture/tech-debt.md` | Tech debt and quality baseline | Created by /onboard, updated as each item is paid off |
 | `adr/` | Architecture decision records, one file per significant decision | Added by /architect and /spike |
 | `design/` | Design: element index, common rules, permission matrix and completeness check (`README.md`); screen definitions, prototypes and user-confirmed screenshots (`screens/`); data definitions (`data.md`); interface definitions (`interfaces.md`); complex business logic (`logic/`) | Created by /design, updated by /change through /design |
+| `design/as-is/` | Evidence of what a taken-over system does: screens with real screenshots, fields as enforced on screen, server and database, actual data, interfaces and their callers, business rules, and findings (suspected bugs, contradictions, dirty data). Not a design to follow | Created by /onboard; /design and /kickoff fill in only "Used by" and "Resolution" |
 | `design/refactor/` | Code structure redesigns when a set of classes, interfaces or modules must change | Added by /change |
 | `roadmap.md` | Milestones and issue list; progress lives in the GitHub issues | Created by /roadmap, updated by /change |
 | `changes/` | Records of larger changes: what changed, why, which documents and code were affected | Added by /change |
 
 ## Conventions
 
-- IDs: requirements REQ-001, architecture decisions ADR-0001, screens SCR-001, data entities ENT-001, interfaces API-001, scheduled jobs JOB-001, business logic LGC-001, all starting at 1. IDs are never reused: a dropped item stays, marked "Deprecated", naming what replaces it.
+- IDs: requirements REQ-001, architecture decisions ADR-0001, screens SCR-001, data entities ENT-001, interfaces API-001, scheduled jobs JOB-001, business logic LGC-001, all starting at 1. Evidence of a taken-over system uses CUR-SCR, CUR-ENT, CUR-API, CUR-JOB and CUR-RUL for its elements and FND for findings. IDs are never reused: a dropped item stays, marked "Deprecated", naming what replaces it.
 - Development follows the design: screens follow the user-confirmed screenshots; validation, data and interfaces follow the definitions in the design. To change behavior, change the design first, then the code.
+- The old system's behavior is evidence, not a rule: nothing from `design/as-is/` applies until /design has turned it into a confirmed design element.
 - Documents change through pull requests, like code.
 - When documents and code disagree, find out which is right first, then fix both.
 - Content inferred from code or documents and not yet confirmed by the user is marked as "inferred".
