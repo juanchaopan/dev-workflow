@@ -1,6 +1,6 @@
 name: self-test
 
-# 插件自己的体检：脚本的单元测试、插件清单校验，以及每个技术栈的冒烟测试（真建一个项目、跑自检命令、确认违规会被拦下）。
+# 插件自己的体检：脚本的单元测试（包括画面截图脚本的真实截图）、插件清单校验，以及每个技术栈的冒烟测试（真建一个项目、跑自检命令、确认违规会被拦下）。
 # 每周一自动跑一次：生成器、工具版本和默认配置变了，这里会先坏掉。定时运行失败时自动开一个 issue。
 
 on:
@@ -23,7 +23,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: lts/*
+      - run: npx -y playwright install --with-deps chromium
       - run: node --test "tests/*.test.mjs"
+        env:
+          RENDER_SMOKE: '1'
       - run: npx -y @anthropic-ai/claude-code plugin validate .
 
   stacks:

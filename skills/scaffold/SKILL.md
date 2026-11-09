@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的官方生成器创建每个组件，按架构文档选定的决策点装上规范库里对应技术栈的代码规范、架构检查（分层规则由工具强制）、lint 和格式化配置，需要时装上 Storybook 和视觉回归测试；生成本地用 docker compose 跑多实例的配置和部署流水线（测试环境、生产环境、PR 预览）；建 GitHub 仓库，最后调用 /setup-ai-review 装上审查流程。也能给已有项目补装某个技术栈的规范，现存问题用基线记下、不阻塞。规范库现有 Angular、Spring Boot（Maven 或 Gradle）、Python、React（TypeScript）、Node.js（TypeScript）、.NET Blazor。在 /architect 之后使用，完成后接 /roadmap。
+description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的官方生成器创建每个组件，按架构文档选定的决策点装上规范库里对应技术栈的代码规范、架构检查（分层规则由工具强制）、lint 和格式化配置，需要时装上设计令牌、Storybook 和视觉回归测试；生成本地用 docker compose 跑多实例的配置和部署流水线（测试环境、生产环境、PR 预览）；建 GitHub 仓库，最后调用 /setup-ai-review 装上审查流程。也能给已有项目补装某个技术栈的规范，现存问题用基线记下、不阻塞。规范库现有 Angular、Spring Boot（Maven 或 Gradle）、Python、React（TypeScript）、Node.js（TypeScript）、.NET Blazor。在 /design 之后使用，完成后接 /roadmap。
 ---
 
 # 搭建项目
@@ -19,14 +19,16 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 
 ## 两种用法
 
-- **新项目**：做第 0 到 10 步。
+- **新项目**：做第 0 到 11 步。
 - **给已有项目装规范**（用户直接要求，或 /onboard 调用）：做第 0、4、5、10 步。识别技术栈用各 `stack.md` 里的"识别方法"。配置文件已经存在时，不要覆盖：比较差异，告诉用户打算怎么合并，同意后再改。目录结构和规范库的分层约定对不上时，不要大规模搬动代码；先只装工具和规则，现存的违规按 onboard 技能第 7 步的方法记成基线。改动通过分支和 /open-pr 提交。
 
 ## 步骤
 
 ### 0. 读设计
 
-读 `docs/architecture/overview.md` 和 `docs/adr/`，列出每个组件：名称、目录、技术栈、版本，以及 ADR 里记下的决策点结果（构建工具、数据访问方式、组件分层、是否用 Storybook 和视觉回归测试等）、部署方式。没有架构文档就告诉用户先运行 /architect。某个决策点 ADR 里没写时，按 `stack.md` 决策点表里的推荐项问用户。组件的技术栈在规范库里没有时，告诉用户：可以照常创建，但需要另外补一套规范（照着 `stacks/` 里的某个目录写一套新的，至少包括 lint、格式化和架构检查）。
+读 `docs/architecture/overview.md` 和 `docs/adr/`，列出每个组件：名称、目录、技术栈，以及 ADR 里记下的决策点结果（构建工具、数据访问方式、组件分层、是否用 Storybook 和视觉回归测试等）、部署方式。没有架构文档就告诉用户先运行 /architect。某个决策点 ADR 里没写时，按 `stack.md` 决策点表里的推荐项问用户。组件的技术栈在规范库里没有时，告诉用户：可以照常创建，但需要另外补一套规范（照着 `stacks/` 里的某个目录写一套新的，至少包括 lint、格式化和架构检查）。
+
+再读 `docs/design/README.md`：画面原型用的 `docs/design/screens/tokens.css` 是前端设计令牌的来源。新项目还没有 `docs/design/` 时，提醒用户 /roadmap 拆 issue 之前要先运行 /design；用户想先搭项目也可以继续。
 
 ### 1. 确认目录结构
 
@@ -60,7 +62,7 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 - 架构检查（dependency-cruiser、ArchUnit、import-linter 或 ArchUnitNET），以及 `rules.md` 约定的分层目录；
 - 把 `rules.md` 复制为 `.claude/rules/<组件名>.md`，把 frontmatter 里 `paths` 的占位符换成组件目录，把正文里的组件名、包名等占位符填好；
 - 决策点选了 Storybook、视觉回归测试时，按 `stack.md` 的"可选"小节和 `shared/visual-testing.md` 装上；
-- 设计令牌（有前端时）：建 `src/styles/tokens.(s)css`，有设计稿时按设计稿填，没有时先放一套基础的颜色、字号、间距。
+- 设计令牌（有前端时）：建 `src/styles/tokens.(s)css`。有 `docs/design/screens/tokens.css` 时照它的变量名和值建，实现出来的画面才和确认过的原型一致；有设计稿时按设计稿填；都没有时先放一套基础的颜色、字号、间距。
 
 最后在组件目录下依次运行 `stack.md` 的全部自检命令，必须全部通过。生成器自带的代码不符合规范时（包括架构检查和复杂度上限），修到符合为止，不要放宽规则。
 
@@ -98,7 +100,7 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 - `build(infra): 加入本地 docker compose 环境`
 - `ci: 加入部署流水线`
 
-仓库里已经有 /kickoff 和 /architect 写的文档提交时，保留它们。
+仓库里已经有 /kickoff、/architect 和 /design 写的文档提交时，保留它们。
 
 ### 9. GitHub 仓库
 
@@ -110,4 +112,4 @@ description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的�
 
 ### 11. 汇报和下一步
 
-汇报：建了哪些组件、各装了哪套规范和哪些检查、决策点的结果、自检结果、本地怎么启动、部署流水线和用户还要做的平台配置、仓库地址。告诉用户接下来运行 /roadmap，把需求拆成 issue。
+汇报：建了哪些组件、各装了哪套规范和哪些检查、决策点的结果、自检结果、本地怎么启动、部署流水线和用户还要做的平台配置、仓库地址。告诉用户接下来运行 /roadmap，按需求和设计拆成 issue；还没有做 /design 的，先运行 /design。
