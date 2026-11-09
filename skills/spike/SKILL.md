@@ -1,72 +1,72 @@
 ---
 name: spike
-description: 技术探针（POC）：方案拿不准时先做一个限时、用完就扔的验证——先写清楚要回答什么问题、怎样算成功，再做最小的实现，跑出证据（能打开的地址、截图、性能数字、日志）给用户看，用户拍板后把结论写成 ADR，然后丢掉探针代码，按正式流程实现。用户说"先做个 POC""先验证一下""这个方案行不行""做个原型看看"时使用；/kickoff、/architect、/change 遇到不确定、风险大的地方也会建议用它。
+description: Technical spike (proof of concept). When an approach is uncertain, run a time-boxed, throwaway verification first — write down the question and what counts as success, build the minimum, produce evidence (a URL to open, screenshots, performance numbers, logs) for the user, record the conclusion as an ADR once the user decides, then throw the spike code away and implement through the normal workflow. Use when the user says "let's do a POC first", "verify this first", "will this approach work" or "build a quick prototype"; /kickoff, /architect, /design and /change also suggest it for uncertain, risky points.
 ---
 
-# 技术探针
+# Technical spike
 
-探针只为回答一个问题。它的代码不追求质量、不写完整的测试、**永远不合并进正式代码**；它的产出是一个有证据的结论。正式实现在结论之后，按 /roadmap 和 /implement 的流程重新写。
+A spike answers exactly one question. Its code does not aim for quality, has no complete tests and **is never merged into production code**; what it produces is a conclusion backed by evidence. The real implementation comes after the conclusion and is written from scratch through /roadmap and /implement.
 
-## 步骤
+## Steps
 
-### 1. 定问题
+### 1. Define the question
 
-用 AskUserQuestion 和用户一起定下来，写进探针说明（第 3 步）：
+Settle these with the user through AskUserQuestion (in the user's language) and write them into the spike notes (step 3):
 
-- **要回答的问题**：一句话，例如"用 WebSocket 推送，1000 个同时在线的连接下延迟能不能低于 200 毫秒""这个拖拽排序的交互用户能不能一看就会""能不能用现有的支付接口做分期"。
-- **成功和失败的判据**：能观察、能测量。例如"P95 延迟小于 200 毫秒""5 个人里至少 4 个不用提示就完成了排序"。
-- **时间盒**：最多花多少（例如"半天""最多三轮尝试"）。到时间还没有结论，本身就是一个结论（这条路成本太高）。
-- **不管的事**：这次明确不验证的方面，免得范围扩大。
+- **The question**: one sentence, e.g. "Can WebSocket push stay below 200 ms latency with 1,000 concurrent connections?", "Will users understand this drag-to-reorder interaction at first sight?", "Can the existing payment API do installments?".
+- **Success and failure criteria**: observable and measurable, e.g. "P95 latency below 200 ms", "at least 4 of 5 people finish the reordering without hints".
+- **Time box**: the most it may take (e.g. "half a day", "at most three attempts"). No conclusion by then is a conclusion too: this path costs too much.
+- **Out of scope**: what is explicitly not verified this time, so the scope does not grow.
 
-### 2. 选形式
+### 2. Choose the form
 
-| 要验证的 | 形式 | 放在哪 |
+| What to verify | Form | Where |
 |---|---|---|
-| 一个库、服务或算法行不行、够不够快 | 独立的小程序或脚本，加测量代码 | 仓库里的 `spike/<简述>` 分支，代码放在 `spikes/<简述>/` |
-| 界面和交互 | 可以点的原型，数据写死 | `spike/<简述>` 分支，在现有前端里加一个临时页面，或者在 `spikes/` 下单独起一个前端 |
-| 和现有系统的集成 | 在真实代码上做最小的改动 | `spike/<简述>` 分支 |
-| 和现有项目完全无关的新技术 | 独立的小项目 | 本地的临时目录；用户想保留时再建仓库 |
+| Whether a library, service or algorithm works and is fast enough | A small standalone program or script with measurement code | A `spike/<short-name>` branch, code in `spikes/<short-name>/` |
+| UI and interaction | A clickable prototype with hard-coded data | A `spike/<short-name>` branch, as a temporary page in the existing frontend or a separate frontend under `spikes/` |
+| Integration with the existing system | The smallest change on the real code | A `spike/<short-name>` branch |
+| New technology unrelated to the existing project | A small standalone project | A local temporary directory; create a repository only if the user wants to keep it |
 
-探针分支和目录名都以 `spike` 开头，任何人一看就知道它不是正式代码。
+Spike branches and directories start with `spike` so everyone can see they are not production code.
 
-### 3. 写探针说明
+### 3. Write the spike notes
 
-在探针目录（或分支根目录）放一个 `SPIKE.md`：问题、判据、时间盒、不管的事、怎么运行。之后的结果也补在这里。
+Put a `SPIKE.md` in the spike directory (or the branch root): question, criteria, time box, out of scope, how to run it. Results are added here later.
 
-### 4. 做最小的实现
+### 4. Build the minimum
 
-- 只做回答问题所必需的部分。可以写死数据、跳过错误处理、不遵守分层规范。
-- 测量代码要可信：性能类的问题，预热、重复多次、记录分布（P50、P95、最大值），不要只跑一次。
-- 每次尝试都提交（`chore(spike): <做了什么>`），方便回看。探针分支不开要合并的 PR。
+- Build only what the question needs. Hard-coded data, skipped error handling and ignored layering rules are fine.
+- Measurements must be trustworthy: for performance questions, warm up, repeat, and record the distribution (P50, P95, max), never a single run.
+- Commit every attempt (`chore(spike): <what was tried>`) so it can be reviewed. Never open a PR meant for merging from a spike branch.
 
-### 5. 收集证据
+### 5. Collect evidence
 
-| 问题类型 | 证据 |
+| Kind of question | Evidence |
 |---|---|
-| 性能和可行性 | 测量结果的数字和表格、运行日志、测试环境说明（机器、数据量） |
-| 界面和交互 | 能打开的地址加截图。本地运行时给出 `http://localhost:<端口>`（用项目的启动命令或 `docker compose up`）；项目配置了 PR 预览环境时，推送探针分支并开一个**草稿 PR**，标题以 `[spike]` 开头、正文写明"不合并"，用预览环境的地址给用户看 |
-| 集成 | 调用成功和失败的完整请求、响应和日志 |
+| Performance and feasibility | Measured numbers and tables, run logs, a description of the test environment (machine, data volume) |
+| UI and interaction | A URL to open plus screenshots. Running locally, give `http://localhost:<port>` (with the project's start command or `docker compose up`); when the project has PR preview environments, push the spike branch and open a **draft PR** titled `[spike] ...` whose body says "do not merge", and show the user the preview URL |
+| Integration | Complete requests, responses and logs of successful and failed calls |
 
-### 6. 请用户验证和拍板
+### 6. Let the user verify and decide
 
-把问题、判据、证据和你的判断摆在一起给用户看。界面类的请用户亲自打开地址试一试。然后用 AskUserQuestion 问结论：
+Put the question, criteria, evidence and your assessment side by side. For UI questions, ask the user to open the URL and try it themselves. Then ask for the conclusion with AskUserQuestion:
 
-- 采用：判据满足，按这个方案正式实现
-- 放弃：判据不满足，或者代价太大，说明改用什么
-- 再试一轮：还有没验证完的，说明下一轮验证什么（仍在时间盒内）
+- Adopt: the criteria are met; implement this approach for real
+- Drop: the criteria are not met or the cost is too high; say what to use instead
+- One more round: something is still unverified; say what the next round verifies (still within the time box)
 
-### 7. 记录结论
+### 7. Record the conclusion
 
-- 写一份 ADR（architect 技能 `templates/adr.md`），状态为"已接受"或"已否决"，"证据"一节写测量结果和截图的位置。
-- 探针是为了回答某个未决问题时，在 `docs/product/open-questions.md` 里把它标为已解决，写明结论在哪个 ADR。
-- 探针改变了对需求的理解（例如用户不会用这个交互）时，更新对应的需求。
+- Write an ADR (the architect skill's `templates/adr.md`) with the status "Accepted" or "Rejected", with the measurements and the location of the screenshots in its "Evidence" section.
+- When the spike answered an open question, mark it resolved in `docs/product/open-questions.md` and say which ADR holds the conclusion.
+- When the spike changed the understanding of a requirement (e.g. users do not understand the interaction), update that requirement.
 
-### 8. 清理
+### 8. Clean up
 
-- 关闭草稿 PR。
-- 探针分支打一个归档标签后删除：`git tag archive/spike-<简述> spike/<简述> && git push origin archive/spike-<简述>`，再删除本地和远端分支。需要回看时从标签找回。
-- 截图和测量结果等证据放进 `docs/adr/assets/`，随 ADR 一起提交；探针代码本身不进正式分支。
+- Close the draft PR.
+- Tag the spike branch for the archive, then delete it: `git tag archive/spike-<short-name> spike/<short-name> && git push origin archive/spike-<short-name>`, then delete the local and remote branches. The tag brings it back when needed.
+- Evidence such as screenshots and measurements goes into `docs/adr/assets/` and is committed with the ADR; the spike code never enters a production branch.
 
-### 9. 正式实现
+### 9. The real implementation
 
-结论是"采用"时，告诉用户下一步：用 /change（项目已有需求文档时）或 /roadmap 拆出正式的 issue，再用 /implement 按规范重新实现。探针代码只作参考，不要直接复制进正式代码。
+When the conclusion is "adopt", tell the user the next step: split real issues with /change (when the project has requirement documents) or /roadmap, then implement them properly with /implement. The spike code is reference only; do not copy it straight into production code.

@@ -1,4 +1,4 @@
-package {{根包名}};
+package {{root package}};
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
@@ -12,10 +12,10 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 /**
- * 架构规则：controller → service → repository 单向分层，功能包之间没有循环依赖，controller 不接触实体，
- * 只用构造器注入，不用 System.out。说明见 .claude/rules/ 里本组件的规范。
+ * Architecture rules: one-way controller → service → repository layering, no cycles between feature packages, controllers
+ * never touch entities, constructor injection only, no System.out. Explained in this component's standards in .claude/rules/.
  */
-@AnalyzeClasses(packages = "{{根包名}}", importOptions = ImportOption.DoNotIncludeTests.class)
+@AnalyzeClasses(packages = "{{root package}}", importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
   @ArchTest
@@ -38,7 +38,7 @@ class ArchitectureTest {
 
   @ArchTest
   static final ArchRule FEATURES_HAVE_NO_CYCLES =
-      slices().matching("{{根包名}}.(*)..").should().beFreeOfCycles();
+      slices().matching("{{root package}}.(*)..").should().beFreeOfCycles();
 
   @ArchTest
   static final ArchRule CONTROLLERS_DO_NOT_USE_ENTITIES =

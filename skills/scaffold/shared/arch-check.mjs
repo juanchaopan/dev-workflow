@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// 架构检查：用 dependency-cruiser 按 .dependency-cruiser.cjs 的规则检查模块之间的依赖。
-// dependency-cruiser 读不懂源码时（例如配置的解析器没装上、或者解析器不支持装的 TypeScript 版本）不会报错，
-// 而是"0 个模块、0 个违规"地通过，所以这里一个模块都没分析到时也算失败。
-// 已有项目接入时，可以把现存的违规记成基线（.dependency-cruiser-known-violations.json）：基线里的旧违规不算失败，
-// 新增的违规照样失败。旧违规修掉以后重新生成基线，基线只会越来越小。
-// 用法：node scripts/arch-check.mjs [源码目录，默认 src]
-//       node scripts/arch-check.mjs --baseline [源码目录]   记录或更新基线
+// Architecture check: runs dependency-cruiser with the rules in .dependency-cruiser.cjs.
+// When dependency-cruiser cannot read the sources (e.g. the configured parser is not installed, or the parser does not
+// support the installed TypeScript version), it does not fail but passes with "0 modules, 0 violations",
+// so analyzing no modules at all counts as a failure here.
+// When an existing project joins, existing violations can be recorded as a baseline (.dependency-cruiser-known-violations.json):
+// old violations in the baseline do not fail, new ones still do. Regenerate the baseline after fixing old violations; it only shrinks.
+// Usage: node scripts/arch-check.mjs [source directory, default src]
+//        node scripts/arch-check.mjs --baseline [source directory]   record or update the baseline
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
@@ -27,7 +28,7 @@ if (writeBaseline) {
     console.error(result.stderr || result.stdout);
     process.exit(1);
   }
-  console.log(`已把现存的违规记进 ${BASELINE}。新增的违规仍会让检查失败。`);
+  console.log(`Existing violations recorded in ${BASELINE}. New violations still fail the check.`);
   process.exit(0);
 }
 
@@ -38,15 +39,16 @@ let report;
 try {
   report = JSON.parse(result.stdout);
 } catch {
-  console.error(`dependency-cruiser 没有正常运行：\n${result.stderr || result.stdout}`);
+  console.error(`dependency-cruiser did not run properly:\n${result.stderr || result.stdout}`);
   process.exit(1);
 }
 
 const { summary } = report;
 if (summary.totalCruised === 0) {
   console.error(
-    `架构检查没有分析到任何模块，检查等于没做。常见原因：.dependency-cruiser.cjs 里配置的解析器没装上` +
-      `（parser: 'swc' 需要 @swc/core），解析器不支持装的 TypeScript 版本，或者源码目录（${sourceDir}）不对。\n${result.stderr}`,
+    `The architecture check analyzed no modules, so nothing was checked. Common causes: the parser configured in ` +
+      `.dependency-cruiser.cjs is not installed (parser: 'swc' needs @swc/core), the parser does not support the ` +
+      `installed TypeScript version, or the source directory (${sourceDir}) is wrong.\n${result.stderr}`,
   );
   process.exit(1);
 }
@@ -57,8 +59,8 @@ for (const v of errors) {
 }
 const ignored = summary.ignore ?? 0;
 console.log(
-  `架构检查：分析了 ${summary.totalCruised} 个模块，${errors.length} 个违规` +
-    (useBaseline ? `（另有 ${ignored} 个基线里的旧违规，见 ${BASELINE}）` : '') +
-    '。',
+  `Architecture check: ${summary.totalCruised} modules analyzed, ${errors.length} violations` +
+    (useBaseline ? ` (plus ${ignored} known violations in the baseline, see ${BASELINE})` : '') +
+    '.',
 );
 process.exit(errors.length > 0 ? 1 : 0);

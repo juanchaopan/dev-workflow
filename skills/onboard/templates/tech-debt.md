@@ -1,33 +1,33 @@
-# 技术债和质量基线
+# Tech debt and quality baseline
 
-基线是接手项目时量出来的现状。检查已经按基线接入：现存的问题不算失败，新代码不许让数字变差。还掉一项债以后，更新下面的数字和清单，并收紧对应的基线。
+The baseline is the state measured when the project was taken over. Checks run against it: existing problems do not fail, but new code may not make the numbers worse. After paying off an item, update the numbers and the list below and tighten the matching baseline.
 
-## 质量基线（{{YYYY-MM-DD}}）
+## Quality baseline ({{YYYY-MM-DD}})
 
-| 组件 | 构建 | 测试 | 覆盖率 | 重复率 | lint 违规 | 架构违规 |
+| Component | Build | Tests | Coverage | Duplication | Lint violations | Architecture violations |
 |---|---|---|---|---|---|---|
-| {{组件}} | {{通过 / 失败：原因}} | {{数量，通过数量}} | {{百分比或"无数据"}} | {{百分比}} | {{数量}} | {{数量}} |
+| {{component}} | {{passes / fails: reason}} | {{count, passing}} | {{percentage or "no data"}} | {{percentage}} | {{count}} | {{count}} |
 
-最复杂的函数：
+Most complex functions:
 
-| 位置 | 复杂度 | 说明 |
+| Location | Complexity | Notes |
 |---|---|---|
-| `{{文件:行}}` | {{数值}} | {{它做什么}} |
+| `{{file:line}}` | {{value}} | {{what it does}} |
 
-近一年改动最频繁的文件：
+Most frequently changed files in the last year:
 
-| 文件 | 改动次数 | 说明 |
+| File | Changes | Notes |
 |---|---|---|
-| `{{文件}}` | {{次数}} | {{为什么频繁改动}} |
+| `{{file}}` | {{count}} | {{why it changes so often}} |
 
-## 技术债清单
+## Tech debt
 
-| 编号 | 问题 | 影响 | 风险 | 工作量 | 建议 | 状态 |
+| ID | Problem | Impact | Risk | Effort | Recommendation | Status |
 |---|---|---|---|---|---|---|
-| TD-001 | {{例如：框架版本已停止维护}} | {{例如：收不到安全更新}} | {{高 / 中 / 低}} | {{S / M / L}} | {{怎么处理}} | {{未处理 / 已拆 issue #编号 / 已解决}} |
+| TD-001 | {{e.g. the framework version is end of life}} | {{e.g. no more security updates}} | {{high / medium / low}} | {{S / M / L}} | {{how to handle it}} | {{open / issue #number / resolved}} |
 
-## 暂时放宽的检查
+## Temporarily relaxed checks
 
-| 检查 | 放宽的范围 | 原因 | 对应的债 |
+| Check | Relaxed for | Reason | Debt item |
 |---|---|---|---|
-| {{例如：max-lines-per-function}} | `{{文件}}` | {{现存超标}} | {{TD-xxx}} |
+| {{e.g. max-lines-per-function}} | `{{file}}` | {{exceeds the limit today}} | {{TD-xxx}} |

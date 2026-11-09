@@ -1,111 +1,111 @@
 ---
 name: change
-description: 处理一个新想法、新功能或新 issue：从两个维度定级——需求变了多少（修 bug、现有需求范围内的新功能、需求变了、目标变了、架构变了），以及对现有代码设计的冲击有多大（现有结构放得下、要局部重构、要重新设计一批类和接口）；再按级别补问用户、更新需求和架构文档，改到画面、字段、数据、接口或业务逻辑时调用 /design 改设计并请用户逐个确认改过的画面，大改代码结构时写重新设计方案，写变更记录、拆出 issue（大的设计调整拆成先重构、后加功能的一串小 PR），最后交给 /implement 开发。拿不准的地方建议先用 /spike 验证。用户说"我想加个功能""这里要改一下""新需求""帮我看看这个 issue"，或者给出一个 issue 编号时使用。
+description: Triage a new idea, feature or issue. Rates it on two axes — how much the requirements change (bug fix, new feature within existing requirements, changed requirements, changed goals, changed architecture) and how hard it hits the existing code design (fits the current structure, needs local refactoring, needs a set of classes and interfaces redesigned). Then, by level, asks the user follow-up questions, updates requirement and architecture documents, calls /design when screens, fields, data, interfaces or business logic change and has the user confirm each changed screen, writes a code structure redesign for large structural changes, writes a change record and splits issues (large design changes become a series of small PRs: refactor first, feature last), handing them to /implement. Suggests /spike where things are uncertain. Use when the user says "I want to add a feature", "this needs to change", "new requirement", "look at this issue", or gives an issue number.
 ---
 
-# 变更分诊
+# Change triage
 
-新想法进来时，先弄清它动了项目的哪一层、对现有代码的冲击有多大，再决定要做多少事：小改动直接开发，大变化要先回头改需求、架构或设计，不能直接写代码。直接写会让代码越改越像打补丁，也会让做出来的东西和用户想的不一样。
+When a new idea comes in, first find out which layer of the project it touches and how hard it hits the existing code, then decide how much to do: small changes go straight to development; big ones go back to the requirements, architecture or design first instead of straight into code. Going straight to code makes it look more and more like patchwork, and the result drifts from what the user wanted.
 
-## 两个维度
+## Two axes
 
-**需求级别**：
+**Requirement level**:
 
-| 级别 | 判断依据 | 例子 | 要做的事 |
+| Level | How to tell | Example | What to do |
 |---|---|---|---|
-| L0 修 bug | 现有需求的验收标准没有被满足 | 按钮点了没反应 | 确认有能复现的 issue |
-| L1 新功能，需求范围内 | 符合现有目标，不和现有需求冲突 | 列表加个排序 | 1 到 2 轮补问，新增 REQ |
-| L2 需求变了 | 修改或推翻已有的 REQ，或者和已有需求冲突 | 原来只给个人用，现在要支持团队 | 找出所有受影响的 REQ 和代码，补问，更新需求，规划迁移 |
-| L3 目标变了 | 目标用户、成功标准或范围变了 | 从工具变成平台 | 重新过 vision，再评估架构 |
-| L4 架构变了 | 现有架构满足不了：规模、技术栈、组件划分、部署方式要变 | 单体要拆出一个独立服务 | 用 /architect 写新的 ADR 和迁移步骤 |
+| L0 bug fix | An acceptance criterion of an existing requirement is not met | A button does nothing | Make sure there is an issue that reproduces it |
+| L1 new feature within the requirements | Fits the existing goals, does not conflict with existing requirements | Sorting for a list | 1 or 2 rounds of questions, add a REQ |
+| L2 requirements change | Changes or overturns existing REQs, or conflicts with them | Built for individuals, now must support teams | Find every affected REQ and code, ask, update the requirements, plan the migration |
+| L3 goals change | Target users, success criteria or scope change | From a tool to a platform | Revisit the vision, then reassess the architecture |
+| L4 architecture changes | The current architecture cannot cope: scale, stack, component split or deployment must change | Split a separate service out of the monolith | Use /architect for new ADRs and migration steps |
 
-**设计冲击**（对现有代码结构）：
+**Design impact** (on the existing code structure):
 
-| 级别 | 判断依据 | 例子 | 要做的事 |
+| Level | How to tell | Example | What to do |
 |---|---|---|---|
-| D0 放得下 | 现有的类、接口和模块划分能直接容纳，只是加代码 | 已有的订单服务里加一个查询 | 直接开发 |
-| D1 局部重构 | 要先调整几个类或函数的结构，但对外的接口和模块边界不变 | 一个越来越长的函数要拆开，才能加新的分支 | 先拆一个只重构、不改行为的 issue，再做功能 |
-| D2 重新设计 | 要重新设计一批类、接口、模块边界或数据结构 | 订单原来只有一种支付方式，现在要支持多种，支付相关的类和接口要改成可扩展的 | 先写重新设计方案，用户确认后拆成一串小 PR |
+| D0 fits | Existing classes, interfaces and modules can take it; it is just more code | Add a query to the existing order service | Develop directly |
+| D1 local refactoring | A few classes or functions must be restructured first, but external interfaces and module boundaries stay | A function keeps growing and must be split before a new branch fits | First a refactor-only issue that keeps behavior, then the feature |
+| D2 redesign | A set of classes, interfaces, module boundaries or data structures must be redesigned | Orders supported one payment method and must now support several, so the payment classes and interfaces must become extensible | Write a code structure redesign first, split into small PRs once the user confirms |
 
-两个维度各自定级，按两边各自要求的事都做。一个想法同时涉及多级时，按最高的那级处理。
+Rate both axes independently and do everything each level asks for. When an idea spans several levels, handle it at the highest one.
 
-另外，不管哪一级，只要改到了用户能看到或能感知的东西——画面、项目、校验、提示、数据结构、接口、业务逻辑——都要先改 `docs/design/` 里的设计，再拆 issue（第 3 步）。
+Also, at any level, whenever something the user can see or notice changes — screens, fields, validation, messages, data structures, interfaces, business logic — change the design in `docs/design/` first, then split issues (step 3).
 
-## 提问方式
+## How to ask
 
-和 /kickoff 一样：用 AskUserQuestion，每轮 2 到 4 个问题，每题 2 到 4 个具体选项，推荐的放第一个并标"（推荐）"。补问只问这次变更相关的内容。
+As in /kickoff: AskUserQuestion in the user's language, 2 to 4 questions per round, 2 to 4 concrete options each, the recommended one first with "(Recommended)". Ask only about this change.
 
-## 步骤
+## Steps
 
-### 0. 读现状
+### 0. Read the current state
 
-- 输入是 issue 编号时：`gh issue view <编号> --comments`。
-- 读 CLAUDE.md、`docs/README.md`、`docs/product/`、`docs/architecture/overview.md`、`docs/adr/`、`docs/design/`、`docs/roadmap.md`。
-- 项目还没有 `docs/` 时，先用 Skill 工具运行 `onboard` 把现状整理出来。
-- 在代码里找出相关的部分：会改到哪些模块、类和接口，它们被多少地方调用，现在的结构是怎样的。
+- Given an issue number: `gh issue view <number> --comments`.
+- Read CLAUDE.md, `docs/README.md`, `docs/product/`, `docs/architecture/overview.md`, `docs/adr/`, `docs/design/` and `docs/roadmap.md`.
+- When the project has no `docs/` yet, first run `onboard` with the Skill tool to document the current state.
+- Find the relevant code: which modules, classes and interfaces will change, how many places call them, how they are structured today.
 
-### 1. 定级
+### 1. Rate it
 
-说清楚：这个变更碰到了哪些 REQ、哪些 ADR、哪些设计元素（画面、实体、接口、逻辑）、哪些模块、类和接口，所以两个维度各判定为哪一级。判断设计冲击时看三点：新逻辑放进去以后，现有的函数会不会多出一层又一层的条件分支；会不会出现两种做法并存；现有的接口能不能不改签名就表达新需求。用 AskUserQuestion 请用户确认两个级别（推荐项是你的判断）。
+Say which REQs, ADRs, design elements (screens, entities, interfaces, logic), modules, classes and interfaces the change touches, and therefore which level each axis gets. For design impact look at three things: once the new logic is in, will existing functions grow layer upon layer of conditionals; will two ways of doing the same thing coexist; can existing interfaces express the new requirement without changing their signatures. Ask the user to confirm both levels with AskUserQuestion (recommend your own rating).
 
-有拿不准、需要先试一试才能定的地方（例如新方案的性能、一个第三方服务能不能用），建议用户先运行 /spike，等结论出来再继续。
+When something is uncertain and needs trying out first (e.g. the performance of a new approach, whether a third-party service works), suggest /spike and continue once the conclusion is in.
 
-### 2. 按需求级别处理
+### 2. Handle by requirement level
 
-**L0**：没有 issue 就按 bug 模板的结构创建一个（复现步骤、期望、实际），标签 `type:bug`。问清楚复现条件。对照设计判断：实现和设计不一致的，按设计修；设计本身没写清楚、导致实现走偏的，先把设计补清楚（第 3 步）。
+**L0**: without an issue, create one following the bug template (steps to reproduce, expected, actual) with the label `type:bug`. Ask how to reproduce it. Compare with the design: when the implementation deviates from the design, fix it to match the design; when the design was unclear and led the implementation astray, clarify the design first (step 3).
 
-**L1**：
-1. 对照 kickoff 技能 `references/requirement-holes.md`（与本技能同级的 kickoff 目录）里相关的条目，问 1 到 2 轮：谁用、怎么用、边界和异常、和现有功能怎么配合。
-2. 在 `docs/product/requirements.md` 里新增 REQ，编号接着往下排。
+**L1**:
+1. Ask 1 or 2 rounds against the relevant items of `references/requirement-holes.md` in the kickoff skill (the kickoff directory next to this skill): who uses it, how, edge cases and failures, how it fits existing features.
+2. Add a REQ to `docs/product/requirements.md`, continuing the numbering.
 
-**L2**：
-1. 列出受影响的 REQ、设计元素、相关代码和已有数据。
-2. 补问：新规则是什么、旧数据怎么处理、新旧行为要不要并存一段时间、要不要功能开关。
-3. 更新 requirements.md：改动的 REQ 直接修改并注明修改日期；被推翻的 REQ 标为"已废弃，被 REQ-xxx 替代"，写新的 REQ。
+**L2**:
+1. List the affected REQs, design elements, code and existing data.
+2. Ask: what the new rule is, what happens to old data, whether old and new behavior coexist for a while, whether a feature flag is needed.
+3. Update requirements.md: edit changed REQs in place and note the date; mark overturned REQs "Deprecated, replaced by REQ-xxx" and write the new REQs.
 
-**L3**：
-1. 补问新目标、新用户、新成功标准、新范围，更新 `docs/product/vision.md`。
-2. 逐条检查现有 REQ 是否还成立，按 L2 的方式更新。
-3. 对照新的规模和约束检查架构，需要变时按 L4 处理。
+**L3**:
+1. Ask about the new goals, users, success criteria and scope, and update `docs/product/vision.md`.
+2. Check every existing REQ still holds, updating them as in L2.
+3. Check the architecture against the new scale and constraints; when it must change, handle as L4.
 
-**L4**：用 Skill 工具运行 `architect`，说明这是架构变更以及原因。它会写新的 ADR 和迁移步骤。
+**L4**: run `architect` with the Skill tool, saying it is an architecture change and why. It writes new ADRs and migration steps.
 
-### 3. 改设计
+### 3. Change the design
 
-变更改到画面、项目、校验、提示、数据结构、接口或业务逻辑时，用 Skill 工具运行 `design`，告诉它：这是 /change 调用的，范围是哪些 REQ 和哪些设计元素（新增的、要改的、要废弃的）。它会只改这些部分：改过的画面重新画原型、截图，一个一个请用户确认；数据、接口、逻辑的改动也请用户确认；最后检查改动有没有和其他设计冲突。
+When the change touches screens, fields, validation, messages, data structures, interfaces or business logic, run `design` with the Skill tool and tell it this is a call from /change and which REQs and design elements are in scope (new, changed, deprecated). It changes only those parts: changed screens get new prototypes and screenshots and are confirmed with the user one by one; data, interface and logic changes are confirmed too; finally it checks the change against the rest of the design.
 
-项目还没有 `docs/design/`（例如接手的老项目）时，它会先把这次要改到的画面、表和接口的现状从代码里整理出来，再在上面改。
+When the project has no `docs/design/` yet (e.g. an onboarded legacy project), it first documents the current state of the screens, tables and interfaces this change touches from the code, then changes that.
 
-纯技术性的改动（例如性能优化、依赖升级、内部重构），用户看不到任何变化的，跳过这一步。
+Skip this step for purely technical changes the user cannot notice (e.g. performance work, dependency upgrades, internal refactoring).
 
-### 4. 按设计冲击处理
+### 4. Handle by design impact
 
-**D0**：不用额外做什么。
+**D0**: nothing extra.
 
-**D1**：在拆 issue 时，把重构单独拆成一个 `type:refactor` 的 issue，排在功能 issue 前面。它的验收标准是"行为不变：重构前后测试都通过"，并写清要调整成什么结构、为什么这样才放得下新功能。
+**D1**: when splitting issues, make the refactoring its own `type:refactor` issue ahead of the feature issue. Its acceptance criterion is "behavior unchanged: tests pass before and after"; it says what structure to move to and why the feature only fits that way.
 
-**D2**：
-1. 按 `templates/refactor-design.md` 写 `docs/design/refactor/<简述>.md`：现在的代码结构和它的问题、目标结构（类、接口、模块边界、数据结构，用 Mermaid 类图或时序图）、改动前后的接口对比、迁移步骤、兼容策略、测试策略。
-2. 把方案的要点给用户看，有多种方案时用 AskUserQuestion 让用户选。确认后再拆 issue。
-3. 迁移步骤按下面的顺序拆成一串小 PR，每个 PR 都能单独合并、单独上线：
-   1. **特征测试**：给要动的代码补测试，把现有行为固定下来。
-   2. **重构**：不改变行为，把结构调整成目标设计的样子；可以拆成几个 PR。
-   3. **扩展**：接口需要不兼容的修改时，先加新接口，新旧并存。
-   4. **迁移**：把调用方逐个改用新接口。
-   5. **收缩**：删掉旧接口和旧实现。
-   6. **功能**：在新结构上实现新需求。
-   能合并的步骤可以合并，但"只重构"和"加功能"不要放在同一个 PR 里。
+**D2**:
+1. Write `docs/design/refactor/<short-name>.md` from `templates/refactor-design.md`: the current code structure and its problems, the target structure (classes, interfaces, module boundaries, data structures, as Mermaid class or sequence diagrams), interfaces before and after, migration steps, compatibility strategy, test strategy.
+2. Show the key points to the user; when there are several options, let the user choose with AskUserQuestion. Split issues only after confirmation.
+3. Split the migration into a series of small PRs in this order, each mergeable and releasable on its own:
+   1. **Characterization tests**: tests for the code about to change that pin down its current behavior.
+   2. **Refactoring**: restructure toward the target design without changing behavior; may take several PRs.
+   3. **Expand**: when an interface must change incompatibly, add the new interface first and keep both.
+   4. **Migrate**: move callers to the new interface one by one.
+   5. **Contract**: delete the old interface and implementation.
+   6. **Feature**: implement the new requirement on the new structure.
+   Steps may be combined, but never put "refactor only" and "add a feature" in the same PR.
 
-### 5. 拆 issue
+### 5. Split issues
 
-按 roadmap 技能 `templates/issue.md` 的结构写（与本技能同级的 roadmap 目录）：验收标准从改过的设计里来，并引用设计元素的编号和确认过的截图。类型标签用 `type:feature`、`type:bug`、`type:refactor`、`type:chore`、`type:spike`，放进合适的里程碑，issue 之间的依赖写清楚。
+Follow the structure of `templates/issue.md` in the roadmap skill (the roadmap directory next to this skill): acceptance criteria come from the changed design and cite the design element IDs and confirmed screenshots. Labels are `type:feature`, `type:bug`, `type:refactor`, `type:chore` and `type:spike`; put each issue in a suitable milestone and state the dependencies between issues.
 
-### 6. 写变更记录
+### 6. Write a change record
 
-L2 及以上，或者 D2，按 `templates/change-record.md` 写 `docs/changes/<YYYY-MM-DD>-<简述>.md`：变了什么、为什么、影响了哪些文档、设计和代码、做了哪些决定、拆出了哪些 issue。
+For L2 and above, or D2, write `docs/changes/<YYYY-MM-DD>-<short-name>.md` from `templates/change-record.md`: what changed, why, which documents, design elements and code were affected, which decisions were made, which issues were split.
 
-### 7. 提交和交接
+### 7. Commit and hand over
 
-- 文档改动走 `docs/` 分支，提交信息 `docs(product): <内容>`、`docs(architecture): <内容>` 或 `docs(design): <内容>`，用 /open-pr 合并。
-- 需要在 GitHub 上新建或关闭 issue 时，先把清单给用户看，同意后再操作。
-- 告诉用户：可以运行 `/implement <issue 号>` 开始开发；有 D1、D2 的重构 issue 时，从排在最前面的那个开始。
+- Document changes go on a `docs/` branch with `docs(product): <content>`, `docs(architecture): <content>` or `docs(design): <content>`, merged with /open-pr.
+- Before creating or closing issues on GitHub, show the user the list and wait for approval.
+- Tell the user they can run `/implement <issue number>`; with D1 or D2 refactoring issues, start with the first one.

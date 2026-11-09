@@ -1,30 +1,30 @@
-# ADR-{{编号}} {{决策标题}}
+# ADR-{{number}} {{decision title}}
 
-- 状态：{{提议 / 已接受 / 已接受（AI 建议，用户默认）/ 已接受（推断，来自现有代码）/ 已否决 / 已废弃 / 被 ADR-xxxx 替代}}
-- 日期：{{YYYY-MM-DD}}
-- 相关需求：{{REQ-xxx}}
+- Status: {{Proposed / Accepted / Accepted (AI suggestion, user default) / Accepted (inferred from existing code) / Rejected / Deprecated / Superseded by ADR-xxxx}}
+- Date: {{YYYY-MM-DD}}
+- Related requirements: {{REQ-xxx}}
 
-## 背景
+## Context
 
-{{要解决什么问题，有哪些约束和指标。}}
+{{The problem to solve, its constraints and metrics.}}
 
-## 候选方案
+## Options
 
-| 方案 | 优点 | 缺点 | 适合条件 |
+| Option | Strengths | Weaknesses | Fits when |
 |---|---|---|---|
-| {{方案 A}} | {{优点}} | {{缺点}} | {{条件}} |
-| {{方案 B}} | {{优点}} | {{缺点}} | {{条件}} |
+| {{option A}} | {{strengths}} | {{weaknesses}} | {{conditions}} |
+| {{option B}} | {{strengths}} | {{weaknesses}} | {{conditions}} |
 
-## 决策
+## Decision
 
-{{选了哪个方案，为什么。}}
+{{Which option was chosen and why.}}
 
-## 证据
+## Evidence
 
-{{做过 /spike 时：要回答的问题、判据、测量结果、截图（放在 docs/adr/assets/）、探针的归档标签。没做过的写"无"。}}
+{{When a /spike was run: the question, the criteria, the measurements, screenshots (in docs/adr/assets/), the tag of the archived spike. Otherwise "None".}}
 
-## 后果
+## Consequences
 
-- 好处：{{得到什么}}
-- 代价：{{付出什么、要注意什么}}
-- 什么时候应该重新考虑：{{触发条件，例如：数据量超过 1 亿行}}
+- Benefits: {{what is gained}}
+- Costs: {{what is paid, what to watch out for}}
+- Revisit when: {{trigger, e.g. data exceeds 100 million rows}}

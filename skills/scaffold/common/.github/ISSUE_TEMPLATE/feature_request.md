@@ -1,19 +1,19 @@
 ---
-name: 新功能
-about: 提一个新功能或改进。开发前先用 /change 分析：它会判断这是现有需求范围内的功能，还是需求、目标或架构变了。
+name: Feature
+about: Propose a new feature or improvement. Before development, run /change on it to see whether it fits the existing requirements or changes the requirements, goals or architecture.
 labels: type:feature
 ---
 
-## 想要什么
+## What you want
 
-## 为什么需要
+## Why it is needed
 
-<!-- 谁会用、在什么场景下用、不做会怎样。 -->
+<!-- Who would use it, in which situation, and what happens without it. -->
 
-## 怎样算做完
+## When it is done
 
-<!-- 能验证的结果，例如：用户在设置页能把语言切换成英文，刷新后保持。 -->
+<!-- A verifiable result, e.g. users can switch the language to English on the settings page and it stays after a reload. -->
 
-## 补充
+## More
 
-<!-- 截图、参考链接、相关的 issue 或需求编号。 -->
+<!-- Screenshots, reference links, related issues or requirement IDs. -->

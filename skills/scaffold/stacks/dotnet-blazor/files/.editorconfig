@@ -1,13 +1,14 @@
-# C# 代码风格，规则依据微软的 .NET 编码约定。
-# 这个文件放在解决方案目录，和仓库根目录的 .editorconfig 叠加生效。
-# 写在选项值后面的级别（例如 :warning）只影响编辑器提示；必须拦下的规则在文件末尾用 dotnet_diagnostic 单独设了级别，
-# 它们由两处检查：构建（Directory.Build.props 打开了 EnforceCodeStyleInBuild，配合 -warnaserror）和 dotnet format --verify-no-changes。
+# C# code style, following Microsoft's .NET coding conventions.
+# This file sits in the solution directory and stacks with the .editorconfig at the repository root.
+# The severity after an option value (e.g. :warning) only affects editor hints; the rules that must block are given a severity with
+# dotnet_diagnostic at the end of the file and are checked in two places: the build (Directory.Build.props enables
+# EnforceCodeStyleInBuild, together with -warnaserror) and dotnet format --verify-no-changes.
 
 [*.{cs,razor}]
 indent_size = 4
 
 [*.cs]
-# 代码风格
+# Code style
 csharp_style_namespace_declarations = file_scoped:warning
 csharp_using_directive_placement = outside_namespace:warning
 csharp_prefer_braces = true:warning
@@ -28,7 +29,7 @@ dotnet_style_object_initializer = true:suggestion
 dotnet_style_coalesce_expression = true:suggestion
 dotnet_style_null_propagation = true:suggestion
 
-# 命名：接口以 I 开头
+# Naming: interfaces start with I
 dotnet_naming_rule.interfaces_begin_with_i.symbols = interfaces
 dotnet_naming_rule.interfaces_begin_with_i.style = begins_with_i
 dotnet_naming_rule.interfaces_begin_with_i.severity = warning
@@ -36,14 +37,14 @@ dotnet_naming_symbols.interfaces.applicable_kinds = interface
 dotnet_naming_style.begins_with_i.required_prefix = I
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
-# 命名：常量用 PascalCase
+# Naming: constants are PascalCase
 dotnet_naming_rule.constants_pascal_case.symbols = constants
 dotnet_naming_rule.constants_pascal_case.style = pascal_case_style
 dotnet_naming_rule.constants_pascal_case.severity = warning
 dotnet_naming_symbols.constants.applicable_kinds = field
 dotnet_naming_symbols.constants.required_modifiers = const
 
-# 命名：私有字段用 _camelCase
+# Naming: private fields are _camelCase
 dotnet_naming_rule.private_fields_underscore.symbols = private_fields
 dotnet_naming_rule.private_fields_underscore.style = underscore_camel_case
 dotnet_naming_rule.private_fields_underscore.severity = warning
@@ -52,17 +53,18 @@ dotnet_naming_symbols.private_fields.applicable_accessibilities = private
 dotnet_naming_style.underscore_camel_case.required_prefix = _
 dotnet_naming_style.underscore_camel_case.capitalization = camel_case
 
-# 命名：类型和成员用 PascalCase
+# Naming: types and members are PascalCase
 dotnet_naming_rule.types_and_members_pascal_case.symbols = types_and_members
 dotnet_naming_rule.types_and_members_pascal_case.style = pascal_case_style
 dotnet_naming_rule.types_and_members_pascal_case.severity = warning
 dotnet_naming_symbols.types_and_members.applicable_kinds = namespace, class, struct, interface, enum, property, method, event, delegate
 dotnet_naming_style.pascal_case_style.capitalization = pascal_case
 
-# 必须拦下的规则：
-# IDE0161 文件范围的命名空间；IDE0065 using 放在命名空间外；IDE0011 if、for 等必须加大括号；
-# IDE0044 只赋值一次的字段加 readonly；IDE1006 上面的命名规则；CA1502 方法的圈复杂度不超过 25（以上在构建时检查）；
-# IDE0049 用 int、string 等关键字而不是 Int32、String；IDE0003 不加多余的 this.（这两条只由 dotnet format 检查）。
+# Rules that must block:
+# IDE0161 file-scoped namespaces; IDE0065 usings outside the namespace; IDE0011 braces for if, for and the like;
+# IDE0044 readonly for fields assigned once; IDE1006 the naming rules above; CA1502 cyclomatic complexity of at most 25 per method
+# (all checked during the build);
+# IDE0049 int, string and other keywords instead of Int32, String; IDE0003 no redundant this. (these two only checked by dotnet format).
 dotnet_diagnostic.IDE0161.severity = warning
 dotnet_diagnostic.IDE0065.severity = warning
 dotnet_diagnostic.IDE0011.severity = warning

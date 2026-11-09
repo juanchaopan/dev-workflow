@@ -1,7 +1,7 @@
-# 术语表
+# Glossary
 
-代码、文档和对话里统一用这里的叫法。代码里的命名用"英文"一列。
+Code, documents and conversations use the names below. Identifiers in code use the "Name in code" column.
 
-| 术语 | 英文 | 含义 | 不要叫成 |
+| Term | Name in code | Meaning | Do not call it |
 |---|---|---|---|
-| {{术语}} | {{English}} | {{一句话定义}} | {{容易混用的其他叫法}} |
+| {{term}} | {{CodeName}} | {{one-sentence definition}} | {{other names that get mixed up with it}} |

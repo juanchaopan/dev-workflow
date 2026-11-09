@@ -1,8 +1,11 @@
 name: self-test
 
-# 插件自己的体检：脚本的单元测试（包括画面截图脚本的真实截图）、插件清单校验，以及每个技术栈的冒烟测试（真建一个项目、跑自检命令、确认违规会被拦下）。
-# 版本和搭项目时一样现查：运行时用当前的 LTS，库和工具用最新版；选了 typescript-eslint 的变体用它支持的最高 TypeScript 版本。
-# 每周一自动跑一次：生成器、工具版本、LTS 和默认配置变了，这里会先坏掉。定时运行失败时自动开一个 issue。
+# The plugin's own checkup: unit tests of the scripts (including a real screenshot by the screen rendering script), plugin manifest
+# validation, and a smoke test per stack (creates a real project, runs the self-check commands, confirms violations are caught).
+# Versions are looked up exactly as when a project is created: runtimes on the current LTS, libraries and tools on their latest
+# release; the typescript-eslint variant uses the highest TypeScript it supports.
+# Runs every Monday: when generators, tool versions, LTS releases or default configurations change, this breaks first.
+# A failed scheduled run opens an issue.
 
 on:
   push:
@@ -88,7 +91,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           gh issue create --repo "${{ github.repository }}" \
-            --title "每周体检失败：$(date -u +%Y-%m-%d)" \
-            --body "每周体检有检查失败，多半是某个生成器、工具版本、LTS 或默认配置变了。查看日志：$RUN_URL
+            --title "Weekly self-test failed: $(date -u +%Y-%m-%d)" \
+            --body "A check of the weekly self-test failed, most likely because a generator, tool version, LTS release or default configuration changed. Log: $RUN_URL
 
-          在本地修复：打开 Claude Code，说明哪个技术栈的冒烟测试失败、贴上日志，请它更新对应的 stack.md 和配置文件，再运行 tests/stacks/ 下对应的脚本确认通过。不要用写死旧版本的办法让测试通过。"
+          To fix it locally: open Claude Code, say which stack's smoke test failed and paste the log, have it update that stack's stack.md and configuration files, then run the matching script in tests/stacks/ to confirm it passes. Do not fix it by pinning an old version."

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// 给 AI 审查员打分：把过去真实出过 bug 的改动（以及确认没问题的改动）重新交给审查员，
-// 统计它抓到了多少 bug、在干净的改动上误报了多少。改了 REVIEW.md、CLAUDE.md 或换了模型后跑一次，
-// 分数没有上升就撤回那次修改。每次的结果追加到 evals/results.jsonl。
+// Scores the AI reviewer: hands it changes that really contained bugs (and changes confirmed to be fine) again,
+// and counts how many bugs it catches and how many false alarms it raises on clean changes. Run it after changing REVIEW.md,
+// CLAUDE.md or the model; if the score did not improve, revert the change. Each run appends its result to evals/results.jsonl.
 //
-// 用法：node evals/run-review-evals.mjs [案例 id ...]
-// 环境变量：EVAL_MODEL 指定模型；EVAL_LINE_TOLERANCE 行号允许的偏差，默认 10。
+// Usage: node evals/run-review-evals.mjs [case id ...]
+// Environment variables: EVAL_MODEL sets the model; EVAL_LINE_TOLERANCE the allowed line deviation, 10 by default.
 import { readFileSync, readdirSync, appendFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -21,15 +21,15 @@ const maxBuffer = 64 * 1024 * 1024;
 function parseCase(path) {
   const text = readFileSync(path, 'utf8');
   const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  if (!match) throw new Error(`${path}：开头缺少 --- 包起来的元数据`);
+  if (!match) throw new Error(`${path}: missing the metadata between --- lines at the top`);
   const meta = { expect: 'bug' };
   for (const line of match[1].split(/\r?\n/)) {
     const field = line.match(/^(\w+):\s*(.*)$/);
     if (field) meta[field[1]] = field[2].trim();
   }
-  if (!meta.id) throw new Error(`${path}：缺少 id`);
-  if (!['bug', 'clean'].includes(meta.expect)) throw new Error(`${path}：expect 只能是 bug 或 clean`);
-  if (meta.expect === 'bug' && !(meta.file && meta.line)) throw new Error(`${path}：bug 案例需要 file 和 line`);
+  if (!meta.id) throw new Error(`${path}: missing id`);
+  if (!['bug', 'clean'].includes(meta.expect)) throw new Error(`${path}: expect must be bug or clean`);
+  if (meta.expect === 'bug' && !(meta.file && meta.line)) throw new Error(`${path}: bug cases need file and line`);
   return meta;
 }
 
@@ -37,21 +37,21 @@ function diffFor(c) {
   const options = { cwd: repoRoot, encoding: 'utf8', maxBuffer };
   if (c.pr) return execFileSync('gh', ['pr', 'diff', c.pr], options);
   if (c.base && c.head) return execFileSync('git', ['diff', c.base, c.head], options);
-  throw new Error('需要 pr，或者同时提供 base 和 head');
+  throw new Error('needs pr, or both base and head');
 }
 
 function readRepoFile(name) {
   const path = join(repoRoot, name);
-  return existsSync(path) ? readFileSync(path, 'utf8') : '（无）';
+  return existsSync(path) ? readFileSync(path, 'utf8') : '(none)';
 }
 
 function buildPrompt(diff) {
   return [
-    '你是这个项目的代码审查员。下面是项目规范（CLAUDE.md）、审查标准（REVIEW.md）和一段待审查的 diff。',
-    '找出这段 diff 引入的真实问题，按 REVIEW.md 的要求判断严重程度。',
-    '只输出一个 JSON 数组，不要输出任何其他文字。每个元素的格式：',
-    '{"file": "相对仓库根目录的路径", "line": 改动后文件中的行号, "severity": "Important" | "Nit" | "Pre-existing", "summary": "一句话说明"}',
-    '没有问题就输出 []。',
+    "You are this project's code reviewer. Below are the project conventions (CLAUDE.md), the review standards (REVIEW.md) and a diff to review.",
+    'Find the real problems this diff introduces and judge their severity as REVIEW.md says.',
+    'Output only a JSON array and nothing else. Each element has the form:',
+    '{"file": "path relative to the repository root", "line": line number in the changed file, "severity": "Important" | "Nit" | "Pre-existing", "summary": "one sentence"}',
+    'Output [] when there are no problems.',
     '',
     '=== CLAUDE.md ===',
     readRepoFile('CLAUDE.md'),
@@ -66,7 +66,7 @@ function buildPrompt(diff) {
 
 function runClaude(args, input) {
   const options = { input, cwd: repoRoot, encoding: 'utf8', maxBuffer };
-  // Windows 上的 claude 可能是 .cmd 包装脚本，只能经由 shell 启动，所以把参数加引号拼成一条命令。
+  // On Windows claude may be a .cmd wrapper that only starts through a shell, so the arguments are quoted into one command.
   if (process.platform === 'win32') {
     return spawnSync(['claude', ...args.map((arg) => `"${arg}"`)].join(' '), { ...options, shell: true });
   }
@@ -75,11 +75,11 @@ function runClaude(args, input) {
 
 function review(prompt) {
   const result = runClaude(['-p', '--output-format', 'json', ...(model ? ['--model', model] : [])], prompt);
-  if (result.status !== 0) throw new Error(`claude 运行失败：${result.stderr || result.stdout}`);
+  if (result.status !== 0) throw new Error(`claude failed: ${result.stderr || result.stdout}`);
   const text = JSON.parse(result.stdout).result ?? '';
   const start = text.indexOf('[');
   const end = text.lastIndexOf(']');
-  if (start < 0 || end < start) throw new Error(`审查员没有返回 JSON 数组：${text.slice(0, 200)}`);
+  if (start < 0 || end < start) throw new Error(`The reviewer returned no JSON array: ${text.slice(0, 200)}`);
   return JSON.parse(text.slice(start, end + 1));
 }
 
@@ -88,14 +88,14 @@ const normalizePath = (path) => String(path).replaceAll('\\', '/').replace(/^\.\
 function score(c, findings) {
   const important = findings.filter((f) => f.severity === 'Important');
   if (c.expect === 'clean') {
-    return { pass: important.length === 0, detail: `${important.length} 条 Important 误报` };
+    return { pass: important.length === 0, detail: `${important.length} false Important findings` };
   }
   const hit = important.find(
     (f) => normalizePath(f.file) === normalizePath(c.file) && Math.abs(Number(f.line) - Number(c.line)) <= lineTolerance,
   );
   return {
     pass: Boolean(hit),
-    detail: hit ? hit.summary : `没有在 ${c.file}:${c.line} 附近报 Important（共 ${findings.length} 条意见）`,
+    detail: hit ? hit.summary : `no Important finding near ${c.file}:${c.line} (${findings.length} findings in total)`,
   };
 }
 
@@ -106,7 +106,7 @@ const cases = readdirSync(casesDir)
   .filter((c) => only.size === 0 || only.has(c.id));
 
 if (cases.length === 0) {
-  console.log('evals/review-cases/ 里还没有案例。复制 _template.md 写一个。');
+  console.log('evals/review-cases/ has no cases yet. Copy _template.md to write one.');
   process.exit(0);
 }
 
@@ -116,7 +116,7 @@ for (const c of cases) {
   try {
     row = { id: c.id, expect: c.expect, ...score(c, review(buildPrompt(diffFor(c)))) };
   } catch (error) {
-    row = { id: c.id, expect: c.expect, pass: false, detail: `出错：${error.message}` };
+    row = { id: c.id, expect: c.expect, pass: false, detail: `error: ${error.message}` };
   }
   rows.push(row);
   console.log(`${row.pass ? '✓' : '✗'} ${row.id} [${row.expect}] ${row.detail}`);
@@ -126,7 +126,7 @@ const bugRows = rows.filter((r) => r.expect === 'bug');
 const cleanRows = rows.filter((r) => r.expect === 'clean');
 const caught = bugRows.filter((r) => r.pass).length;
 const quiet = cleanRows.filter((r) => r.pass).length;
-console.log(`\n抓到 bug：${caught}/${bugRows.length}　干净改动没有误报：${quiet}/${cleanRows.length}`);
+console.log(`\nBugs caught: ${caught}/${bugRows.length}   Clean changes without false alarms: ${quiet}/${cleanRows.length}`);
 
 const reviewMd = join(repoRoot, 'REVIEW.md');
 appendFileSync(resultsFile, `${JSON.stringify({

@@ -1,73 +1,73 @@
 ---
 paths:
-  - "{{组件目录}}/**"
+  - "{{component directory}}/**"
 ---
 
-# React 规范：{{组件名}}
+# React standards: {{component name}}
 
-来源：React 官方文档（https://react.dev/learn），以及社区通行的容器组件和展示组件（Container / Presentational）分层。格式由 Prettier 负责，Hooks 规则、复杂度和长度上限由模板自带的 linter（oxlint 或 ESLint）检查，类型由 TypeScript 检查，分层由 dependency-cruiser（`.dependency-cruiser.cjs`，`npm run arch`）检查；这里写需要判断的部分。
+Sources: the React documentation (https://react.dev/learn) and the common container / presentational component layering. Prettier handles formatting; the template's linter (oxlint or ESLint) checks the Hooks rules and complexity and length limits; TypeScript checks types; dependency-cruiser (`.dependency-cruiser.cjs`, `npm run arch`) checks layering. This file covers what needs judgment.
 
-## 分层：页面和展示组件
+## Layers: pages and presentational components
 
 ```
 src/
-├── app/                   应用外壳：路由、全局 Provider、布局
-├── shared/ui/             几个功能共用的展示组件
-├── shared/lib/            纯函数、通用 hooks
-└── features/<功能>/
-    ├── pages/             页面：路由指向它
-    ├── components/        展示组件
-    ├── data-access/       API 调用、服务器状态 hooks（例如 useOrders）、store
-    └── model.ts           类型定义（也可以放在 data-access 里用 type 导出）
+├── app/                   application shell: routes, global providers, layout
+├── shared/ui/             presentational components shared by features
+├── shared/lib/            pure functions, generic hooks
+└── features/<feature>/
+    ├── pages/             pages: what routes point to
+    ├── components/        presentational components
+    ├── data-access/       API calls, server-state hooks (e.g. useOrders), stores
+    └── model.ts           type definitions (or exported as types from data-access)
 ```
 
-**页面（容器组件）**负责"数据从哪来、到哪去"：
+**Pages (container components)** decide where data comes from and where it goes:
 
-- 调用 data-access 的 hooks 取数据、提交修改，处理加载中、出错和空数据。
-- 持有页面状态，通过 props 交给子组件，通过子组件的回调（`onSelect`、`onChange`）更新状态；受控组件用 `value` 加 `onChange` 实现双向同步。
-- 处理导航和路由参数。
+- Call data-access hooks to fetch data and submit changes, and handle loading, errors and empty data.
+- Hold page state, pass it to children through props and update it through their callbacks (`onSelect`, `onChange`); controlled components keep in sync with `value` plus `onChange`.
+- Handle navigation and route parameters.
 
-**展示组件**只负责"长什么样"：
+**Presentational components** decide only what things look like:
 
-- 无状态：数据只从 props 进，变化只通过回调 props 出。内部只允许纯界面状态，例如展开、收起、悬停。
-- 不取数据、不调 API、不访问全局状态和路由状态。需要什么数据，由页面传进来。
-- 给定 props 就能独立渲染，这样才能在 Storybook 里展示、单独测试。
+- Stateless: data comes in only through props and changes go out only through callback props. Internal state is limited to pure UI state such as expanded, collapsed or hovered.
+- They do not fetch data, call APIs, or touch global or routing state. Whatever data they need, the page passes in.
+- Given props, they render on their own, so they can be shown in Storybook and tested in isolation.
 
-由 `npm run arch` 强制的依赖规则：
+Dependency rules enforced by `npm run arch`:
 
-- 展示组件（`components/`、`shared/ui/`）不能依赖 data-access、pages、app，也不能引用 TanStack Query、axios、SWR、Zustand、Redux 这类取数据和全局状态的库；可以用 `import type` 引用类型。
-- data-access 不依赖界面。
-- 功能之间不互相引用，几个功能共用的东西提到 `shared/`。shared 不依赖任何功能。
-- 不允许循环依赖。
+- Presentational components (`components/`, `shared/ui/`) do not depend on data-access, pages or app, and do not import data-fetching or global-state libraries such as TanStack Query, axios, SWR, Zustand or Redux; `import type` for types is allowed.
+- data-access does not depend on UI.
+- Features do not reference each other; what several features share moves to `shared/`. shared depends on no feature.
+- No circular dependencies.
 
-## 组件写法
+## Writing components
 
-- 只写函数组件。props 用 TypeScript 类型描述，不用 `any`。
-- 组件文件名用 PascalCase（`OrderList.tsx`），hook 文件用 `useXxx.ts`。
-- 一个组件太长或者做了几件事时拆开；函数长度和复杂度的上限由 lint 检查。
-- 列表的 key 用稳定的业务 ID，不用数组下标。
+- Function components only. Props are described with TypeScript types, never `any`.
+- Component files are PascalCase (`OrderList.tsx`); hook files are `useXxx.ts`.
+- Split a component that is too long or does several things; lint checks function length and complexity limits.
+- List keys are stable business IDs, never array indexes.
 
-## 状态
+## State
 
-- 状态放在用到它的最近的组件里；几个组件共享时再往上提，或者放进 context 或状态库。
-- 从服务器来的数据用专门的库管理（例如 TanStack Query），封装成 data-access 里的 hook，不用 useEffect 加 useState 自己拼。
-- 能从现有状态算出来的值直接计算，不另存一份。
-- useEffect 只用来和外部系统同步（订阅、DOM、定时器），并写好清理函数；不用它响应用户操作或派生状态。
+- State lives in the nearest component that uses it; lift it up, or into context or a state library, only when several components share it.
+- Server data is managed by a dedicated library (e.g. TanStack Query), wrapped in data-access hooks, not hand-built from useEffect and useState.
+- Values that can be computed from existing state are computed, not stored again.
+- useEffect only synchronizes with external systems (subscriptions, the DOM, timers) and has a cleanup function; never use it to respond to user actions or derive state.
 
-## 数据和安全
+## Data and security
 
-- API 调用集中在 data-access 里，统一处理错误和认证。
-- 不用 `dangerouslySetInnerHTML` 渲染用户输入的内容。
-- `import.meta.env` 里的变量会被打包进前端，只放公开的配置，不放密钥。
+- API calls live in data-access, with errors and authentication handled in one place.
+- Never render user input with `dangerouslySetInnerHTML`.
+- Variables in `import.meta.env` are bundled into the frontend: public configuration only, never secrets.
 
-## 样式
+## Styles
 
-- 颜色、字号、间距、圆角用设计令牌（CSS 自定义属性 `var(--...)`），不写死颜色值和像素值。
-- 展示组件的样式只作用于自己（CSS Modules 或所选样式方案的作用域机制），不改写子组件和全局样式。
+- Colors, font sizes, spacing and radius come from design tokens (CSS custom properties, `var(--...)`), never hard-coded colors or pixel values.
+- A presentational component's styles apply only to itself (CSS Modules or the chosen styling's scoping), never overriding child components or global styles.
 
-## 质量
+## Quality
 
-- 可交互元素用语义化的标签（button、a、label），能用键盘操作。
-- 加载中、出错、空数据三种状态都要有界面。
-- 测试用 Testing Library，按用户看得到的内容查找元素（role、label、文字），不测内部状态。展示组件测"给定 props 显示什么、点了调用什么回调"；页面测和 data-access 的配合。
-- 生产代码里不留 `console.log`。
+- Interactive elements use semantic tags (button, a, label) and work with the keyboard.
+- Loading, error and empty states all have a UI.
+- Tests use Testing Library and find elements the way users see them (role, label, text), not internal state. Presentational components are tested for "given these props, what shows and which callback a click calls"; pages for how they work with data-access.
+- No `console.log` in production code.

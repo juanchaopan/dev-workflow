@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// Claude Code 的 PostToolUse 钩子：Claude 每改完一个文件，运行 format.config.json 里对应规则的格式化和 lint 命令。
-// 规则按扩展名和目录匹配：文件必须在规则的 dir 之内，几条都匹配时用 dir 最深的那条，
-// 这样单仓库多组件时，每个组件用自己目录下的工具和配置。命令在规则的 dir 下运行。
-// 格式化失败不拦截（多半是工具没装或文件类型不支持）；lint 不通过时以退出码 2 结束，
-// Claude Code 会把错误输出交给 Claude，让它接着修。
+// Claude Code PostToolUse hook: after Claude changes a file, runs the format and lint commands of the matching rule in format.config.json.
+// Rules match by extension and directory: the file must be inside the rule's dir, and when several match the deepest dir wins,
+// so each component of a monorepo uses the tools and configuration in its own directory. Commands run in the rule's dir.
+// A failed format does not block (usually the tool is missing or the file type is unsupported); a lint failure exits with code 2,
+// and Claude Code hands the error output to Claude to keep fixing.
 import { readFileSync, existsSync } from 'node:fs';
 import { extname, join, relative, resolve, isAbsolute } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -44,7 +44,7 @@ if (rule.lint) {
   const result = run(rule.lint);
   if (result.status !== 0) {
     process.stderr.write(
-      `${relative(projectDir, file)} 没有通过 lint（在 ${relative(projectDir, dir) || '.'} 下运行 ${rule.lint}）：\n` +
+      `${relative(projectDir, file)} failed lint (ran ${rule.lint} in ${relative(projectDir, dir) || '.'}):\n` +
         `${result.stdout ?? ''}${result.stderr ?? ''}`,
     );
     process.exit(2);

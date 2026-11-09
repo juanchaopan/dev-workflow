@@ -1,22 +1,22 @@
 ---
-description: 先自检、简化和本地审查，再开 PR：运行 CLAUDE.md 里的自检命令，做一轮简化审查，运行本地 code-review 和 security-review，问题处理完后按模板创建 PR 并开启自动合并
+description: Self-check, simplify and review locally, then open the PR — runs the self-check commands in CLAUDE.md, a simplification pass and local code-review and security-review, and once the findings are handled creates the PR from the template and enables auto-merge
 ---
 
-把当前改动整理成一个能审查的 PR。按顺序做。每一步都给出真实的命令输出，不要只说"已完成"。
+Turn the current changes into a reviewable PR. Work in order, and show the real command output at every step instead of just saying "done".
 
-1. **分支**：读 CLAUDE.md「分支与提交」，确定这个改动的目标分支（GitHub Flow 是 main；Git Flow 下，普通改动是 develop，hotfix 是 main）。如果当前就在目标分支或其他受保护的分支上，按命名规则新建分支。工作区里有和这次任务无关的改动时，先问我怎么处理。
-2. **自检**：对改到的每个组件，依次运行 CLAUDE.md「自检命令」里的命令，再在仓库根目录运行 `npx jscpd .`。有失败就修，修完从头再跑，直到全部通过。如果改了界面，截图和设计稿或预期效果对照一下。
-3. **简化**：用 Skill 工具运行 `simplify`，检查这次改动有没有可以复用的已有代码、多余的抽象、重复的逻辑，以及读起来像打补丁的地方（见 CLAUDE.md「写代码的方式」）。改了代码就回到第 2 步。
-4. **代码审查**：用 Skill 工具运行 `code-review`，审查当前分支相对目标分支的改动。每条意见要么修掉，要么说明为什么不修。修过代码就回到第 2 步。
-5. **安全审查**：用 Skill 工具运行 `security-review`，每条意见同样处理。
-6. **整理提交**：检查 `git log <目标分支>..HEAD`。每个提交只做一件事、提交信息符合 Conventional Commits、不夹带无关改动；重构和功能改动分在不同的提交里。还没提交的改动，按逻辑拆成几个提交。不合格的提交在推送前整理好（这个分支还没推送过时可以改写历史；已推送的不要强推，追加提交说明即可）。
-7. **推送并创建 PR**：推送分支，用 `gh pr create --base <目标分支>`。正文按 `.github/pull_request_template.md` 的结构填写：
-   - 改了什么、为什么：一两句话说清意图；对应 issue 写 `Closes #<编号>`。
-   - Testing：第 2 步实际运行的命令和结果摘要；改了界面的附上改动前后的截图。
-   - Risk：对照 `.github/risk-rules.txt` 判断低、中、高，写出理由。
-   - How to revert：怎么撤回；涉及数据或配置的，写清楚怎么恢复。
-   - 检查清单不要勾，留给我自己确认后勾。
-8. **开启自动合并**：按 CLAUDE.md 的合并方式运行 `gh pr merge <编号> --auto --merge`（合并方式是 squash 或 rebase 时换成对应参数）。GitHub 会在所有检查通过、评论线程处理完之后自动合并。
-9. **汇报**：给出 PR 链接和风险等级。如果是中风险或高风险，提醒我先亲自读完 diff，确认没问题后再给 PR 加 `human-reviewed` 标签，加上后会自动合并。
+1. **Branch**: read "Branches and commits" in CLAUDE.md to find this change's target branch (main for GitHub Flow; for Git Flow, develop for normal changes and main for hotfixes). When you are on the target branch or another protected branch, create a branch following the naming rules. When the working tree has changes unrelated to this task, ask me how to handle them first.
+2. **Self-check**: for every component you changed, run the commands in "Self-check commands" in CLAUDE.md, then `npx jscpd .` at the repository root. Fix any failure and start over until everything passes. When a screen changed, compare screenshots with the design (the confirmed screenshots in `docs/design/screens/` or the design files).
+3. **Simplify**: run `simplify` with the Skill tool to look for existing code to reuse, unnecessary abstraction, duplicated logic and anything that reads like patchwork (see "How to write code" in CLAUDE.md). If code changed, go back to step 2.
+4. **Code review**: run `code-review` with the Skill tool on the current branch's changes against the target branch. Fix each finding or say why not. If code changed, go back to step 2.
+5. **Security review**: run `security-review` with the Skill tool and handle each finding the same way.
+6. **Tidy the commits**: check `git log <target branch>..HEAD`. Each commit does one thing, its message follows Conventional Commits, and nothing unrelated is mixed in; refactoring and feature changes are separate commits. Split uncommitted changes into logical commits. Fix bad commits before pushing (history may be rewritten while the branch has never been pushed; once pushed, never force-push, add commits instead).
+7. **Push and create the PR**: push the branch and run `gh pr create --base <target branch>`. Fill the body following `.github/pull_request_template.md`:
+   - What and why: the intent in a sentence or two; `Closes #<number>` for the issue.
+   - Testing: the commands actually run in step 2 and a summary of the results; for screen changes, the implemented screen next to the confirmed design screenshot, plus a before screenshot for changes to an existing screen.
+   - Risk: low, medium or high against `.github/risk-rules.txt`, with the reason.
+   - How to revert: how to undo it; for data or configuration changes, how to restore them.
+   - Leave the checklist unticked; I tick it myself after checking.
+8. **Enable auto-merge**: run `gh pr merge <number> --auto --merge` following the merge method in CLAUDE.md (use the matching flag for squash or rebase). GitHub merges once every check passes and every review thread is resolved.
+9. **Report**: give the PR link and the risk tier. For medium or high risk, remind me to read the whole diff myself first and add the `human-reviewed` label once satisfied; it merges automatically after that.
 
 $ARGUMENTS

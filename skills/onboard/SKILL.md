@@ -1,87 +1,90 @@
 ---
 name: onboard
-description: 接手一个已有的项目：读代码、构建配置、提交历史和现有文档，逆向整理出现状——有哪些组件和依赖、现在的架构和数据、已经实现了哪些功能、技术债和质量基线——写成 docs/ 下的文档，请用户确认推断的内容，再用"只许变好、不许变坏"的基线方式接入代码规范、架构检查和审查流程。用户说"接手这个项目""帮我看看这个老项目""这个仓库没有文档""要把这个系统现代化"时使用；/kickoff 遇到已有代码时也会先调用它。
+description: Take over an existing project. Reads the code, build configuration, commit history and existing documents and reconstructs the current state — components and dependencies, current architecture and data, features already implemented, tech debt and quality baseline — as documents under docs/, asks the user to confirm what was inferred, then sets up code standards, architecture checks and the review workflow with a baseline, so existing problems are recorded but nothing may get worse. Use when the user says "take over this project", "look at this old project", "this repository has no documentation" or "we need to modernize this system"; /kickoff also calls it first when it meets existing code.
 ---
 
-# 接手已有项目
+# Taking over an existing project
 
-目标：让一个没有文档、没有规范的项目，也能接上整套流程。先只读不改，把现状弄清楚写下来；接入规范时用基线：现存的问题先记下来不算失败，新代码不许让它变得更糟，以后逐步还债。
+The goal: let a project without documentation or standards join the whole workflow. Read first and change nothing; document the current state; set up standards with a baseline — existing problems are recorded, not counted as failures, new code may not make them worse, and the debt is paid off over time.
 
-## 原则
+## Principles
 
-- **先只读**：第 1 到 5 步不修改任何代码和配置。需要运行构建和测试时，只运行，不修。
-- **推断要标出来**：从代码里推断出来的需求、架构和决策，来源都标为"推断"，请用户确认后再去掉这个标记。
-- **数字说话**：质量的现状用工具量出来（构建能不能过、测试有多少、重复率、违规数），写进基线，以后对比。
+- **Read-only first**: steps 1 to 5 change no code or configuration. Run builds and tests when needed, but do not fix anything.
+- **Mark inferences**: requirements, architecture and decisions inferred from code are marked "inferred" until the user confirms them.
+- **Let numbers speak**: measure quality with tools (does the build pass, how many tests, duplication rate, violation counts), record it as the baseline, and compare against it later.
+- **Talk to the user in their language**; documents are written in the project's document language (the `Language` line in the project's CLAUDE.md when there is one, otherwise the language the user talks to you in).
 
-## 步骤
+## Steps
 
-### 0. 确定范围
+### 0. Scope
 
-确认要接手的目录、它是不是 git 仓库、有没有 GitHub 远端。代码量很大时，问用户这次先看哪些部分。
+Confirm the directory to take over, whether it is a git repository and whether it has a GitHub remote. For a large code base, ask the user which parts to look at first.
 
-### 1. 盘点
+### 1. Inventory
 
-- **语言和规模**：按扩展名统计文件数和代码行数。
-- **组件**：找出每个能独立构建或部署的单元（每个 `package.json`、`pom.xml`、`build.gradle(.kts)`、`pyproject.toml`、`*.csproj`、`go.mod`、`Dockerfile` 等）。对照 scaffold 技能 `stacks/*/stack.md` 的"识别方法"，认出每个组件的技术栈。
-- **版本和依赖**：语言、框架和主要依赖的版本；哪些已经或快要停止维护（查 `https://endoflife.date/api/<产品名>.json`）；依赖里有没有已知的安全漏洞（`npm audit`、`./mvnw dependency-check`、`pip-audit`、`dotnet list package --vulnerable` 等，按技术栈选）。
-- **能不能跑起来**：找出构建、测试、启动的命令，逐个运行，记下哪些能过、哪些失败、失败原因。
-- **工程设施**：CI/CD 配置、部署方式（Dockerfile、编排文件、基础设施代码）、环境配置、有没有密钥或密码写在仓库里（有的话立即告诉用户，这是安全问题）。
-- **数据**：数据库类型、迁移脚本、表结构或模型定义、和外部系统的集成。
-- **历史**：`git log` 看项目年龄、最近活跃度；近一年改动最频繁的文件（`git log --since="1 year ago" --name-only --format="" | sort | uniq -c | sort -rn | head -30`），它们往往是问题最多、最该先看的地方。
+- **Languages and size**: count files and lines of code by extension.
+- **Components**: find every unit that can be built or deployed on its own (every `package.json`, `pom.xml`, `build.gradle(.kts)`, `pyproject.toml`, `*.csproj`, `go.mod`, `Dockerfile` and so on). Identify each component's stack with the "How to recognize it" section of the scaffold skill's `stacks/*/stack.md`.
+- **Versions and dependencies**: versions of languages, frameworks and main dependencies; which are at or near end of life (`https://endoflife.date/api/<product>.json`, or `node <scaffold skill directory>/shared/versions.mjs lts <product>` for the current LTS); known vulnerabilities in dependencies (`npm audit`, `./mvnw dependency-check`, `pip-audit`, `dotnet list package --vulnerable` and so on, by stack).
+- **Does it run**: find the build, test and start commands, run each, and record what passes, what fails and why.
+- **Engineering setup**: CI/CD configuration, deployment (Dockerfiles, compose files, infrastructure as code), environment configuration, and whether secrets or passwords are committed to the repository (if so, tell the user immediately; it is a security issue).
+- **Data**: database type, migration scripts, schema or model definitions, integrations with external systems.
+- **History**: `git log` for the project's age and recent activity; the most frequently changed files of the last year (`git log --since="1 year ago" --name-only --format="" | sort | uniq -c | sort -rn | head -30`) — they are often where the most problems are and what to look at first.
 
-### 2. 现状架构
+### 2. Current architecture
 
-- 画出组件和它们之间的依赖、数据存储、外部集成。前端和 Node.js 组件可以用 dependency-cruiser 生成依赖图辅助判断。
-- 看实际的分层：代码有没有按层或按功能组织、有没有跨层调用、展示和业务逻辑是否混在一起。
-- 按 architect 技能的 `templates/overview.md` 写 `docs/architecture/overview.md`，标题下注明"现状（由 /onboard 整理）"。看得出来的历史决策（例如为什么用这个数据库），写成状态为"已接受（推断）"的 ADR。
+- Map components and their dependencies, data stores and external integrations. For frontend and Node.js components, dependency-cruiser can generate a dependency graph to help.
+- Look at the actual layering: is the code organized by layer or by feature, are there cross-layer calls, are presentation and business logic mixed.
+- Write `docs/architecture/overview.md` from the architect skill's `templates/overview.md`, with "Current state (documented by /onboard)" under the title. Historical decisions you can see (e.g. why this database) become ADRs with the status "Accepted (inferred from existing code)".
 
-### 3. 已有功能
+### 3. Existing features
 
-- 从路由和控制器、页面和菜单、定时任务、对外接口、测试用例里，推断系统现在提供哪些功能。
-- 按 kickoff 技能的 `templates/requirements.md` 写成需求条目，状态为"已实现"，来源为"代码推断"，"相关"里写出代码位置。
-- 用 AskUserQuestion 请用户确认：哪些推断对、哪些已经没人用了、哪些漏了（多选，每轮最多 4 组）。确认后更新来源和状态。
+- Infer what the system offers today from routes and controllers, pages and menus, scheduled jobs, external interfaces and test cases.
+- Write them as requirements from the kickoff skill's `templates/requirements.md`, with the status "Implemented", the source "inferred from code" and the code location under "Related".
+- Ask the user with AskUserQuestion which inferences are right, which features nobody uses any more and what is missing (multi-select, at most 4 questions per round). Update sources and statuses after confirmation.
 
-### 4. 质量基线
+The screens, tables and interfaces of existing features are not documented in full here; /design documents the current state of the parts a change touches when /change gets to them.
 
-量出现状，写进 `docs/architecture/tech-debt.md`（按本技能 `templates/tech-debt.md`）：
+### 4. Quality baseline
 
-- 构建和测试：能否通过、测试数量、覆盖率（有工具时）。
-- 重复代码：在仓库根目录运行 `npx jscpd .`（用 setup-ai-review 技能模板里的 `.jscpd.json`），记下重复率。
-- 复杂度和 lint：按组件的技术栈，用规范库里的配置跑一遍 lint，记下违规数量，以及最复杂的几个函数。
-- 架构违规：按规范库的架构检查配置跑一遍（能对上目录结构时），记下违规数量。
+Measure the current state and write it to `docs/architecture/tech-debt.md` (from this skill's `templates/tech-debt.md`):
 
-再列出技术债清单：每一项写清是什么、影响什么、风险多大、修复的工作量、建议怎么处理。
+- Build and tests: do they pass, number of tests, coverage (when there is a tool).
+- Duplication: run `npx jscpd .` at the repository root (with the `.jscpd.json` from the setup-ai-review skill's template) and record the duplication rate.
+- Complexity and lint: run lint with the standards library's configuration for each component's stack, record the number of violations and the most complex functions.
+- Architecture violations: run the standards library's architecture check configuration (when it matches the directory structure) and record the number of violations.
 
-### 5. 问用户接下来想做什么
+Then list the tech debt: for each item, what it is, what it affects, how risky it is, how much work the fix is and the recommended handling.
 
-用 AskUserQuestion：
+### 5. Ask what the user wants to do next
 
-- 维持现状、只修 bug 和加小功能 → 接入流程（第 7 步），之后用 /change 处理每个需求。
-- 加一批新功能 → 接入流程，再用 /kickoff 的"已有代码"入口挖掘新需求。
-- 现代化（升级技术栈、重新设计架构、迁移平台）→ 接入流程，再用 /kickoff 的"已有代码"入口，接着 /architect 设计目标架构和迁移步骤。
-- 重写 → 提醒用户重写的风险（停滞期长、遗漏隐藏的业务规则），建议先考虑逐步替换；用户坚持时，把现状文档当作新项目的需求来源，走 /kickoff。
+With AskUserQuestion:
 
-### 6. 写文档并提交
+- Keep it running, only bug fixes and small features → set up the workflow (step 7), then use /change for each request.
+- Add a batch of new features → set up the workflow, then the "existing code" entry of /kickoff to discover the new requirements.
+- Modernize (upgrade the stack, redesign the architecture, move platforms) → set up the workflow, then the "existing code" entry of /kickoff, then /architect for the target architecture and migration steps.
+- Rewrite → remind the user of the risks (a long stall, hidden business rules getting lost) and suggest incremental replacement first; if the user insists, use the current-state documents as a requirement source for a new project through /kickoff.
 
-写 `docs/README.md`（kickoff 技能 `templates/docs-README.md`）以及第 2 到 4 步的文档。把要点总结给用户，确认后提交，提交信息 `docs: 整理现状文档`。仓库已有分支保护时，新建 `docs/` 分支并用 /open-pr。
+### 6. Write the documents and commit
 
-### 7. 接入规范和流程（用基线）
+Write `docs/README.md` (the kickoff skill's `templates/docs-README.md`) and the documents of steps 2 to 4. Summarize the key points for the user and commit after confirmation with `docs: document the current state`. When the repository already has branch protection, create a `docs/` branch and use /open-pr.
 
-1. 用 Skill 工具运行 `scaffold`，用"给已有项目装规范"的方式给每个组件装上对应技术栈的规范、lint 和架构检查。目录结构和规范库的分层约定对不上时，不要大规模搬动代码；先只装工具和规则，记下基线，结构调整作为技术债逐步做。
-2. 把现存的问题记成基线，让检查从今天开始只许变好：
+### 7. Set up standards and workflow (with a baseline)
 
-   | 检查 | 基线做法 |
+1. Run `scaffold` with the Skill tool in its "add standards to an existing project" mode to give every component its stack's standards, lint and architecture checks. When the directory structure does not match the library's layering conventions, do not move code around on a large scale; install the tools and rules, record the baseline, and treat restructuring as tech debt paid off over time.
+2. Record existing problems as the baseline so checks only allow improvement from today:
+
+   | Check | Baseline approach |
    |---|---|
-   | dependency-cruiser（Angular、React、Node） | `node scripts/arch-check.mjs --baseline`，生成 `.dependency-cruiser-known-violations.json` 并提交 |
-   | ArchUnit（Spring Boot） | 规则外面套一层 `FreezingArchRule.freeze(...)`，`archunit.properties` 里加 `freeze.store.default.allowStoreCreation=true`；第一次运行生成 `archunit_store/`，提交它 |
-   | import-linter（Python） | 现存违规的导入写进对应契约的 `ignore_imports` |
-   | ArchUnitNET（.NET） | 现存违规的类型用 `.That().AreNot(...)` 暂时排除，在 tech-debt.md 里记下 |
-   | lint 的复杂度和长度上限 | 现存超标的文件在 lint 配置里按文件暂时放宽，在 tech-debt.md 里记下 |
-   | jscpd | `.jscpd.json` 的 `threshold` 设成现状重复率（向上取整），以后逐步调低 |
+   | dependency-cruiser (Angular, React, Node) | `node scripts/arch-check.mjs --baseline` generates `.dependency-cruiser-known-violations.json`; commit it |
+   | ArchUnit (Spring Boot) | Wrap the rules in `FreezingArchRule.freeze(...)` and add `freeze.store.default.allowStoreCreation=true` to `archunit.properties`; the first run creates `archunit_store/`; commit it |
+   | import-linter (Python) | Add existing violating imports to the matching contract's `ignore_imports` |
+   | ArchUnitNET (.NET) | Exclude existing violating types temporarily with `.That().AreNot(...)` and record them in tech-debt.md |
+   | Lint complexity and length limits | Relax the limits per file in the lint configuration for files that exceed them today, and record them in tech-debt.md |
+   | jscpd | Set `threshold` in `.jscpd.json` to the current duplication rate (rounded up) and lower it over time |
 
-3. 用 Skill 工具运行 `setup-ai-review`，接入审查流程。
-4. 建议用户：动高风险或改动最频繁的代码之前，先给它补"特征测试"（把现在的行为原样固定下来，哪怕现在的行为看起来不对），这样以后重构时能知道有没有改坏。
+3. Run `setup-ai-review` with the Skill tool to set up the review workflow.
+4. Recommend to the user: before touching high-risk or frequently changed code, add characterization tests (pin down today's behavior exactly as it is, even if it looks wrong), so later refactoring shows whether anything broke.
 
-### 8. 汇报
+### 8. Report
 
-说明：项目由哪些组件组成、现状架构的要点、已有功能有多少条（用户确认了多少）、质量基线的数字、最重要的 3 到 5 项技术债、接入了哪些检查、下一步建议。
+Explain which components the project has, the key points of the current architecture, how many existing features were found (and how many the user confirmed), the baseline numbers, the 3 to 5 most important tech debt items, which checks were set up and the recommended next step.

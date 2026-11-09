@@ -1,8 +1,9 @@
 name: ci
 
-# 必需的自动检查：每个组件的 lint、架构检查、类型检查、测试、构建，以及整个仓库的重复代码检查。
-# 分支规则按 job 名 "ci" 把汇总 job 设为合并前必须通过：它在所有其他 job 结束后运行，任何一个失败它就失败。
-# 这里的命令和 CLAUDE.md「自检命令」保持一致，本地能过的，CI 上也应该能过。
+# Required automatic checks: lint, architecture checks, type checks, tests and build of each component, plus duplicate code
+# detection for the whole repository.
+# Branch rules require the summary job named "ci" before merging: it runs after every other job and fails when any of them fails.
+# The commands match "Self-check commands" in CLAUDE.md, so what passes locally passes in CI.
 
 on:
   pull_request:
@@ -28,7 +29,7 @@ jobs:
           node-version: lts/*
       - run: npx --yes jscpd@5 .
 
-  # ---- 项目专属：每个组件一个 job，按各技术栈 stack.md 的"CI 步骤"写 ----
+  # ---- Project-specific: one job per component, from the "CI steps" of its stack.md ----
   app:
     name: app
     runs-on: ubuntu-latest
@@ -44,7 +45,7 @@ jobs:
       - run: npm run typecheck --if-present
       - run: npm test --if-present
       - run: npm run build --if-present
-  # ---- 项目专属：结束 ----
+  # ---- Project-specific: end ----
 
   ci:
     name: ci
@@ -54,4 +55,4 @@ jobs:
     steps:
       - if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: exit 1
-      - run: echo "全部检查通过"
+      - run: echo "All checks passed"

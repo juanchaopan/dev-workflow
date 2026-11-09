@@ -1,150 +1,152 @@
 ---
 name: design
-description: 把需求和架构细化成可以直接写代码和测试的设计（基本设计和详细设计）：画面一览和画面迁移、每个画面的布局和项目定义（类型、必填、长度、默认值、校验规则、错误提示）、操作和状态；数据定义（表和列，或者文件、配置、消息的结构）；对外接口（HTTP API、命令行、库的公开接口、定时任务）；权限；复杂的处理逻辑（状态机、判定表、计算规则）。按系统类型取舍要写的部分。每个画面用 HTML 写原型、截成图片，一个一个给用户看，用户直接提意见和问题，改到确认为止；做一个、存一个、提交一个，随时可以中断或压缩对话，再运行时从没确认的地方接着做；最后做完备性检查（需求覆盖、CRUD 矩阵、权限矩阵），写进 docs/design/。在 /architect 之后使用，完成后接 /scaffold（新项目）或 /roadmap；/change 改到画面、字段、数据、接口或业务逻辑时也会用它。用户说"设计画面""详细设计""基本设计""把字段定下来""继续设计"时使用。
+description: Detailed design that code and tests can be written from: screen list and flow; each screen's layout, fields (type, required, length, default, validation, error message), actions and states; data definitions (tables and columns, or file, configuration and message formats); interfaces (HTTP API, command line, library API, scheduled jobs); permissions; complex logic (state machines, decision tables, calculations), chosen by system type. Each screen becomes an HTML prototype rendered to images and confirmed with the user one at a time; progress is committed per element, so the conversation can be compacted at any time and resumes where it stopped. Ends with a completeness check (requirement coverage, CRUD and permission matrices) in docs/design/. Use after /architect, before /scaffold or /roadmap; /change uses it when screens, data, interfaces or logic change. Use for "design the screens", "detailed design", "settle the fields" or "continue the design".
 ---
 
-# 设计
+# Design
 
-需求（`docs/product/`）说的是系统要做什么，架构（`docs/architecture/`、`docs/adr/`）说的是用什么技术、分成哪几块。这一步把每个功能细化到"开发时不用再猜"：每个画面长什么样、每个输入项有什么规则、每张表有哪些列、每个接口会返回哪些错误。/roadmap 按这里拆 issue，/implement 按这里写代码和测试。
+The requirements (`docs/product/`) say what the system must do; the architecture (`docs/architecture/`, `docs/adr/`) says which technologies and which components. This step details every feature until nothing is left to guess during development: what each screen looks like, the rules of each input, the columns of each table, the errors each interface returns. /roadmap splits issues from it and /implement writes code and tests from it.
 
-你的角色是一个有经验的系统设计师：替用户把细节想全，但每个画面、每条规则都由用户确认。
+Your role is an experienced system designer: think every detail through for the user, but let the user confirm every screen and every rule.
 
-## 设计到什么程度
+## How far the design goes
 
-| 要定下来 | 不提前写 |
+| Settle now | Do not write in advance |
 |---|---|
-| 用户能看到、能感知到的一切：画面、项目、校验、提示、操作结果；数据的结构和约束；对外接口；权限；复杂的业务逻辑 | 代码内部的类和函数怎么拆。由 /implement 按 `.claude/rules/` 的规范和架构检查决定，提前写死只会让文档和代码对不上 |
+| Everything the user can see or notice: screens, fields, validation, messages, outcomes of actions; data structures and constraints; external interfaces; permissions; complex business logic | How code is split into classes and functions. /implement decides that within the standards in `.claude/rules/` and the architecture checks; fixing it in advance only makes documents and code drift apart |
 
-复杂的业务逻辑指：有多个状态和流转的对象（状态机）、条件组合多的规则（判定表）、计算公式（金额、积分、期限）、算法。它们本身就是需求的一部分，开发时猜错的代价很大，所以要写进设计。
+Complex business logic means objects with several states and transitions (state machines), rules with many combinations of conditions (decision tables), formulas (amounts, points, deadlines) and algorithms. They are part of the requirements and expensive to guess wrong, so they belong in the design.
 
-按系统类型决定要写哪些部分：
+What to write depends on the system type:
 
-| 系统类型 | 要写的部分 |
+| System type | Parts to write |
 |---|---|
-| 有界面（Web、桌面、移动） | 画面、数据、接口（前后端之间的 API）、权限、逻辑 |
-| 后端服务、API | 接口、数据、权限、逻辑 |
-| 命令行工具 | 接口（命令、参数、输出、退出码）、数据（读写的文件和配置的格式）、逻辑 |
-| 库、SDK | 接口（公开的类型、函数和错误）、逻辑 |
-| 批处理、定时任务 | 接口（触发方式、输入输出）、数据、逻辑、出错和重跑 |
+| With a UI (web, desktop, mobile) | Screens, data, interfaces (the API between frontend and backend), permissions, logic |
+| Backend service, API | Interfaces, data, permissions, logic |
+| Command-line tool | Interfaces (commands, arguments, output, exit codes), data (format of files and configuration it reads and writes), logic |
+| Library, SDK | Interfaces (public types, functions and errors), logic |
+| Batch and scheduled jobs | Interfaces (triggers, inputs and outputs), data, logic, failures and reruns |
 
-没有数据库的系统，"数据"写它读写的文件、配置、消息、缓存的结构；什么都不保存的，写"无"。
+For a system without a database, "data" covers the structure of the files, configuration, messages and caches it reads and writes; if it stores nothing, write "None".
 
-编号：画面 SCR-001、数据实体 ENT-001、接口 API-001、定时任务和批处理 JOB-001、复杂逻辑 LGC-001。编号不复用，删掉的元素在一览里标"已废弃"。
+IDs: screens SCR-001, data entities ENT-001, interfaces API-001, scheduled and batch jobs JOB-001, complex logic LGC-001. IDs are never reused; removed elements are marked "Deprecated" in the index.
 
-## 进度存在文件里，不靠对话记忆
+## Progress lives in files, not in the conversation
 
-设计常常有几十个画面，对话会变得很长。所以：
+A design often has dozens of screens and the conversation gets long. So:
 
-- **一览表就是进度表**：第 1 步一开始就写出 `docs/design/README.md` 的设计元素一览，每个元素一行，状态从"未开始"起，做一个改一个。
-- **做一个、存一个、提交一个**：每个元素写完、用户确认以后，马上把状态改成"已确认（YYYY-MM-DD）"并提交（`docs(design): 确认 SCR-xxx <名称>`）。用户的意见和问题当场记进定义文件的"用户确认记录"，不留在对话里。
-- **随时可以中断**：用户随时可以压缩对话（`/compact`）或者关掉会话。每确认完一个画面，提醒用户一句"进度已保存，现在可以压缩对话"。
-- **只读需要的部分**：做一个元素时，只读一览表、共通规则、`tokens.css`、这个元素对应的需求，以及和它直接相关的元素（例如画面用到的接口和实体）。已经确认的其他画面不重读。
-- **截图不进主对话**：图片很占上下文。截图后的自查交给子代理（Agent 工具）去看，只把它找到的问题以文字带回来；没有子代理时才自己用 Read 看。用户看图用系统的看图程序，不经过对话。
+- **The index is the progress tracker**: step 1 writes the element index in `docs/design/README.md` right away, one row per element, starting at "Not started"; update a row as each element moves on.
+- **Design one, save one, commit one**: as soon as an element is written and the user confirms it, set its status to "Confirmed (YYYY-MM-DD)" and commit (`docs(design): confirm SCR-xxx <name>`). The user's comments and questions go straight into the definition file's "User confirmation log", not just the conversation.
+- **Interrupt at any time**: the user can compact the conversation (`/compact`) or close the session at any time. After each confirmed screen, tell the user once: "Progress is saved; you can compact the conversation now."
+- **Read only what you need**: for one element, read the index, the common rules, `tokens.css`, the element's requirements and the elements directly related to it (e.g. the interfaces and entities a screen uses). Do not reread other confirmed screens.
+- **Keep screenshots out of the main conversation**: images take a lot of context. After rendering, hand the visual self-check to a subagent (Agent tool) and bring back only the problems it finds, as text; read the images yourself with Read only when no subagent is available. The user looks at the images in the system image viewer, outside the conversation.
 
-## 怎么提问
+## How to ask
 
-用 AskUserQuestion，每轮 2 到 4 题，每题 2 到 4 个具体选项，推荐的放第一个并在标签后加"（推荐）"，description 写清每个选项意味着什么。这里问的是具体的设计取舍，例如"手机号必填还是可选""删除订单是物理删除还是只做标记""列表默认每页 20 条还是 50 条"。
+Ask with AskUserQuestion, in the user's language: 2 to 4 questions per round, 2 to 4 concrete options each, the recommended one first with "(Recommended)" appended to its label, and a description that says what each option means. The questions here are concrete design trade-offs, e.g. "Is the phone number required or optional?", "Is deleting an order a hard delete or a flag?", "Does the list show 20 or 50 rows per page by default?".
 
-- 需求文档已经说清的不再问。需求里没说、开发时又必须定的，按最常见的做法给推荐项。
-- 用户说"你定""都行"时选推荐项，在设计里把这一条标为"AI 建议，用户默认"。
-- 设计中发现需求本身有漏洞或矛盾时，先问清楚，同时修改 `docs/product/requirements.md`。
-- 有拿不准、需要先试一试才能定的（例如一种交互用户会不会用、一个第三方接口能不能满足），记下来，建议用 /spike 验证。
+- Do not ask what the requirements already settle. For what they leave open but development needs, recommend the most common approach.
+- When the user says "you decide" or "either is fine", take the recommended option and mark the item "AI suggestion, user default" in the design.
+- When the design exposes a hole or contradiction in the requirements, ask first and update `docs/product/requirements.md` along with it.
+- What needs a trial before it can be decided (e.g. whether users will understand an interaction, whether a third-party API is good enough) is recorded with a suggestion to verify it with /spike.
 
-## 步骤
+## Steps
 
-### 0. 读文档，定范围，找断点
+### 0. Read, set the scope, find where to resume
 
-读 `docs/product/`、`docs/architecture/overview.md`、`docs/adr/`。没有需求文档时告诉用户先运行 /kickoff，没有架构文档时先运行 /architect。
+Read `docs/product/`, `docs/architecture/overview.md` and `docs/adr/`. Without requirement documents, tell the user to run /kickoff first; without architecture documents, /architect.
 
-已经有 `docs/design/README.md` 时，先看一览表的状态：有"未开始""进行中"或"AI 设计，待确认"的元素，就告诉用户已完成几个、还剩几个，从第一个没确认的元素接着做（跳到它所在的步骤）。
+When `docs/design/README.md` already exists, look at the statuses in the index first: if elements are "Not started", "In progress" or "AI draft, awaiting confirmation", tell the user how many are done and how many remain, and continue with the first unconfirmed element (jump to its step).
 
-范围：
+Scope:
 
-- 新项目：设计第一版（`vision.md` 里 MVP 的全部需求）。"以后再做"的需求，等到要做时通过 /change 再设计。
-- 由 /change 调用：只设计这次变更涉及的部分，改动过的画面重新请用户确认。
-- 已有代码、但还没有设计文档的项目：先从代码里把这次要改到的画面、表和接口的现状整理成设计（状态写"已实现，从代码整理"），再在上面改。
+- New project: design the first version (every MVP requirement in `vision.md`). "Later" requirements are designed through /change when their time comes.
+- Called by /change: design only the parts the change touches; changed screens are confirmed with the user again.
+- Existing code without design documents: first document the current state of the screens, tables and interfaces this change touches from the code (status "Implemented, documented from code"), then change that.
 
-### 1. 全貌
+Write the design documents in the project's document language: the `Language` line in the project's CLAUDE.md when there is one, otherwise the language the user talks to you in.
 
-先定整体，再逐个细化：
+### 1. The big picture
 
-1. **设计元素一览**：按系统类型列出要设计的画面、数据实体、接口、定时任务、复杂逻辑，每个一句话说明，写出对应的 REQ。
-2. **画面迁移**（有界面时）：用 Mermaid 流程图画出画面之间怎么跳转、从哪里进入、操作成功和取消后去哪里。
-3. **共通规则**：所有画面和接口都遵守的约定：日期、时间、金额、数字的显示格式；必填项怎么标；什么时候校验（输入时、离开输入框时、提交时）；错误提示显示在哪里；空数据、加载中、出错时显示什么；分页方式；时区；文字长度按字符还是按字节算。关键的几项用一轮 AskUserQuestion 确认。
-4. 把一览、迁移图和共通规则给用户看，确认没有漏掉的画面和功能。确认后按 `templates/README.md` 写出 `docs/design/README.md`（一览里每个元素的状态是"未开始"），提交，再往下做。
+Settle the whole first, then each part:
 
-### 2. 画面：一个一个确认
+1. **Element index**: list the screens, data entities, interfaces, scheduled jobs and complex logic the system type calls for, one sentence each, with their REQs.
+2. **Screen flow** (with a UI): a Mermaid flowchart of how screens lead to each other, where they are entered, and where success and cancel lead.
+3. **Common rules**: conventions every screen and interface follows: display formats for dates, times, amounts and numbers; how required fields are marked; when validation runs (while typing, on leaving a field, on submit); where error messages appear; what empty data, loading and errors look like; pagination; time zones; whether text length counts characters or bytes. Confirm the key ones in one round of AskUserQuestion.
+4. Show the index, the flow and the common rules to the user and confirm nothing is missing. Then write `docs/design/README.md` from `templates/README.md` (every element "Not started"), commit, and move on.
 
-先定风格：把 `templates/tokens.css` 复制为 `docs/design/screens/tokens.css`，有设计稿或品牌规范时照着改令牌的值，没有时用默认值。所有原型都引用这份文件；以后实现时，项目的设计令牌也照这份文件的值建。
+### 2. Screens: confirm one at a time
 
-然后按画面迁移的主流程顺序，一次只做一个画面：
+Settle the style first: copy `templates/tokens.css` to `docs/design/screens/tokens.css`, adjust the token values to design files or brand guidelines when there are any, otherwise keep the defaults. Every prototype uses this file; later the project's design tokens are built from the same values.
 
-1. **写画面定义**：一览里把它的状态改成"进行中"。按 `templates/screen.md` 写 `docs/design/screens/SCR-xxx-<英文短名>.md`，包括目的、入口和去向、布局、项目定义表（每个显示项和输入项的类型、必填、长度或范围、默认值、校验规则、错误提示、数据来源）、操作和事件（点了以后调用哪个接口、成功和失败后怎样）、各种状态、权限差异。
-2. **写原型**：按 `templates/screen.html` 给每个状态写一个 HTML，文件名和定义文件相同，状态用后缀区分：`SCR-001-login.html`（正常）、`SCR-001-login--error.html`（校验出错）、`SCR-001-login--empty.html`（空数据）、`SCR-001-login--loading.html`（加载中）。至少画正常和校验出错两种状态；列表类画面加上空数据；不同角色看到的内容不同时，每个角色画一张。原型只给人看：纯 HTML 和 CSS，引用 `tokens.css`，不用框架、不写脚本。数据用真实感的样例（真实的姓名、地址、金额，长短不一的文字），不用"测试1""xxx"这类占位。手机画面把截图尺寸设成 `390x844`。
-3. **截图和自查**：运行 `node <本技能目录>/render-screens.mjs docs/design/screens/SCR-xxx-*.html`。脚本用 Playwright 自带的 Chromium（免费，第一次运行时自动下载）把每个 HTML 截成同名的 PNG。然后用 Agent 工具交给一个子代理自查：把画面定义文件和这几张 PNG 的路径交给它，请它看图，对照定义检查错位、文字溢出、乱码、项目缺漏或顺序不对、文字和定义不一致，只用文字回报问题清单。有问题先改好再截，直到没有问题。
-4. **请用户确认**：运行 `node <本技能目录>/render-screens.mjs --open <这几张 PNG 对应的 HTML>`，用系统的看图程序打开截图（不会重新下载，几秒钟）。在消息里写清楚：这是第几个画面（一共几个）；每张图的完整路径和它是哪种状态；要点（项目定义表的摘要、对应哪些需求、你替用户做了哪些决定）。然后用 AskUserQuestion 问，选项是"确认这个画面"和"先跳过，稍后再看"，并在问题里说明：有意见或问题直接写在"其他"里。
-   - 用户提了意见：改定义和原型，重新截图、自查、打开，再请用户确认。
-   - 用户提了问题：先回答，需要改的就改。
-   - 每条意见和处理结果当场记进定义文件的"用户确认记录"。
-5. **保存进度**：用户确认以后，把定义文件和一览表里的状态都改成"已确认（YYYY-MM-DD）"，提交这个画面的定义、原型和截图（`docs(design): 确认 SCR-xxx <名称>`），告诉用户"进度已保存，现在可以压缩对话"，再做下一个画面。用户选了"先跳过"的，状态写"AI 设计，待确认"，同样提交。
+Then, following the main flow of the screen flow, one screen at a time:
 
-用户说"剩下的你看着办"时，剩下的画面照常做完、截好图、自查，状态写"AI 设计，待确认"，在第 8 步列出来。这些画面在开发之前必须由用户确认。
+1. **Write the screen definition**: set its status to "In progress" in the index. Write `docs/design/screens/SCR-xxx-<short-name>.md` from `templates/screen.md`: purpose, entry and exits, layout, field definitions (type, required, length or range, default, validation rules, error message and data source of every displayed and input field), actions and events (which interface is called, what happens on success and failure), states, permission differences.
+2. **Write the prototypes**: one HTML file per state from `templates/screen.html`, named like the definition file with a suffix for the state: `SCR-001-login.html` (normal), `SCR-001-login--error.html` (validation errors), `SCR-001-login--empty.html` (empty data), `SCR-001-login--loading.html` (loading). Draw at least the normal and validation-error states; add empty data for lists; when roles see different content, draw one per role. Prototypes are for people to look at: plain HTML and CSS using `tokens.css`, no frameworks, no scripts. Use realistic sample data (real-looking names, addresses and amounts, text of different lengths), not placeholders like "test1" or "xxx". For mobile screens set the screenshot size to `390x844`.
+3. **Render and self-check**: run `node <this skill's directory>/render-screens.mjs docs/design/screens/SCR-xxx-*.html`. The script renders each HTML file to a PNG of the same name with Playwright's bundled Chromium (free; downloaded on first run). Then hand the check to a subagent with the Agent tool: give it the definition file and the PNG paths, have it look at the images and compare them with the definition for misalignment, overflowing text, garbled characters, missing or misordered fields and text that differs from the definition, and report a list of problems as text only. Fix problems and render again until none are left.
+4. **Ask the user to confirm**: run `node <this skill's directory>/render-screens.mjs --open <the HTML files of these PNGs>` to open the screenshots in the system image viewer (no new download; a few seconds). In your message say which screen this is (n of total); the full path of each image and its state; the key points (a summary of the field definitions, the requirements covered, the decisions you made for the user). Then ask with AskUserQuestion, with the options "Confirm this screen" and "Skip for now, review later", and say in the question that comments or questions go straight into "Other".
+   - The user comments: change the definition and prototypes, render, self-check and open again, and ask again.
+   - The user asks a question: answer it first, and change what needs changing.
+   - Record every comment and how it was handled in the definition file's "User confirmation log" right away.
+5. **Save progress**: once the user confirms, set the status in the definition file and in the index to "Confirmed (YYYY-MM-DD)", commit the screen's definition, prototypes and screenshots (`docs(design): confirm SCR-xxx <name>`), tell the user "Progress is saved; you can compact the conversation now", then go to the next screen. For "Skip for now", set the status to "AI draft, awaiting confirmation" and commit the same way.
 
-### 3. 数据
+When the user says "do the rest as you see fit", finish the remaining screens as usual, render and self-check them, set their status to "AI draft, awaiting confirmation" and list them in step 8. The user must confirm these screens before they are developed.
 
-按 `templates/data.md` 写 `docs/design/data.md`：
+### 3. Data
 
-- 实体关系图（Mermaid `erDiagram`）和共通约定（主键、审计字段、删除方式、命名、时区）。
-- 每个实体一节：列名、类型、能否为空、默认值、约束（唯一、外键、检查条件）、说明；索引；删除方式；预计的数据量。类型按架构选定的数据库写。
-- 和画面一致：画面上必填的项目，对应的列不能为空；画面上最多 50 个字的，列的长度不能小于 50。
-- 没有数据库时，写文件、配置、消息的结构（字段、类型、必填、默认值、示例）。
+Write `docs/design/data.md` from `templates/data.md`:
 
-按实体分组用表格给用户看，一次一到三个实体；有取舍的地方用 AskUserQuestion 问。每确认一组，更新一览表的状态并提交。
+- An entity relationship diagram (Mermaid `erDiagram`) and common conventions (primary keys, audit columns, deletion, naming, time zones).
+- One section per entity: column, type, nullability, default, constraints (unique, foreign key, check), description; indexes; deletion; expected data volume. Types follow the database chosen in the architecture.
+- Consistent with the screens: a field required on a screen is a non-null column; a field limited to 50 characters has a column at least 50 long.
+- Without a database, write the structure of files, configuration and messages (field, type, required, default, example).
 
-### 4. 接口
+Show entities to the user as tables, one to three at a time; ask about trade-offs with AskUserQuestion. After each confirmed group, update the index and commit.
 
-按 `templates/interfaces.md` 写 `docs/design/interfaces.md`，只写这个系统有的部分：
+### 4. Interfaces
 
-- **HTTP API**：方法和路径、权限、请求参数（每个字段的类型、必填、校验）、成功的响应、每种错误的状态码和错误码、是否幂等、分页和排序。
-- **命令行**：命令、参数和选项、输出格式、退出码。
-- **库的公开接口**：类型和函数签名、会抛出的错误。
-- **定时任务和批处理**：什么时候触发、输入、输出、失败后怎么重跑、重复执行会不会出错。
-- **外部集成**：调用谁、做什么、超时、重试、对方出错时怎么办。
+Write `docs/design/interfaces.md` from `templates/interfaces.md`, only the parts this system has:
 
-接口的校验规则和画面一致（画面上的校验不能代替接口的校验）。按功能分组给用户确认，每确认一组，更新一览表的状态并提交。
+- **HTTP API**: method and path, permissions, request parameters (type, required and validation of each field), the success response, status code and error code of each error, idempotency, pagination and sorting.
+- **Command line**: commands, arguments and options, output format, exit codes.
+- **Public library API**: type and function signatures, errors thrown.
+- **Scheduled and batch jobs**: when they run, inputs, outputs, how to rerun after a failure, whether running twice is safe.
+- **External integrations**: whom it calls and for what, timeouts, retries, what happens when the other side fails.
 
-### 5. 权限和复杂逻辑
+Interface validation matches the screens (validation on screens never replaces validation in interfaces). Confirm with the user by feature; after each confirmed group, update the index and commit.
 
-- **权限矩阵**：角色 × 画面或操作，每格写"可以 / 不可以 / 只限自己的数据"，写进 `docs/design/README.md`。
-- **复杂逻辑**：每个按 `templates/logic.md` 写 `docs/design/logic/LGC-xxx-<英文短名>.md`。状态流转用 Mermaid `stateDiagram-v2` 加上每个状态下允许的操作；条件组合用判定表，每一行对应一条测试用例；计算规则写清公式、精度、舍入方式和边界。用具体的例子请用户确认，例如"订单 99.50 元，优惠券满 100 减 10：不减，应付 99.50 元"。每确认一个，更新一览表的状态并提交。
+### 5. Permissions and complex logic
 
-### 6. 完备性检查
+- **Permission matrix**: role × screen or action, each cell "allowed / not allowed / own data only", written into `docs/design/README.md`.
+- **Complex logic**: one file per item, `docs/design/logic/LGC-xxx-<short-name>.md` from `templates/logic.md`. State transitions as a Mermaid `stateDiagram-v2` plus the actions allowed in each state; combinations of conditions as a decision table where each row is a test case; formulas with precision, rounding and boundaries. Confirm with concrete examples, e.g. "An order of 99.50 with a coupon for 10 off orders of 100 or more: no discount, 99.50 to pay". After each confirmed item, update the index and commit.
 
-对照 `references/design-checklist.md` 检查全部设计。设计元素多时，按画面、数据、接口分批交给子代理检查，每个子代理只回报问题清单，不把全部定义读进主对话。检查内容：
+### 6. Completeness check
 
-- **需求覆盖**：每条状态为"有效"的需求，在本次范围内的，至少对应一个设计元素；每个设计元素都能追溯到需求。
-- **CRUD 矩阵**：数据实体 × 画面或接口，每格写 C、R、U、D。找出"能创建但不能删除""有字段但没有地方能改""数据从哪来说不清"这类缺口。
-- **权限**：没有任何角色能做的操作；不该能做却能做的操作。
-- **三方一致**：画面项目、接口字段、数据列的类型、必填和长度一致。
+Check the whole design against `references/design-checklist.md`. With many elements, hand the check to subagents in batches (screens, data, interfaces), each reporting only a list of problems, so the full definitions never enter the main conversation. The check covers:
 
-发现的问题每条附上建议，需要用户决定的用 AskUserQuestion 问，改完再检查一遍。
+- **Requirement coverage**: every "Active" requirement in scope maps to at least one design element, and every design element traces back to a requirement.
+- **CRUD matrix**: data entity × screen or interface, each cell C, R, U or D. Look for gaps such as "can be created but never deleted", "a field nothing can change" or "unclear where the data comes from".
+- **Permissions**: actions no role can perform; actions a role can perform but should not.
+- **Three-way consistency**: screen fields, interface fields and data columns agree on type, required and length.
 
-### 7. 补全一览并提交
+Give a suggestion for each problem, ask with AskUserQuestion where the user must decide, and check again after fixing.
 
-按 `templates/README.md` 补全 `docs/design/README.md`：设计元素一览（编号、名称、文件、对应需求、状态）、画面迁移图、共通规则、权限矩阵、需求覆盖、CRUD 矩阵、完备性检查结果。提交信息 `docs(design): <内容>`。仓库还没有分支保护时直接提交到当前分支；有保护时，整个设计过程都在一个 `docs/` 分支上提交，最后用 /open-pr 合并。
+### 7. Complete the index and commit
 
-### 8. 汇报和下一步
+Complete `docs/design/README.md` from `templates/README.md`: element index (ID, name, file, requirements, status), screen flow, common rules, permission matrix, requirement coverage, CRUD matrix, completeness check results. Commit with `docs(design): <content>`. Commit to the current branch while the repository has no branch protection; with protection, make every design commit on one `docs/` branch and merge it with /open-pr at the end.
 
-汇报：设计了多少个画面、实体、接口、逻辑，用户确认了多少，完备性检查发现并解决了哪些问题，还有哪些"AI 设计，待确认"。
+### 8. Report and next step
 
-- 新项目：运行 /scaffold 搭建项目，再运行 /roadmap。
-- 已经搭好的项目、现代化、/change 调用：运行 /roadmap（或回到 /change）拆 issue。
-- 还有"AI 设计，待确认"的画面：提醒用户，相关 issue 开工前要先确认这些画面；以后运行 /design 会从这些画面接着确认。
+Report how many screens, entities, interfaces and logic items were designed, how many the user confirmed, which problems the completeness check found and fixed, and what is still "AI draft, awaiting confirmation".
 
-## 设计改了以后
+- New project: run /scaffold to create the project, then /roadmap.
+- Project already scaffolded, modernization, called by /change: run /roadmap (or return to /change) to split issues.
+- Screens still "AI draft, awaiting confirmation": remind the user that their issues cannot start before the screens are confirmed; running /design again resumes with these screens.
 
-设计是开发的依据，要和代码一样保持准确：
+## After the design changes
 
-- 需求变更涉及画面、项目、数据、接口或逻辑时，/change 会先调用本技能改设计；改过的画面重新截图，请用户确认，再拆 issue。
-- 开发中发现设计有问题时，停下来改设计、请用户确认，不要只改代码。
-- 一批类和接口要重新设计（/change 判定为 D2）时，那份代码结构的设计方案放在 `docs/design/refactor/`，由 /change 写，不在本技能的范围内。
+The design is what development follows, so keep it as accurate as the code:
+
+- When a requirement change touches screens, fields, data, interfaces or logic, /change calls this skill to change the design first; changed screens are rendered again and confirmed with the user before issues are split.
+- When development finds a problem in the design, stop, change the design and have the user confirm it; do not change only the code.
+- When a set of classes and interfaces must be redesigned (/change rates it D2), that code structure redesign lives in `docs/design/refactor/`; /change writes it, not this skill.

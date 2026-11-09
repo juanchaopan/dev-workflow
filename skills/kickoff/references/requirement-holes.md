@@ -1,59 +1,59 @@
-# 需求漏洞检查清单
+# Requirement hole checklist
 
-每轮提问之后、写文档之前，对照下面的问题检查。发现漏洞时说清楚：哪里有问题、会导致什么后果、建议怎么补。
+Check against these questions after each round of questions and before writing documents. For each hole say where the problem is, what it would lead to and how to fill it.
 
-## 目标和成功标准
+## Goals and success criteria
 
-- 成功标准能不能衡量？"好用""很快"不行，要写成"3 秒内返回""每周 50 个活跃用户"。
-- 每个功能都能对应到至少一个目标吗？对应不上的功能，可能是范围蔓延。
-- 有没有两个目标互相冲突？例如"完全免费"和"不放广告、不收费，还要支撑百万用户"。
+- Can the success criteria be measured? "Easy to use" or "fast" will not do; write "responds within 3 seconds" or "50 weekly active users".
+- Does every feature map to at least one goal? Features that do not may be scope creep.
+- Do two goals conflict? For example "completely free" versus "no ads, no fees, and support a million users".
 
-## 角色和权限
+## Roles and permissions
 
-- 除了主要用户，还有没有管理员、运营、客服、审核员、外部系统这些角色？
-- 每个角色能看什么、能改什么、能删什么？
-- 一个人有多个角色时怎么办？角色变了、人离开了，他的数据怎么处理？
-- 未登录的人能做什么？
+- Besides the main users, are there administrators, operators, support staff, reviewers or external systems?
+- What can each role see, change and delete?
+- What happens when one person has several roles? When a role changes or a person leaves, what happens to their data?
+- What can people do without signing in?
 
-## 流程和状态
+## Flows and states
 
-- 每条流程都有终点吗？中途放弃、超时、失败时停在什么状态？
-- 每个业务对象的状态，有没有进不去或出不来的？有没有能回退的？
-- 撤销、修改、取消分别允许到哪一步？
-- 有审批的流程：审批人不在、拒绝了、要改了再提交，怎么走？
+- Does every flow have an end? Where does it stop when abandoned halfway, timed out or failed?
+- Does any business object have a state that cannot be entered or left? Can any state go back?
+- Up to which step are undo, edit and cancel allowed?
+- For approval flows: what if the approver is away, rejects, or asks for changes and a resubmission?
 
-## 数据
+## Data
 
-- 每类数据从哪里来、谁负责维护、保留多久、能不能删除和导出？
-- 删除是真删除还是标记删除？关联的数据怎么办？
-- 个人信息、支付信息、健康信息这类敏感数据：存不存、存在哪、谁能看？
-- 涉及金额：用什么货币、精度多少、四舍五入规则、退款怎么算？
-- 涉及时间：用哪个时区、夏令时、跨天、截止时间怎么算？
-- 涉及多语言或多地区：文字、格式、法规有没有差别？
+- Where does each kind of data come from, who maintains it, how long is it kept, can it be deleted and exported?
+- Is deletion real or a soft delete? What happens to related data?
+- Sensitive data such as personal, payment or health information: is it stored, where, and who can see it?
+- Money: which currency, what precision, which rounding rule, how are refunds calculated?
+- Time: which time zone, daylight saving time, crossing midnight, how deadlines are computed?
+- Several languages or regions: do texts, formats or regulations differ?
 
-## 边界和异常
+## Edge cases and failures
 
-- 空数据、一条数据、海量数据分别长什么样？
-- 两个人同时改同一条数据，听谁的？
-- 重复点击、重复提交、网络断开后重试，会不会产生两笔订单、两条记录？
-- 依赖的外部服务（支付、短信、地图、AI 接口）挂了或变慢了，用户看到什么？
-- 有人恶意使用：刷接口、批量注册、上传恶意文件、越权访问别人的数据？
+- What do empty data, a single record and huge amounts of data look like?
+- Two people edit the same record at once: whose change wins?
+- Double clicks, duplicate submissions, retries after a lost connection: can they create two orders or two records?
+- An external service it depends on (payment, SMS, maps, AI APIs) is down or slow: what does the user see?
+- Malicious use: hammering an endpoint, mass sign-ups, uploading malicious files, accessing other people's data?
 
-## 规模和约束
+## Scale and constraints
 
-- 用户数、数据量、请求高峰各是什么量级？一年后呢？
-- 期望的响应时间和可用性，和预算、一个人维护的现实匹配吗？
-- 部署环境有没有限制：必须国内、必须离线、必须某个云？
-- 有没有合规要求：个人信息保护、等保、GDPR、行业法规？
+- What are the orders of magnitude of users, data volume and peak load? And in a year?
+- Do the expected response time and availability match the budget and the reality of one maintainer?
+- Are there deployment restrictions: a specific country, offline, a specific cloud?
+- Are there compliance requirements: personal data protection, security certification, GDPR, industry regulation?
 
-## 范围
+## Scope
 
-- MVP 能不能再砍？每一项都问"没有它，第一版还能用吗？"
-- "不做"清单里有没有写下那些容易被默认会做的事？
-- 有没有"以后再说"但其实会影响现在设计的事？例如以后要多租户、以后要开放 API，这些现在不做，但架构要预留。
+- Can the MVP be cut further? Ask for each item: "Is the first version still usable without it?"
+- Does the out-of-scope list name the things people would assume are included?
+- Is something "for later" actually shaping today's design? For example multi-tenancy or a public API later: not built now, but the architecture must leave room.
 
-## 一致性
+## Consistency
 
-- 同一个东西有没有不同的叫法？统一写进术语表。
-- 不同轮次的回答之间有没有矛盾？
-- 用户的假设里，有没有其实需要验证的？写进愿景的"假设"一节。
+- Is the same thing called by different names? Settle one name in the glossary.
+- Do answers from different rounds contradict each other?
+- Do the user's assumptions include things that actually need verifying? Put them in the "Assumptions" section of the vision.

@@ -1,55 +1,55 @@
-# 审查标准
+# Review standards
 
-AI 审查员（PR 上的云端审查、本地的 code-review）每次都会读这个文件。这里只写本项目特有的审查要求，通用约定在 CLAUDE.md 和 `.claude/rules/`。
+The AI reviewers (the cloud review on PRs and local code-review) read this file every time. It holds only this project's own review requirements; general conventions are in CLAUDE.md and `.claude/rules/`.
 
-## 评论语言
+## Comment language
 
-{{评论用的语言，例如：中文}}
+{{The language for review comments, e.g. English}}
 
-## 在本项目里，什么算"坏"
+## What counts as "bad" in this project
 
-- {{例如：接口返回的字段名或类型变了，调用方会直接出错}}
-- {{例如：金额用浮点数计算}}
-- {{例如：文档里写的命令跑不通——文档在说谎}}
-- {{例如：配置写错，请求发到了错误的环境——配置把流量导错了地方}}
+- {{e.g. a field name or type in an API response changed, so callers break}}
+- {{e.g. amounts calculated with floating point}}
+- {{e.g. a command in the documentation does not work — the documentation lies}}
+- {{e.g. a wrong setting sends requests to the wrong environment — the configuration misroutes traffic}}
 
-## 重点检查
+## Focus on
 
-- 修 bug 的改动：是否修到了根因，而不只是让症状消失。
-- 新逻辑：有没有测试；测试是否真的会在代码出错时失败。
-- 架构：是否符合 `.claude/rules/` 里的分层要求和 `docs/adr/` 里已接受的决策。架构检查工具只看依赖关系，工具查不到的也要看，例如展示组件里藏着业务逻辑、页面里写满了样式、service 里拼 HTTP 响应。
-- 设计（项目有 `docs/design/` 时）：用户能看到的行为是否和设计一致——画面的项目、顺序、文字、校验规则和错误提示，接口的字段、错误码和权限，数据的列和约束，业务逻辑的判定表和状态流转。不一致、而 PR 既没有同时修改设计、也没有说明原因的，报 [Important]。设计里的校验规则和判定表没有对应测试的，也要报。
-- CLAUDE.md：代码是否违反了里面的约定；里面是否有内容已经和代码对不上。
-- {{本项目特有的重点}}
+- Bug fixes: is the root cause fixed, not just the symptom?
+- New logic: are there tests, and would they really fail if the code were wrong?
+- Architecture: does it follow the layering in `.claude/rules/` and the accepted decisions in `docs/adr/`? Architecture checks only see dependencies; also look for what they cannot see, such as business logic hidden in presentational components, pages full of styles, or services building HTTP responses.
+- Design (when the project has `docs/design/`): does behavior users can see match the design — fields, order, text, validation rules and error messages of screens; fields, error codes and permissions of interfaces; columns and constraints of data; decision tables and state transitions of business logic? Report [Important] when it differs and the PR neither changes the design nor explains why. Also report design validation rules and decision table rows without matching tests.
+- CLAUDE.md: does the code break its conventions, and does anything in it no longer match the code?
+- {{project-specific focus}}
 
-## 补丁味和臃肿
+## Patchwork and bloat
 
-AI 写的代码容易越改越像打补丁。看到下面这些要报：
+AI-written code tends to look more and more patched over time. Report these:
 
-- [Important] 往已有函数里追加条件分支和参数来支持新情况，函数越来越长，而不是调整结构。
-- [Important] 新代码和已有代码重复，或者同一件事有了两种做法。
-- [Important] 留下死代码、注释掉的代码、不再使用的参数和分支、只为兼容旧实现的代码。
-- [Important] 为只用一次的情况做了过度的抽象或配置化。
-- [Nit] 注释写成了修改记录（"改为…""新增…""之前…"），或者描述的是改动过程而不是代码本身。
+- [Important] Conditionals and parameters appended to an existing function to support a new case, making it longer and longer, instead of restructuring.
+- [Important] New code that duplicates existing code, or a second way of doing the same thing.
+- [Important] Dead code, commented-out code, unused parameters and branches, code kept only for compatibility with an old implementation.
+- [Important] Excessive abstraction or configurability for something used once.
+- [Nit] Comments written as change logs ("changed to...", "added...", "previously...") or describing the change rather than the code.
 
-## 不要报
+## Do not report
 
-- 纯格式和风格问题，这些交给 lint 和格式化工具。
-- 不影响正确性的"可以写得更好"，除非标为 Nit。
-- Nit 每次最多 {{3}} 条。
+- Pure formatting and style; lint and formatters handle those.
+- "Could be written better" that does not affect correctness, unless marked Nit.
+- More than {{3}} Nits per review.
 
-## 跳过的路径
+## Paths to skip
 
-- {{构建产物目录，例如 dist/}}
-- {{锁文件，例如 package-lock.json}}
-- {{自动生成的代码}}
+- {{build output directories, e.g. dist/}}
+- {{lock files, e.g. package-lock.json}}
+- {{generated code}}
 
-## 证据要求
+## Evidence
 
-- 每条问题写明文件和行号，并说明什么输入或步骤会触发它。
-- 只凭名字推测的问题不要报。拿不准时，先读相关代码确认。
-- 同一类问题出现在多处时，列出所有位置，要求一起修。
+- Every finding names the file and line and says which input or steps trigger it.
+- Do not report problems guessed from names alone. When unsure, read the related code first.
+- When the same problem appears in several places, list every location and ask for them to be fixed together.
 
-## 总结格式
+## Summary format
 
-- 第一句写"发现 N 个问题"。没有问题就写"发现 0 个问题，无需修改"，不要为了凑数硬找问题。
+- The first sentence is "Found N problems". With none, write "Found 0 problems, no changes needed"; never invent problems to fill the count.

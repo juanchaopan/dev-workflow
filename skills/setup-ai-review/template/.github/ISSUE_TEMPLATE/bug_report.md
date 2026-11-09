@@ -1,25 +1,25 @@
 ---
-name: Bug 报告
-about: 记录一个 bug。修好以后，可以把它整理成 evals/review-cases/ 里的案例，用来检验 AI 审查员能不能抓到同类问题。
+name: Bug report
+about: Record a bug. Once it is fixed, it can become a case in evals/review-cases/ to test whether the AI reviewer catches similar problems.
 labels: type:bug
 ---
 
-## 怎么复现
+## Steps to reproduce
 
 1.
 2.
 3.
 
-## 期望的结果
+## Expected result
 
-## 实际的结果
+## Actual result
 
-<!-- 有报错就贴报错信息，有界面问题就附截图。 -->
+<!-- Paste error messages for errors, attach screenshots for UI problems. -->
 
-## 环境
+## Environment
 
-<!-- 版本号、操作系统、浏览器等，跟问题有关的写上。 -->
+<!-- Version, operating system, browser and anything else relevant. -->
 
-## 引入这个 bug 的改动
+## Change that introduced the bug
 
-<!-- 知道的话填上 PR 编号或提交号，整理成审查案例时要用。 -->
+<!-- The PR number or commit, if known; review cases need it. -->

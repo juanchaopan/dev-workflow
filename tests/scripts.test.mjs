@@ -26,7 +26,7 @@ const run = (command, args, options = {}) => spawnSync(command, args, { encoding
 test('commit message: valid messages pass', () => {
   const dir = tempDir();
   for (const message of [
-    'feat(auth): 支持邮箱登录 (#12)',
+    'feat(auth): support sign-in for café accounts (#12)',
     'fix: handle empty list',
     'feat(api)!: remove the old endpoint',
     'chore(release): 1.2.0',
@@ -121,7 +121,7 @@ test('format hook: picks the deepest matching rule and runs it in the rule direc
   writeFileSync(join(dir, 'apps', 'web', 'src', 'a.txt'), 'bad');
   const failed = hook(join(dir, 'apps', 'web', 'src', 'a.txt'));
   assert.equal(failed.status, 2);
-  assert.ok(failed.stderr.length > 0, 'the lint failure is reported back');
+  assert.match(failed.stderr, /failed lint/);
 
   assert.equal(hook(join(dir, 'apps', 'web', 'src', 'none.md')).status, 0, 'files without a rule pass');
   assert.equal(hook(join(tmpdir(), 'outside.txt')).status, 0, 'files outside the project pass');
@@ -175,7 +175,7 @@ test('screen rendering: renders a real PNG, width from the prototype, full page 
 }, () => {
   const dir = tempDir();
   writeFileSync(join(dir, 'SCR-001-demo.html'),
-    '<!doctype html><meta charset="utf-8"><meta name="screenshot-size" content="400x300"><div style="height:600px">画面</div>');
+    '<!doctype html><meta charset="utf-8"><meta name="screenshot-size" content="400x300"><div style="height:600px">Screen</div>');
   const result = run('node', [renderScreens, dir], { cwd: dir });
   assert.equal(result.status, 0, result.stderr);
   const png = readFileSync(join(dir, 'SCR-001-demo.png'));

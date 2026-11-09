@@ -1,27 +1,27 @@
-# ruff 的格式化和 lint 配置。Python 目标版本取自 pyproject.toml 的 requires-python。
+# ruff formatting and lint configuration. The target Python version comes from requires-python in pyproject.toml.
 line-length = 100
 
 [lint]
 select = [
-  "E",     # pycodestyle 错误
-  "W",     # pycodestyle 警告
-  "F",     # pyflakes：未使用的变量和导入、未定义的名字
-  "I",     # 导入排序
-  "B",     # bugbear：常见的 bug 写法
-  "UP",    # 用新版本 Python 的写法
-  "SIM",   # 可以简化的写法
-  "N",     # PEP 8 命名
-  "S",     # bandit：安全问题
-  "PTH",   # 用 pathlib 代替 os.path
-  "DTZ",   # 不带时区的 datetime
+  "E",     # pycodestyle errors
+  "W",     # pycodestyle warnings
+  "F",     # pyflakes: unused variables and imports, undefined names
+  "I",     # import sorting
+  "B",     # bugbear: common bug patterns
+  "UP",    # newer Python syntax
+  "SIM",   # simplifiable code
+  "N",     # PEP 8 naming
+  "S",     # bandit: security problems
+  "PTH",   # pathlib instead of os.path
+  "DTZ",   # datetimes without a time zone
   "T20",   # print
-  "ASYNC", # 异步代码里的阻塞调用
-  "C90",   # 圈复杂度
-  "PLR",   # 函数过长、参数过多、分支过多
-  "RUF",   # ruff 自己的规则
+  "ASYNC", # blocking calls in async code
+  "C90",   # cyclomatic complexity
+  "PLR",   # functions too long, too many arguments, too many branches
+  "RUF",   # ruff's own rules
 ]
-# 行长交给格式化工具处理，格式化不了的长字符串不报错。
-# PLR2004（魔法数字）在测试和常见的界限值上误报太多，交给审查判断。
+# Line length is left to the formatter; long strings it cannot wrap are not reported.
+# PLR2004 (magic numbers) produces too many false positives in tests and common limits; reviewers judge it instead.
 ignore = ["E501", "PLR2004"]
 
 [lint.mccabe]
@@ -33,7 +33,7 @@ max-branches = 12
 max-statements = 50
 
 [lint.per-file-ignores]
-# 测试里可以用 assert。
+# Tests may use assert.
 "tests/**" = ["S101"]
 
 [format]

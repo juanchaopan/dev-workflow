@@ -1,139 +1,141 @@
 ---
 name: scaffold
-description: 按 docs/architecture/ 的设计搭建项目：用各技术栈的官方生成器创建每个组件，版本当场现查（运行时用当前的 LTS，库和工具用最新版，不写死任何版本号；某个工具还不支持新的大版本时，把情况告诉用户、让他选换工具还是用旧一点的版本），按架构文档选定的决策点装上规范库里对应技术栈的代码规范、架构检查（分层规则由工具强制）、lint 和格式化配置，需要时装上设计令牌、Storybook 和视觉回归测试；生成本地用 docker compose 跑多实例的配置和部署流水线（测试环境、生产环境、PR 预览）；建 GitHub 仓库，最后调用 /setup-ai-review 装上审查流程。也能给已有项目补装某个技术栈的规范，现存问题用基线记下、不阻塞。规范库现有 Angular、Spring Boot（Maven 或 Gradle）、Python、React（TypeScript）、Node.js（TypeScript）、.NET Blazor。在 /design 之后使用，完成后接 /roadmap。
+description: Creates the project from docs/architecture/: generates each component with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); creates the GitHub repository and runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design; followed by /roadmap.
 ---
 
-# 搭建项目
+# Creating the project
 
-本技能目录（加载技能时显示的 Base directory）里有：
+This skill's directory (the Base directory shown when the skill loads) contains:
 
-- `stacks/<技术栈>/`：规范库，每个技术栈一个目录。
-  - `stack.md`：怎么识别、需要哪些工具、决策点、怎么创建、创建后装哪些规范和检查、自检命令、格式化钩子规则、CI 步骤、版本号放在哪、参考资料。
-  - `rules.md`：给 AI 看的代码规范，包括分层规则，复制到项目的 `.claude/rules/`。
-  - `files/`：lint、格式化和架构检查的配置，复制到组件目录。
-- `shared/`：几个技术栈共用的东西。
-  - `versions.mjs`：现查版本：运行时当前的 LTS；一个 npm 包在给定的工具都支持的前提下能用的最高版本。
-  - `arch-check.mjs`：dependency-cruiser 的包装脚本（Angular、React、Node 用）。
-  - `visual-testing.md`、`playwright.config.ts`：设计令牌、Storybook、视觉回归测试。
-  - `deployment.md`、`deploy.yml`：环境、部署平台、PR 预览和部署流水线。
-- `common/`：每个项目根目录都要有的文件（`.editorconfig`、`.gitattributes`、`.gitignore`、新功能 issue 模板）。
+- `stacks/<stack>/`: the standards library, one directory per stack.
+  - `stack.md`: how to recognize it, required tools, decision points, versions, how to create it, which standards and checks to install afterwards, self-check commands, format hook rules, CI steps, where the version number lives, references.
+  - `rules.md`: code standards for AI, including layering rules, copied to the project's `.claude/rules/`.
+  - `files/`: lint, formatting and architecture check configuration, copied to the component directory.
+- `shared/`: what several stacks share.
+  - `versions.mjs`: looks versions up: the current LTS of a runtime; the highest version of an npm package that a given set of tools supports.
+  - `arch-check.mjs`: wrapper around dependency-cruiser (used by Angular, React and Node).
+  - `visual-testing.md`, `playwright.config.ts`: design tokens, Storybook, visual regression tests.
+  - `deployment.md`, `deploy.yml`: environments, deployment platforms, PR previews and the deployment pipeline.
+- `common/`: files every project root needs (`.editorconfig`, `.gitattributes`, `.gitignore`, the feature request issue template).
 
-## 两种用法
+## Two uses
 
-- **新项目**：做第 0 到 11 步。
-- **给已有项目装规范**（用户直接要求，或 /onboard 调用）：做第 0、4、5、10 步。识别技术栈用各 `stack.md` 里的"识别方法"。配置文件已经存在时，不要覆盖：比较差异，告诉用户打算怎么合并，同意后再改。目录结构和规范库的分层约定对不上时，不要大规模搬动代码；先只装工具和规则，现存的违规按 onboard 技能第 7 步的方法记成基线。改动通过分支和 /open-pr 提交。
+- **New project**: steps 0 to 11.
+- **Add standards to an existing project** (asked by the user, or called by /onboard): steps 0, 4, 5 and 10. Recognize stacks with the "How to recognize it" section of each `stack.md`. Do not overwrite existing configuration files: compare them, tell the user how you plan to merge, and change them after approval. When the directory structure does not match the library's layering conventions, do not move code around on a large scale; install the tools and rules first and record existing violations as a baseline as in step 7 of the onboard skill. Changes go through a branch and /open-pr.
 
-## 版本：现查，不写死；有取舍时让用户选
+Talk to the user in their language. Project documents follow the project's document language (the `Language` line in its CLAUDE.md, otherwise the user's language).
 
-搭出来的项目要用搭建那一天的最新版本，而这份规范库不知道那一天的最新版本是多少，所以任何版本号都不写进文档和配置，一律当场查：
+## Versions: looked up, never hard-coded; the user decides trade-offs
 
-| 什么 | 怎么查 |
+A new project should use the latest versions of the day it is created, and this library cannot know what those are, so no version number is written into its documents or configuration; everything is looked up on the spot:
+
+| What | How |
 |---|---|
-| 运行时（Node.js、Java、.NET） | 当前的 LTS：`node <本技能目录>/shared/versions.mjs lts <产品>`，产品名 `nodejs`、`eclipse-temurin`、`dotnet` |
-| Python | 最新的稳定版本：`node <本技能目录>/shared/versions.mjs lts python` |
-| 生成器 | 用 `@latest`，或者生成器自己的最新版（例如 `npx -y @angular/cli@latest`、Spring Initializr 的默认值） |
-| 库和工具 | 最新版 |
-| Maven 插件和依赖 | Maven Central 元数据里的 `<release>`，见 Spring Boot 的 `stack.md` |
+| Runtimes (Node.js, Java, .NET) | The current LTS: `node <this skill's directory>/shared/versions.mjs lts <product>`, with the products `nodejs`, `eclipse-temurin`, `dotnet` |
+| Python | The latest stable release: `node <this skill's directory>/shared/versions.mjs lts python` |
+| Generators | `@latest`, or the generator's own latest (e.g. `npx -y @angular/cli@latest`, Spring Initializr's defaults) |
+| Libraries and tools | The latest release |
+| Maven plugins and dependencies | `<release>` in the Maven Central metadata; see the Spring Boot `stack.md` |
 
-规范库选的工具尽量不限制版本（例如架构检查用 SWC 解析源码，Node.js 的 lint 默认用 Oxlint，都不依赖 TypeScript 的 JS API），大多数时候直接用最新版，不用问。
+The library picks tools that do not constrain versions where it can (e.g. architecture checks parse source with SWC and Node.js linting defaults to Oxlint, neither of which depends on the TypeScript JS API), so most of the time the latest release is used without asking.
 
-有冲突时由用户决定，不替他默认：某个选定的工具还不支持新的大版本时（`stack.md` 的"版本"一节写了怎么用 `versions.mjs npm <包> <工具>...` 现查），停下来告诉用户：最新版是多少、哪个工具支持到多少、为什么；再用 AskUserQuestion 让他选：
+When there is a conflict, the user decides; do not choose for them. When a chosen tool does not support a new major release yet (the "Versions" section of `stack.md` says how to check with `versions.mjs npm <package> <tools>...`), stop and tell the user: what the latest release is, up to which version the tool supports it, and why. Then let them choose with AskUserQuestion:
 
-- 用最新版，换成已经支持它的工具或配置（`stack.md` 里写了有哪些），说清换了以后少了什么；
-- 保留这个工具，用它支持的最高版本，说清会落后多少；工具跟上以后，已经搭好的项目由 Dependabot 跟进（第 10 步）。
+- Use the latest release and switch to a tool or configuration that already supports it (listed in `stack.md`); say what is lost by switching.
+- Keep the tool and use the highest version it supports; say how far behind that is. Once the tool catches up, Dependabot brings existing projects along (step 10).
 
-选择和理由写进这个组件技术细节的 ADR。不要自己写死旧版本，也不要为了用新版本悄悄关掉检查。版本跟着框架走的（例如 Angular、NestJS 的 TypeScript），用框架支持的版本，不单独升级。
+Record the choice and the reasons in the component's technical details ADR. Never pin an old version on your own, and never quietly switch a check off to use a newer version. Versions tied to a framework (e.g. TypeScript in Angular and NestJS) follow the framework and are not upgraded separately.
 
-## 步骤
+## Steps
 
-### 0. 读设计
+### 0. Read the design
 
-读 `docs/architecture/overview.md` 和 `docs/adr/`，列出每个组件：名称、目录、技术栈，以及 ADR 里记下的决策点结果（构建工具、lint 工具、数据访问方式、组件分层、是否用 Storybook 和视觉回归测试等）、部署方式。没有架构文档就告诉用户先运行 /architect。某个决策点 ADR 里没写时，按 `stack.md` 决策点表里的推荐项问用户。组件的技术栈在规范库里没有时，告诉用户：可以照常创建，但需要另外补一套规范（照着 `stacks/` 里的某个目录写一套新的，至少包括 lint、格式化和架构检查）。
+Read `docs/architecture/overview.md` and `docs/adr/` and list every component: name, directory, stack, the decision points recorded in the ADRs (build tool, lint tool, data access, component layering, Storybook and visual regression tests, and so on) and the deployment. Without architecture documents, tell the user to run /architect first. When an ADR leaves a decision point open, ask the user with the recommended option from the `stack.md` decision table. When a component's stack is not in the library, tell the user it can still be created, but a set of standards must be added (write one modeled on a directory in `stacks/`, at least lint, formatting and an architecture check).
 
-再读 `docs/design/README.md`：画面原型用的 `docs/design/screens/tokens.css` 是前端设计令牌的来源。新项目还没有 `docs/design/` 时，提醒用户 /roadmap 拆 issue 之前要先运行 /design；用户想先搭项目也可以继续。
+Then read `docs/design/README.md`: `docs/design/screens/tokens.css`, used by the screen prototypes, is the source of the frontend design tokens. When a new project has no `docs/design/` yet, remind the user to run /design before /roadmap splits issues; they may still create the project first.
 
-### 1. 确认目录结构
+### 1. Confirm the directory structure
 
-单仓库多组件的默认结构：
+Default structure for a monorepo with several components:
 
 ```
-<项目>/
-├── apps/<组件>/      每个能独立部署的组件
-├── libs/<名称>/      组件之间共享的代码（需要时才建）
-├── infra/            docker-compose.yml、部署配置
-├── docs/             需求、架构、设计、决策、路线图
-├── .claude/rules/    各组件的代码规范
-└── .github/          CI、审查、部署、模板
+<project>/
+├── apps/<component>/   every independently deployable component
+├── libs/<name>/        code shared between components (only when needed)
+├── infra/              docker-compose.yml, deployment configuration
+├── docs/               requirements, architecture, design, decisions, roadmap
+├── .claude/rules/      code standards per component
+└── .github/            CI, review, deployment, templates
 ```
 
-只有一个组件时，可以直接放在仓库根目录。把目录树给用户看，确认后再创建。
+With a single component it can live at the repository root. Show the user the tree and create it after confirmation.
 
-### 2. 检查工具和版本
+### 2. Check tools and versions
 
-按各技术栈 `stack.md` 的"需要的工具"逐个检查，例如运行 `node --version`、`java --version`、`dotnet --version`、`uv --version`、`docker --version`。运行时再和"版本"一节查到的当前 LTS 比一比：本机的版本更旧时，告诉用户当前的 LTS 是多少、怎么升级，由用户决定先升级还是先用本机的版本搭（ADR 里选定了别的版本时，按 ADR）。缺少的工具告诉用户怎么装，不要自己装系统级软件。
+Check each stack's "Required tools" in `stack.md`, e.g. `node --version`, `java --version`, `dotnet --version`, `uv --version`, `docker --version`. Compare runtimes with the current LTS from the "Versions" section: when the local one is older, tell the user the current LTS and how to upgrade, and let them decide whether to upgrade first or create the project with the local version (when an ADR chose a different version, follow the ADR). Tell the user how to install missing tools; never install system software yourself.
 
-再按各 `stack.md` 的"版本"一节检查有没有版本冲突，有的话按"版本"一节的做法请用户选。
+Then check each `stack.md` "Versions" section for conflicts, and when there is one, let the user choose as described there.
 
-### 3. 创建组件
+### 3. Create the components
 
-对每个组件，按 `stack.md` 的"创建命令"在组件目录里生成项目。用官方生成器，不要手写项目骨架。生成器有交互提问时，用参数给出答案，或者照默认值走。
+For each component, generate the project in its directory with the "Create" commands of `stack.md`. Use the official generators; never hand-write a project skeleton. When a generator asks questions, answer them with arguments or take the defaults.
 
-### 4. 装规范和检查
+### 4. Install standards and checks
 
-对每个组件，按 `stack.md` 的"创建后"一节做完每一步，按决策点的结果选择对应的分支（例如 Maven 或 Gradle、Oxlint 或 typescript-eslint）。这一节包括：
+For each component, do every step of the "After creating" section of `stack.md`, following the branch the decision points chose (e.g. Maven or Gradle, Oxlint or typescript-eslint). That covers:
 
-- lint、格式化、复杂度和长度上限的配置；
-- 架构检查（dependency-cruiser、ArchUnit、import-linter 或 ArchUnitNET），以及 `rules.md` 约定的分层目录；
-- 把 `rules.md` 复制为 `.claude/rules/<组件名>.md`，把 frontmatter 里 `paths` 的占位符换成组件目录，把正文里的组件名、包名等占位符填好；
-- 决策点选了 Storybook、视觉回归测试时，按 `stack.md` 的"可选"小节和 `shared/visual-testing.md` 装上；
-- 设计令牌（有前端时）：建 `src/styles/tokens.(s)css`。有 `docs/design/screens/tokens.css` 时照它的变量名和值建，实现出来的画面才和确认过的原型一致；有设计稿时按设计稿填；都没有时先放一套基础的颜色、字号、间距。
+- lint, formatting, and complexity and length limits;
+- the architecture check (dependency-cruiser, ArchUnit, import-linter or ArchUnitNET) and the layered directories `rules.md` prescribes;
+- copying `rules.md` to `.claude/rules/<component>.md`, replacing the `paths` placeholder in its frontmatter with the component directory and filling in placeholders such as component and package names in the body;
+- Storybook and visual regression tests when the decision points chose them, from the "Optional" sections of `stack.md` and `shared/visual-testing.md`;
+- design tokens (with a frontend): create `src/styles/tokens.(s)css`. When there is a `docs/design/screens/tokens.css`, use its variable names and values so the implemented screens match the confirmed prototypes; with design files, take the values from them; otherwise start with a basic set of colors, font sizes and spacing.
 
-最后在组件目录下依次运行 `stack.md` 的全部自检命令，必须全部通过。生成器自带的代码不符合规范时（包括架构检查和复杂度上限），修到符合为止，不要放宽规则。
+Finally run every self-check command of `stack.md` in the component directory; all must pass. When generated code violates the standards (architecture checks and complexity limits included), fix it until it complies; do not relax the rules.
 
-### 5. 根目录通用文件
+### 5. Common root files
 
-把 `common/` 下的文件复制到仓库根目录，已有的文件按内容合并。`.gitignore` 里保留生成器在各组件目录生成的 `.gitignore`，根目录只放通用的条目。
+Copy the files in `common/` to the repository root, merging with existing ones. Keep the `.gitignore` files generators create in component directories; the root one holds only common entries.
 
-### 6. 本地运行环境
+### 6. Local environment
 
-按架构文档的部署设计写 `infra/docker-compose.yml`：
+Write `infra/docker-compose.yml` following the deployment design in the architecture:
 
-- 每个组件一个服务，用组件目录下的 Dockerfile 构建（按技术栈的常规做法写多阶段构建的 Dockerfile，基础镜像用和组件相同的运行时版本）。
-- 无状态组件按部署设计设置多个实例（`deploy.replicas`），前面放一个反向代理做负载均衡，这样本地就能看到多实例的效果。
-- 数据库、缓存、消息队列等依赖用官方镜像，数据放在命名卷里。
-- 每个服务配健康检查，依赖关系用 `depends_on` 加 `condition: service_healthy`。
-- 配置通过环境变量传入，示例值放在 `infra/.env.example`，真正的 `.env` 不提交。
+- One service per component, built from the component's Dockerfile (a multi-stage Dockerfile in the stack's usual style, with a base image on the component's runtime version).
+- Stateless components get several instances as designed (`deploy.replicas`) behind a reverse proxy that load-balances, so several instances can be seen locally.
+- Databases, caches, message queues and other dependencies use official images with data in named volumes.
+- Every service has a health check; dependencies use `depends_on` with `condition: service_healthy`.
+- Configuration comes in through environment variables, with example values in `infra/.env.example`; the real `.env` is never committed.
 
-运行 `docker compose -f infra/docker-compose.yml config` 检查配置。问用户要不要现在启动试一下。
+Check it with `docker compose -f infra/docker-compose.yml config`. Ask the user whether to start it now.
 
-### 7. 部署流水线
+### 7. Deployment pipeline
 
-按架构文档选定的部署方式和 `shared/deployment.md`：
+Following the deployment chosen in the architecture and `shared/deployment.md`:
 
-- 需要工作流的平台：按 `shared/deploy.yml` 写 `.github/workflows/deploy.yml`，填好集成分支（Git Flow 是 develop，GitHub Flow 是 main）、组件列表和平台的部署步骤。
-- 自带 Git 集成的平台（例如静态托管平台）：不写工作流，把需要在平台网站上做的配置（连接仓库、组件目录、构建命令、哪个分支部署到哪个环境、PR 预览）列给用户。
-- 列出用户要自己做的事：注册平台账号、在 GitHub 上建 `staging` 和 `production` 两个 environment、给 `production` 设 Required reviewers、把平台令牌存成 environment secret。
+- Platforms that need a workflow: write `.github/workflows/deploy.yml` from `shared/deploy.yml` with the integration branch (develop for Git Flow, main for GitHub Flow), the component list and the platform's deployment steps.
+- Platforms with their own Git integration (e.g. static hosting): no workflow; list the settings the user makes on the platform's website (connect the repository, component directory, build command, which branch deploys to which environment, PR previews).
+- List what the user must do: create the platform account, create `staging` and `production` environments on GitHub, set Required reviewers on `production`, store the platform token as an environment secret.
 
-### 8. 提交
+### 8. Commit
 
-按 Conventional Commits 分成多个提交，每个提交只做一件事，例如：
+Split into several Conventional Commits, each doing one thing, e.g.:
 
-- `chore: 初始化仓库结构`
-- `feat(<组件>): 用 <生成器> 生成 <技术栈> 骨架`（每个组件一个）
-- `build(<组件>): 加入代码规范、架构检查和 lint 配置`（每个组件一个）
-- `build(infra): 加入本地 docker compose 环境`
-- `ci: 加入部署流水线`
+- `chore: initialize the repository structure`
+- `feat(<component>): generate the <stack> skeleton with <generator>` (one per component)
+- `build(<component>): add code standards, architecture checks and lint configuration` (one per component)
+- `build(infra): add the local docker compose environment`
+- `ci: add the deployment pipeline`
 
-仓库里已经有 /kickoff、/architect 和 /design 写的文档提交时，保留它们。
+Keep the document commits /kickoff, /architect and /design already made.
 
-### 9. GitHub 仓库
+### 9. GitHub repository
 
-问用户：仓库公开还是私有（私有仓库在 GitHub 免费版上用不了分支规则和生产环境的人工批准，流程只能靠自觉执行），仓库名用什么。得到同意后运行 `gh repo create <名称> --<public 或 private> --source . --push`。
+Ask the user whether the repository is public or private (private repositories on GitHub Free cannot use branch rules or manual approval for production, so the workflow relies on discipline) and what to call it. After approval run `gh repo create <name> --<public or private> --source . --push`.
 
-### 10. 装审查流程
+### 10. Set up the review workflow
 
-用 Skill 工具运行 `setup-ai-review`。告诉它：这是 /scaffold 刚搭出来（或刚装好规范）的项目，组件、目录、自检命令和 CI 步骤都在各技术栈的 `stack.md` 里，`.claude/hooks/format.config.json` 按各 `stack.md` 的"格式化钩子规则"写，每条规则的 `dir` 填组件目录；Dependabot 按每个组件的包管理器配置，npm 组件保留模板里 TypeScript 工具链一起升级的分组。
+Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. Heavy checks (end-to-end and visual regression tests) go into the "Heavy checks" line of CLAUDE.md.
 
-### 11. 汇报和下一步
+### 11. Report and next step
 
-汇报：建了哪些组件、用了哪些版本（运行时、框架、TypeScript 等）、版本上有过哪些取舍和用户的选择、各装了哪套规范和哪些检查、决策点的结果、自检结果、本地怎么启动、部署流水线和用户还要做的平台配置、仓库地址。告诉用户接下来运行 /roadmap，按需求和设计拆成 issue；还没有做 /design 的，先运行 /design。
+Report: the components created, the versions used (runtimes, frameworks, TypeScript, and so on), any version trade-offs and the user's choices, the standards and checks each component got, the decision point results, the self-check results, how to start it locally, the deployment pipeline and the platform settings the user still has to make, and the repository URL. Tell the user to run /roadmap next to split requirements and design into issues; if /design has not been done yet, run /design first.

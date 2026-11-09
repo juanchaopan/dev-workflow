@@ -1,69 +1,69 @@
-# 设计一览
+# Design index
 
-{{一句话：这份设计覆盖哪些需求，例如"第一版（MVP）的全部需求"。}}
+{{One sentence: which requirements this design covers, e.g. "every requirement of the first version (MVP)".}}
 
-这张一览表也是设计的进度表：/design 做一个元素改一个状态，中断以后再运行 /design，会从第一个没确认的元素接着做。
+This index is also the progress tracker: /design updates a status as each element moves on, and when interrupted, running /design again continues with the first unconfirmed element.
 
-状态的含义：
+Statuses:
 
-- 未开始、进行中：还在设计。
-- 已确认（YYYY-MM-DD）：用户逐个确认过。
-- AI 设计，待确认：AI 做完了、用户还没看，开发前必须先请用户确认。
-- 已实现，从代码整理：从现有代码整理出来的现状。
-- 已废弃：保留编号，不再使用。
+- Not started, In progress: still being designed.
+- Confirmed (YYYY-MM-DD): confirmed by the user, element by element.
+- AI draft, awaiting confirmation: finished by AI but not yet reviewed; the user must confirm it before development.
+- Implemented, documented from code: the current state, documented from existing code.
+- Deprecated: the ID is kept and no longer used.
 
-## 设计元素
+## Design elements
 
-| 编号 | 名称 | 文件 | 对应需求 | 状态 |
+| ID | Name | File | Requirements | Status |
 |---|---|---|---|---|
-| SCR-{{001}} | {{订单列表}} | `screens/SCR-{{001}}-{{order-list}}.md` | {{REQ-001}} | {{已确认（YYYY-MM-DD）}} |
-| ENT-{{001}} | {{订单}} | `data.md` | {{REQ-001、REQ-002}} | {{未开始}} |
-| API-{{001}} | {{查询订单}} | `interfaces.md` | {{REQ-001}} | {{未开始}} |
-| JOB-{{001}} | {{}} | `interfaces.md` | {{}} | {{未开始}} |
-| LGC-{{001}} | {{订单状态}} | `logic/LGC-{{001}}-{{order-status}}.md` | {{REQ-003}} | {{未开始}} |
+| SCR-{{001}} | {{Order list}} | `screens/SCR-{{001}}-{{order-list}}.md` | {{REQ-001}} | {{Confirmed (YYYY-MM-DD)}} |
+| ENT-{{001}} | {{Order}} | `data.md` | {{REQ-001, REQ-002}} | {{Not started}} |
+| API-{{001}} | {{List orders}} | `interfaces.md` | {{REQ-001}} | {{Not started}} |
+| JOB-{{001}} | {{}} | `interfaces.md` | {{}} | {{Not started}} |
+| LGC-{{001}} | {{Order status}} | `logic/LGC-{{001}}-{{order-status}}.md` | {{REQ-003}} | {{Not started}} |
 
-## 画面迁移
+## Screen flow
 
 ```mermaid
 flowchart LR
-  {{SCR001}}["SCR-001 订单列表"] -->|点"新建"| {{SCR002}}["SCR-002 新建订单"]
-  {{SCR002}} -->|保存成功、取消| {{SCR001}}
+  {{SCR001}}["SCR-001 Order list"] -->|"New"| {{SCR002}}["SCR-002 New order"]
+  {{SCR002}} -->|saved, cancelled| {{SCR001}}
 ```
 
-## 共通规则
+## Common rules
 
-| 项目 | 规则 |
+| Item | Rule |
 |---|---|
-| 日期和时间 | {{例如 2026-03-05 14:30，按用户所在时区显示}} |
-| 金额和数字 | {{例如千位分隔，金额两位小数，右对齐}} |
-| 必填标记 | {{例如项目名后面加红色 *}} |
-| 校验时机 | {{例如离开输入框时校验这一项，提交时校验全部}} |
-| 错误提示 | {{例如显示在项目下方；提交失败时表单上方再显示汇总}} |
-| 空数据、加载中、出错 | {{}} |
-| 分页 | {{例如每页 20 条，页码在列表下方}} |
-| 文字长度 | {{例如按字符数算，一个汉字算一个}} |
-| 重复提交 | {{例如提交后按钮不可点，直到收到结果}} |
+| Dates and times | {{e.g. 2026-03-05 14:30, shown in the user's time zone}} |
+| Amounts and numbers | {{e.g. thousands separators, two decimals for amounts, right-aligned}} |
+| Required marker | {{e.g. a red * after the label}} |
+| When validation runs | {{e.g. a field on leaving it, all fields on submit}} |
+| Error messages | {{e.g. below the field; on a failed submit also a summary above the form}} |
+| Empty data, loading, errors | {{}} |
+| Pagination | {{e.g. 20 rows per page, page numbers below the list}} |
+| Text length | {{e.g. counted in characters}} |
+| Duplicate submission | {{e.g. the button is disabled after submitting until the result arrives}} |
 
-## 权限矩阵
+## Permission matrix
 
-| 画面或操作 | {{角色 A}} | {{角色 B}} |
+| Screen or action | {{role A}} | {{role B}} |
 |---|---|---|
-| {{SCR-001 订单列表：查看}} | {{全部}} | {{只限自己的}} |
-| {{SCR-002 新建订单：保存}} | {{可以}} | {{不可以}} |
+| {{SCR-001 Order list: view}} | {{all}} | {{own data only}} |
+| {{SCR-002 New order: save}} | {{allowed}} | {{not allowed}} |
 
-## 需求覆盖
+## Requirement coverage
 
-| 需求 | 设计元素 |
+| Requirement | Design elements |
 |---|---|
-| {{REQ-001}} | {{SCR-001、API-001、ENT-001}} |
+| {{REQ-001}} | {{SCR-001, API-001, ENT-001}} |
 
-## CRUD 矩阵
+## CRUD matrix
 
-| 画面或接口 | ENT-{{001}} {{订单}} | ENT-{{002}} {{客户}} |
+| Screen or interface | ENT-{{001}} {{Order}} | ENT-{{002}} {{Customer}} |
 |---|---|---|
 | {{SCR-001 / API-001}} | {{R}} | {{R}} |
 | {{SCR-002 / API-002}} | {{C}} | {{R}} |
 
-## 完备性检查结果
+## Completeness check results
 
-{{检查日期；发现的问题和处理结果。没有问题写"无"。}}
+{{Date of the check; problems found and how they were resolved. "None" when there were none.}}

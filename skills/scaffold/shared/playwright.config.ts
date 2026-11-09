@@ -1,19 +1,20 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// 端到端和视觉回归测试。测试放在 e2e/，和单元测试分开（单元测试工具会排除这个目录）。
-// 截图对比的容差按像素个数算：按比例算的话，一个小按钮变了颜色也会落在容差之内。
-// {{启动命令}} 换成先构建、再在 {{端口}} 上启动预览服务器的命令，例如 Vite：npm run build && npx vite preview --port 4173 --strictPort
+// End-to-end and visual regression tests. Tests live in e2e/, separate from unit tests (the unit test runner excludes this directory).
+// The screenshot tolerance counts pixels: a ratio would let a small button that changed color slip within tolerance.
+// Replace {{start command}} with a command that builds and then starts a preview server on {{port}},
+// e.g. for Vite: npm run build && npx vite preview --port 4173 --strictPort
 export default defineConfig({
   testDir: './e2e',
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
-  use: { baseURL: 'http://localhost:{{端口}}', trace: 'on-first-retry' },
+  use: { baseURL: 'http://localhost:{{port}}', trace: 'on-first-retry' },
   expect: { toHaveScreenshot: { maxDiffPixels: 20, animations: 'disabled' } },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: '{{启动命令}}',
-    url: 'http://localhost:{{端口}}',
+    command: '{{start command}}',
+    url: 'http://localhost:{{port}}',
     reuseExistingServer: !process.env.CI,
   },
 });

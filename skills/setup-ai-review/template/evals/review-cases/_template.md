@@ -6,14 +6,14 @@ file: src/example.ts
 line: 42
 ---
 
-## 发生了什么
+## What happened
 
-<!-- 用户看到了什么现象，什么时候发现的。 -->
+<!-- What users saw and when it was found. -->
 
-## 根因
+## Root cause
 
-<!-- 代码哪里写错了，为什么当时没发现。 -->
+<!-- Where the code was wrong and why it was not noticed at the time. -->
 
-## 后来怎么修的
+## How it was fixed
 
-<!-- 修复的 PR 或提交号，以及修法。 -->
+<!-- The PR or commit of the fix, and the approach. -->

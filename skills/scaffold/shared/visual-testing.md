@@ -1,62 +1,62 @@
-# 视觉控制：设计令牌、Storybook、视觉回归测试
+# Visual control: design tokens, Storybook, visual regression tests
 
-前端组件在 /architect 的决策点里选了"组件展示"和"视觉回归"时，按本文配置。三样东西各管一件事：
+Set these up when a frontend component's decision points in /architect chose "component showcase" and "visual regression". Each tool does one job:
 
-| 工具 | 管什么 |
+| Tool | Job |
 |---|---|
-| 设计令牌 | 颜色、字号、间距、圆角、阴影只在一处定义，代码里只引用令牌，视觉风格才改得动、对得齐 |
-| Storybook | 每个展示组件在各种输入下长什么样，单独看、单独检查，不用跑整个应用 |
-| 视觉回归测试（Playwright 截图对比） | 页面和组件的外观有没有被意外改变；变了就在 PR 里失败，并给出对比图 |
+| Design tokens | Colors, font sizes, spacing, radius and shadows are defined in one place and code only references the tokens, so the visual style can change and stays aligned |
+| Storybook | What each presentational component looks like for each input, checked one by one without running the whole application |
+| Visual regression tests (Playwright screenshot comparison) | Whether the look of pages and components changed unexpectedly; if so the PR fails with comparison images |
 
-## 设计来源
+## Design source
 
-画面应该长什么样，以下面两者之一为标准答案：
+What a screen should look like is defined by one of:
 
-- **设计稿**：用户有设计稿时以设计稿为准。Figma 设计稿可以通过 Figma 的 MCP 服务让 Claude 直接读取尺寸、颜色和间距；连接方法见 Figma 官方文档。
-- **/design 的画面原型**：没有设计稿时，/design 为每个画面的每种状态写 HTML 原型、截成 PNG，请用户逐个确认。确认过的截图（`docs/design/screens/*.png`）就是标准答案，原型共用的 `docs/design/screens/tokens.css` 就是设计令牌的来源。
+- **Design files**: when the user has design files, they are the reference. Claude can read sizes, colors and spacing from Figma files through Figma's MCP server; see Figma's documentation for how to connect it.
+- **/design screen prototypes**: without design files, /design writes an HTML prototype of every state of every screen, renders it to PNG and has the user confirm it screen by screen. The confirmed screenshots (`docs/design/screens/*.png`) are the reference, and the `docs/design/screens/tokens.css` the prototypes share is the source of the design tokens.
 
-颜色、字号、间距整理成设计令牌，放在 `src/styles/tokens.(s)css`（CSS 自定义属性，例如 `--color-primary`、`--space-2`），变量名和值与设计稿或 `tokens.css` 一致。组件样式里只用 `var(--...)`，不写死颜色值和像素值。
+Turn colors, font sizes and spacing into design tokens in `src/styles/tokens.(s)css` (CSS custom properties such as `--color-primary` and `--space-2`), with the same names and values as the design files or `tokens.css`. Component styles use only `var(--...)`, never hard-coded colors or pixel values.
 
 ## Storybook
 
-各技术栈的安装命令和要修的地方见各自 `stack.md` 的"可选：Storybook"一节。共同的约定：
+The install commands and the fixes each stack needs are in the "Optional: Storybook" section of its `stack.md`. Common conventions:
 
-- 每个展示组件旁边放一个 `<组件>.stories.ts(x)`，至少覆盖：正常数据、空数据、加载中、出错、超长文字。
-- 页面（容器组件）一般不写 story；它们的外观由视觉回归测试覆盖。
-- `npm run build-storybook` 加进 CI，保证 story 一直能构建。
+- Every presentational component has a `<component>.stories.ts(x)` next to it covering at least normal data, empty data, loading, error and very long text.
+- Pages (container components) usually have no stories; visual regression tests cover their look.
+- Add `npm run build-storybook` to CI so stories always build.
 
-## 视觉回归测试
+## Visual regression tests
 
-1. 在组件目录下安装：`npm init playwright@latest -- --quiet --browser=chromium --lang=TypeScript --no-examples`。安装器会生成 `tests/` 目录和 `playwright.config.ts`：删掉 `tests/`，把 scaffold 技能 `shared/playwright.config.ts` 复制过来覆盖，按里面的注释填好启动命令和端口。
-2. 测试写在 `e2e/` 下，每个关键页面一个截图断言：
+1. Install in the component directory: `npm init playwright@latest -- --quiet --browser=chromium --lang=TypeScript --no-examples`. The installer creates a `tests/` directory and `playwright.config.ts`: delete `tests/`, overwrite the config with the scaffold skill's `shared/playwright.config.ts` and fill in the start command and port as its comments say.
+2. Tests live in `e2e/`, one screenshot assertion per key page:
 
    ```ts
    import { expect, test } from '@playwright/test';
 
-   test('首页的外观和基准截图一致', async ({ page }) => {
+   test('the home page matches the baseline screenshot', async ({ page }) => {
      await page.goto('/');
      await expect(page).toHaveScreenshot('home.png', { fullPage: true });
    });
    ```
 
-3. 单元测试工具要排除 `e2e/`，否则它会把 Playwright 的测试也拿去跑（Vitest：`test.exclude` 里加上 `'e2e/**'`）。
-4. 基准截图和操作系统有关（文件名里带 `-win32`、`-linux`），而且字体渲染在不同机器上会有细微差别，所以基准截图统一在 Playwright 官方的 Docker 镜像里生成和比对，本地和 CI 结果才一致。镜像的版本号要和 `@playwright/test` 的版本一致：
+3. The unit test runner must exclude `e2e/`, or it picks up the Playwright tests too (Vitest: add `'e2e/**'` to `test.exclude`).
+4. Baseline screenshots depend on the operating system (file names contain `-win32` or `-linux`), and font rendering differs slightly between machines, so baselines are generated and compared inside Playwright's official Docker image, which keeps local runs and CI consistent. The image version must match the `@playwright/test` version:
 
    ```
-   docker run --rm --ipc=host -v "<组件目录的绝对路径>:/work" -w /work mcr.microsoft.com/playwright:v<版本号>-noble \
+   docker run --rm --ipc=host -v "<absolute path of the component directory>:/work" -w /work mcr.microsoft.com/playwright:v<version>-noble \
      sh -c "npm ci && npx playwright test --update-snapshots"
    ```
 
-   Windows 的 Git Bash 里，命令前加 `MSYS_NO_PATHCONV=1`，路径用 `cygpath -w` 转换。生成的 `e2e/**-snapshots/*.png` 提交进仓库。需要 Docker Desktop 正在运行。
-5. CI 里用同一个镜像跑：
+   In Git Bash on Windows, prefix the command with `MSYS_NO_PATHCONV=1` and convert the path with `cygpath -w`. Commit the generated `e2e/**-snapshots/*.png`. Docker Desktop must be running.
+5. CI runs in the same image:
 
    ```yaml
-     <组件>-visual:
+     <component>-visual:
        runs-on: ubuntu-latest
-       container: mcr.microsoft.com/playwright:v<版本号>-noble
+       container: mcr.microsoft.com/playwright:v<version>-noble
        defaults:
          run:
-           working-directory: <目录>
+           working-directory: <directory>
        steps:
          - uses: actions/checkout@v5
          - run: npm ci
@@ -65,15 +65,15 @@
            uses: actions/upload-artifact@v4
            with:
              name: visual-diff
-             path: <目录>/test-results/
+             path: <directory>/test-results/
    ```
 
-   失败时下载 `visual-diff` 产物，里面有基准图、实际图和差异图。这个 job 加进 `ci` 汇总 job 的 `needs`。
-6. 外观是有意改的：重新生成基准截图（第 4 步），和代码一起提交。PR 里写明哪些页面的外观变了，审查时对照新旧截图确认。
+   On failure, download the `visual-diff` artifact: it contains the baseline, the actual image and the diff. Add this job to the `needs` of the `ci` summary job.
+6. When the look changed on purpose, regenerate the baselines (step 4) and commit them with the code. The PR says which pages changed, and reviewers compare old and new screenshots.
 
-视觉回归的基准截图和 /design 的原型截图用途不同：原型截图是"应该长什么样"，由用户确认；基准截图是"现在长什么样"，用来发现意外的改动。实现一个画面时先对照原型截图，做对了以后再生成基准截图。
+Visual regression baselines and /design prototype screenshots serve different purposes: the prototype screenshot is "what it should look like", confirmed by the user; the baseline is "what it looks like now", used to catch unexpected changes. When implementing a screen, compare against the prototype screenshot first, and generate the baseline once it is right.
 
-## 和流程的衔接
+## How it fits the workflow
 
-- /implement 实现画面时，把画面打开到设计里的每种状态截图，和确认过的原型截图并排放进 PR；改动已有画面的，再附上改动前的截图。
-- 截图对比失败的 PR 不能合并：要么修好意外的改动，要么确认是有意的并更新基准。
+- When /implement builds a screen, it opens the screen in every state the design defines, takes screenshots and puts them side by side with the confirmed prototype screenshots in the PR; for changes to an existing screen it also attaches a screenshot from before the change.
+- A PR whose screenshot comparison fails cannot merge: either fix the unexpected change, or confirm it was intended and update the baseline.

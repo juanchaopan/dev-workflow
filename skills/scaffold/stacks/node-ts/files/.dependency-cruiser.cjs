@@ -1,26 +1,28 @@
-// 架构规则：routes → services → repositories 分层、领域层不依赖框架和数据库、功能之间隔离。
-// 说明见 .claude/rules/ 里本组件的规范。由 scripts/arch-check.mjs 运行（npm run arch），违反任何一条，自检和 CI 都会失败。
-// 源码用 SWC 解析（需要 @swc/core），不经过 TypeScript 的 JS API，所以任何 TypeScript 版本都能分析，也能区分 type-only 导入。
-// SWC 不读 tsconfig 的 paths 别名：以后加了别名，在 options 里配 enhancedResolveOptions.alias，并确认架构检查仍能拦下违规。
+// Architecture rules: routes → services → repositories layering, a domain layer free of frameworks and databases, isolated features.
+// Explained in this component's standards in .claude/rules/. Run by scripts/arch-check.mjs (npm run arch); any violation fails the self-check and CI.
+// Sources are parsed with SWC (needs @swc/core), not through the TypeScript JS API, so any TypeScript version can be analyzed and
+// type-only imports are still recognized.
+// SWC does not read tsconfig paths aliases: when aliases are added, configure enhancedResolveOptions.alias under options and
+// confirm the architecture check still catches violations.
 module.exports = {
   forbidden: [
     {
       name: 'routes-not-imported-by-inner-layers',
-      comment: 'routes 是最外层，里面的层不能反过来依赖它。',
+      comment: 'routes is the outermost layer; inner layers must not depend on it.',
       severity: 'error',
       from: { path: '/(services|repositories|domain)/' },
       to: { path: '/routes/' },
     },
     {
       name: 'repositories-only-from-services',
-      comment: '数据访问只能由 services 调用，routes 不能跳过 services。',
+      comment: 'Only services call data access; routes must not skip services.',
       severity: 'error',
       from: { path: '/(routes|domain)/' },
       to: { path: '/repositories/' },
     },
     {
       name: 'domain-is-pure',
-      comment: '领域层只放业务规则，不依赖其他层、Web 框架和数据库驱动。',
+      comment: 'The domain layer holds only business rules and depends on no other layer, web framework or database driver.',
       severity: 'error',
       from: { path: '/domain/' },
       to: {
@@ -29,28 +31,28 @@ module.exports = {
     },
     {
       name: 'services-not-framework-bound',
-      comment: 'services 不依赖 Web 框架，这样业务逻辑可以脱离 HTTP 单独测试。',
+      comment: 'services do not depend on the web framework, so business logic can be tested without HTTP.',
       severity: 'error',
       from: { path: '/services/' },
       to: { path: 'fastify|express|@nestjs/platform|hono', dependencyTypesNot: ['type-only'] },
     },
     {
       name: 'features-isolated',
-      comment: '功能之间不互相引用，共用的东西放进 src/shared/。',
+      comment: 'Features do not reference each other; shared code goes to src/shared/.',
       severity: 'error',
       from: { path: '^src/([^/]+)/' },
       to: { path: '^src/[^/]+/', pathNot: ['^src/$1/', '^src/shared/'] },
     },
     {
       name: 'shared-independent',
-      comment: 'shared 不依赖任何功能。',
+      comment: 'shared depends on no feature.',
       severity: 'error',
       from: { path: '^src/shared/' },
       to: { path: '^src/[^/]+/', pathNot: '^src/shared/' },
     },
     {
       name: 'no-circular',
-      comment: '不允许循环依赖。',
+      comment: 'No circular dependencies.',
       severity: 'error',
       from: {},
       to: { circular: true },

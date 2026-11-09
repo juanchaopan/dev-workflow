@@ -1,8 +1,10 @@
 name: claude
 
-# 在 issue、PR 或评论里写 @claude，Claude 就在云端处理这个请求：回答问题、实现 issue、按审查意见修改 PR、审查外部贡献者的 PR。
-# 只有对仓库有写权限的人能触发（claude-code-action 会检查发起人的权限）。
-# 它改的代码推到新的 feature/ 分支或当前 PR 的分支，和本地开发一样，要过全部检查和审查才能合并。
+# Write @claude in an issue, PR or comment and Claude handles the request in the cloud: answers questions, implements issues,
+# changes PRs following review comments, reviews outside contributors' PRs.
+# Only people with write access to the repository can trigger it (claude-code-action checks the requester's permissions).
+# The code it changes goes to a new feature/ branch or the current PR's branch and, as with local development, must pass every
+# check and review before merging.
 
 on:
   issue_comment:
@@ -37,11 +39,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      # ---- 项目专属：装好运行自检命令需要的工具，和 ci.yml 里各组件 job 的准备步骤一样 ----
+      # ---- Project-specific: install the tools the self-check commands need, as in the component jobs of ci.yml ----
       - uses: actions/setup-node@v5
         with:
           node-version: lts/*
-      # ---- 项目专属：结束 ----
+      # ---- Project-specific: end ----
 
       - uses: anthropics/claude-code-action@v1
         with:
@@ -51,5 +53,5 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --allowedTools "Read,Glob,Grep,Edit,Write,Bash(git:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),{{自检命令对应的 Bash 权限，例如 Bash(npm run lint:*),Bash(npm test:*)}}"
-            --append-system-prompt "按 CLAUDE.md、.claude/rules/ 和 REVIEW.md 工作。改动前先读相关的需求和架构文档（docs/）。每个提交只做一件事，提交信息用 Conventional Commits 并带上 issue 号。提交前运行 CLAUDE.md 的自检命令并确认通过。请求涉及需求或架构的重大变化、或者说不清验收标准时，不要直接改代码，在评论里说明原因，建议维护者在本地用 /change 处理。"
+            --allowedTools "Read,Glob,Grep,Edit,Write,Bash(git:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh issue view:*),{{Bash permissions for the self-check commands, e.g. Bash(npm run lint:*),Bash(npm test:*)}}"
+            --append-system-prompt "Work by CLAUDE.md, .claude/rules/ and REVIEW.md. Before changing anything, read the relevant requirement, architecture and design documents (docs/). Each commit does one thing, with a Conventional Commits message that includes the issue number. Run the self-check commands in CLAUDE.md before committing and make sure they pass. When a request means a significant change to requirements, design or architecture, or its acceptance criteria are unclear, do not change the code; explain why in a comment and suggest that a maintainer handles it locally with /change."

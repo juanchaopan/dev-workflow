@@ -1,137 +1,152 @@
-# dev-workflow：通用的 AI 开发流程
+# dev-workflow: a general-purpose AI development workflow
 
-一套 Claude Code 插件，把一个项目从"有个想法"（或者"接手一堆旧代码"）一路带到需求、架构、详细设计、项目骨架、计划，再到一个个功能的开发、审查、合并和发布。适合个人开发者和小团队，任何技术栈的新项目和已有项目都能用。
+A Claude Code plugin that takes a project from "I have an idea" (or "I inherited a pile of old code") through requirements, architecture, detailed design, project skeleton and plan, to developing, reviewing, merging and releasing feature after feature. For individual developers and small teams, with any stack, for new and existing projects.
 
-各个技能之间不靠对话记忆交接，而是靠写进项目仓库的文档：`docs/`（需求、架构、设计、决策、路线图）和 `CLAUDE.md`（组件、命令、规范、分支策略）。今天聊的和三个月后聊的，AI 读到的是同一份"项目真相"。
+The skills hand over to each other through documents in the project repository, not conversation memory: `docs/` (requirements, architecture, design, decisions, roadmap) and `CLAUDE.md` (components, commands, standards, branching strategy). What you discuss today and what you discuss in three months, the AI reads the same "project truth".
 
-## 安装
+The plugin itself is written in English. It talks to you in your language, and writes project documents in the language your project's CLAUDE.md sets (by default, the language you talk to it in).
 
-**在自己的电脑上**：这个文件夹放在 `~/.claude/skills/dev-workflow/` 下，Claude Code 会自动把它当作插件加载（`claude plugin list` 里显示为 `dev-workflow@skills-dir`）。
+## Installation
 
-**给别人用**：把这个文件夹推到一个 GitHub 仓库，别人在 Claude Code 里运行：
+**On your own machine**: put this folder at `~/.claude/skills/dev-workflow/`, and Claude Code loads it as a plugin automatically (`claude plugin list` shows `dev-workflow@skills-dir`).
+
+**For others**: push this folder to a GitHub repository; others run in Claude Code:
 
 ```
-/plugin marketplace add <你的 GitHub 用户名>/<仓库名>
+/plugin marketplace add <your GitHub user>/<repository>
 /plugin install dev-workflow@dev-workflow
 ```
 
-更新时运行 `/plugin marketplace update dev-workflow`。
+Update with `/plugin marketplace update dev-workflow`.
 
-在 Claude Code 里输入 `/kickoff`、`/implement` 这样的命令就能使用；和别的插件重名时，加上插件名：`/dev-workflow:kickoff`。不输入命令时，Claude 也会根据你说的话自动选用合适的技能。每次会话开始时，插件会加载各技能的简介，大约占用 3200 个 token。
+Type commands such as `/kickoff` or `/implement` in Claude Code; when another plugin has the same name, add the plugin name: `/dev-workflow:kickoff`. Without a command, Claude also picks the right skill from what you say. Each session loads the skill summaries, roughly 3,000 tokens.
 
-## 流程
+## Workflow
 
 ```
-新项目：
-  /kickoff ──► /architect ──► /design ──► /scaffold ──► /roadmap ──► /implement next（循环）──► /release
-  需求挖掘      选型+架构      画面、数据、    搭项目+规范     拆 issue      开发→PR→审查→合并          发布版本
-                              接口逐个确认    +/setup-ai-review
+New project:
+  /kickoff ──► /architect ──► /design ──► /scaffold ──► /roadmap ──► /implement (next or batch) ──► /release
+  requirements  stack and       screens,      project and    issues        develop → PR → review → merge   release
+                architecture    data and      standards
+                                interfaces    + /setup-ai-review
+                                confirmed one
+                                by one
 
-已有项目：
-  /onboard ──► （只维护）/change、/implement
-          └──► （加功能、现代化）/kickoff ──► /architect（目标架构+迁移步骤）──► /design ──► /roadmap ──► /implement
+Existing project:
+  /onboard ──► (maintenance only) /change, /implement
+          └──► (new features, modernization) /kickoff ──► /architect (target + migration) ──► /design ──► /roadmap ──► /implement
 
-之后每个新想法或新 issue：
-  /change ──► 按需求级别（L0–L4）和设计冲击（D0–D2）处理 ──► 改到画面、数据、接口的先用 /design 改设计 ──► 拆 issue ──► /implement
+Every new idea or issue afterwards:
+  /change ──► by requirement level (L0–L4) and design impact (D0–D2) ──► changes to screens, data or interfaces go through /design ──► issues ──► /implement
 
-拿不准的时候（任何阶段）：
-  /spike ──► 限时验证 ──► 证据给你看 ──► 你拍板 ──► 写成 ADR ──► 正式实现
+Whenever unsure (any stage):
+  /spike ──► time-boxed verification ──► evidence for you ──► you decide ──► ADR ──► real implementation
 ```
 
-| 技能 | 做什么 | 你要做的 |
+| Skill | What it does | What you do |
 |---|---|---|
-| `/kickoff` | 从点子、已有代码、文档或问题出发，分几轮问选择题，弄清目标、功能一览、业务规则和规模，找出逻辑漏洞，写需求文档 | 回答问题；确认需求 |
-| `/onboard` | 接手已有项目：盘点、整理现状架构、推断已有功能、量出质量基线，用基线方式接入规范 | 确认推断的内容；说想做什么 |
-| `/architect` | 架构指标、逐层选型、每个技术栈的细节决策（例如 Maven 还是 Gradle）、部署和 PR 预览、视觉验证、分布式设计、迁移方案 | 选技术；确认架构 |
-| `/design` | 画面（每个项目的类型、必填、长度、校验、错误提示）、数据（表和列，或文件格式）、接口、权限、复杂逻辑；每个画面画成原型截图，一个一个给你确认；最后查需求覆盖、CRUD 矩阵、权限矩阵 | 看截图、提意见、确认每个画面；确认数据和接口 |
-| `/spike` | 限时的技术探针：定问题和判据，做最小实现，拿出证据，结论写成 ADR，丢掉代码 | 试用、拍板 |
-| `/scaffold` | 用官方生成器建组件，装代码规范和架构检查，写 docker compose 和部署流水线，建仓库，装审查流程 | 确认目录结构；注册部署平台 |
-| `/setup-ai-review` | CI、AI 代码审查、安全审查、风险分级、提交信息检查、重复代码检查、依赖自动升级、`@claude` | 选分支策略；放密钥 |
-| `/roadmap` | 按需求和设计拆里程碑和 issue，每个 issue 一个小 PR，验收标准从设计里来；先排探针和骨架 | 确认范围和顺序 |
-| `/implement` | 开分支，必要时先重构，"测试 → 实现 → 重构"小步提交（测试按设计里的规则写），画面和确认过的截图对照，开 PR，处理审查意见，自动合并 | 中、高风险 PR 读 diff 后加 `human-reviewed` 标签 |
-| `/change` | 给新想法定两个级别：需求变了多少、对现有代码结构冲击多大；补问、改需求和设计、改过的画面重新确认、拆 issue | 确认级别；回答补问；确认改过的画面 |
-| `/release` | 算版本号、写 CHANGELOG、走发布分支、打标签、创建 Release、跟进生产部署 | 确认版本号；批准生产部署 |
+| `/kickoff` | From an idea, existing code, a document or a problem: rounds of multiple-choice questions on goals, the feature list, business rules and scale, finds logical holes, writes the requirements | Answer; confirm the requirements |
+| `/onboard` | Takes over an existing project: inventory, current architecture, inferred existing features, measured quality baseline, standards set up with a baseline | Confirm the inferences; say what you want next |
+| `/architect` | Architecture metrics, choices layer by layer, each stack's detailed decisions (e.g. Maven or Gradle, Oxlint or typescript-eslint), deployment and PR previews, visual verification, distributed design, migration plans | Choose technologies; confirm the architecture |
+| `/design` | Screens (type, required, length, validation and error message of every field), data (tables and columns, or file formats), interfaces, permissions, complex logic; every screen drawn as a prototype screenshot and confirmed with you one at a time; checks requirement coverage, the CRUD matrix and the permission matrix | Look at screenshots, comment, confirm each screen; confirm data and interfaces |
+| `/spike` | Time-boxed spikes: question and criteria, minimal implementation, evidence, conclusion as an ADR, code thrown away | Try it, decide |
+| `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
+| `/setup-ai-review` | CI, AI code review, security review, risk tiers, commit message checks, duplicate code detection, automatic dependency updates, `@claude` | Choose the branching strategy; store the secret |
+| `/roadmap` | Milestones and issues from requirements and design, one small PR per issue, acceptance criteria taken from the design; spikes and the skeleton first | Confirm scope and order |
+| `/implement` | Branch, refactor first when needed, small "test → implement → refactor" commits (tests derived from the design's rules), screens compared with the confirmed screenshots, PR, review handling, automatic merge. `batch` develops several issues in parallel with one subagent each | Answer plan questions; read the diff of medium and high risk PRs and add `human-reviewed` |
+| `/change` | Rates a new idea twice — how much the requirements change, how hard it hits the code structure — asks, updates requirements and design, has changed screens confirmed again, splits issues | Confirm the levels; answer; confirm changed screens |
+| `/release` | Computes the version, writes the CHANGELOG, runs the release branch, tags, creates the Release, follows the production deployment | Confirm the version; approve the production deployment |
 
-## 从需求到设计：每一步定到什么程度
+## How far each step goes
 
-| 阶段 | 定下来的东西 | 技能 |
+| Stage | What gets settled | Skill |
 |---|---|---|
-| 需求（概要） | 系统做什么、给谁用、功能一览、业务规则、规模和范围 | /kickoff |
-| 架构（基本设计的技术部分） | 用什么技术、分成哪几个组件、数据归谁、怎么部署 | /architect |
-| 设计（基本设计和详细设计） | 每个画面长什么样、每个项目的类型、必填、长度、校验和错误提示；每张表的每一列（没有数据库的写文件和配置的格式）；每个接口的参数和错误；权限；状态流转、判定表、计算规则 | /design |
-| 代码内部结构 | 类和函数怎么拆 | /implement，按规范和架构检查决定，不提前写 |
+| Requirements | What the system does, for whom, the feature list, business rules, scale and scope | /kickoff |
+| Architecture | Which technologies, which components, who owns which data, how it is deployed | /architect |
+| Design (basic and detailed) | What each screen looks like; type, required, length, validation and error message of every field; every column of every table (or the format of files and configuration without a database); parameters and errors of every interface; permissions; state transitions, decision tables, calculations | /design |
+| Code internals | How classes and functions are split | /implement, within the standards and architecture checks, not written in advance |
 
-需求阶段只问到需求这一层，字段、校验、表结构这些细节留给 /design：那时技术已经选定，可以把每个画面真的画出来给你看。/roadmap 按设计拆 issue，每个 issue 引用具体的画面、接口和规则，开发的人不用再猜。
+Requirements stop at the requirement level; fields, validation and table structure wait for /design, when the technology is chosen and every screen can actually be drawn for you. /roadmap splits issues from the design, so each issue cites specific screens, interfaces and rules and nobody has to guess.
 
-画面的确认方式：AI 为每个画面的每种状态（正常、校验出错、空数据……）写一个 HTML 原型，用 Playwright 自带的 Chromium 截成 PNG（免费，不需要任何外部服务），用你电脑上的看图程序打开，同时在对话里列出这个画面的项目定义。你直接说意见或问题，AI 改完重新截图，你确认了才做下一个。全部画面确认以后才开始开发；确认过的截图提交进仓库，作为开发和审查时的标准答案。
+How screens are confirmed: the AI writes an HTML prototype of every state of every screen (normal, validation errors, empty data...), renders it to PNG with Playwright's bundled Chromium (free, no external service), opens it in your image viewer and lists the screen's fields in the conversation. You comment or ask questions directly, the AI revises and renders again, and once you confirm, it moves to the next screen. Development starts only after every screen is confirmed, and the confirmed screenshots are committed as the reference for development and review. Progress is saved and committed after every confirmed screen, so you can compact the conversation or stop at any time; running /design again continues where it left off.
 
-## 你在哪些地方介入
+## Versions
 
-1. **回答问题和做选择**：/kickoff、/architect、/design、/change、/spike 会问你，选项里带推荐。
-2. **确认画面**：/design 一个一个给你看画面截图，你提意见、提问题，改到你满意为止。
-3. **确认文档**：需求、架构、数据、接口、计划写完后给你过目。
-4. **验证探针**：打开地址试一试、看证据，决定采用还是放弃。
-5. **中、高风险 PR**：亲自读 diff，确认后加 `human-reviewed` 标签。低风险的自动合并。
-6. **发布**：确认版本号，给发布 PR 加 `human-reviewed` 标签，批准生产部署。
-7. **AI 不确定的时候**：业务规则、架构、设计上没写清楚的地方，AI 会停下来问你，不会自己拍板。
+Nothing in the plugin pins a version. When /scaffold creates a project it looks versions up on the spot: runtimes (Node.js, Java, .NET) on their current LTS, Python on its latest release, libraries and tools on their latest release. The standards library prefers tools that do not hold versions back (architecture checks parse with SWC; Node.js linting defaults to Oxlint in type-aware mode), so new majors such as TypeScript 7 are used right away. When a tool you chose does not support a new major yet, /scaffold explains the situation and lets you choose: switch tools, or stay a version behind until the tool catches up (Dependabot then upgrades them together).
 
-## 常见场景
+## Developing several issues at once
 
-**有新想法**：在 Claude Code 里说 `/change 我想让用户可以导出订单`。它会定级、补问、改需求；改到画面的，画出新原型请你确认；然后拆 issue，`/implement <issue 号>`。也可以先在 GitHub 网站或手机上用"新功能"模板记一个 issue，回到电脑上运行 `/change #45`。描述清楚的小改动，可以直接在 issue 里评论 `@claude 实现这个`，在云端完成。
+`/implement batch` (or `/implement 128 133 134`) develops every issue whose dependencies are done in parallel. This session coordinates; each issue gets a background subagent in its own git worktree. The subagents plan first, and you answer all their questions in one place; the merge order is fixed up front so the result equals doing the issues one by one; later PRs rebase onto what merged before them; heavy checks such as end-to-end and Docker visual tests queue behind a lock. Each subagent stops when its PR is green and reviewed, and the coordinator tells you which PRs need your review, wakes the next one after each merge, and summarizes the batch.
 
-**一个想法会大改现有的类和接口**：/change 会判定为 D2，先写 `docs/design/refactor/` 下的重新设计方案给你确认，再拆成"特征测试 → 重构 → 扩展新接口 → 迁移调用方 → 删除旧接口 → 加功能"一串小 PR，每一步都能单独上线。
+## Where you step in
 
-**复杂、拿不准的想法**：/kickoff、/architect、/design、/change 会建议先 /spike。界面类的探针会给你一个能打开的地址（本地，或者 PR 预览环境），你亲自试过再决定；探针代码不进正式分支，结论写进 ADR，然后按正式流程重新实现。
+1. **Answering questions and choosing**: /kickoff, /architect, /design, /change and /spike ask you, with a recommended option.
+2. **Confirming screens**: /design shows you each screen's screenshots; you comment and ask until you are satisfied.
+3. **Confirming documents**: requirements, architecture, data, interfaces and plans are shown to you when written.
+4. **Verifying spikes**: open the URL, look at the evidence, adopt or drop.
+5. **Medium and high risk PRs**: read the diff yourself and add the `human-reviewed` label. Low risk merges automatically.
+6. **Releases**: confirm the version, add `human-reviewed` to the release PR, approve the production deployment.
+7. **When the AI is unsure**: where business rules, architecture or design leave something open, the AI stops and asks instead of deciding.
 
-**接手老项目、要现代化**：/onboard 先只读不改，整理现状、量出基线；然后 /kickoff（已有代码入口）问清为什么要动、要达到什么、保留什么；/architect 设计目标架构和可以逐步上线的迁移步骤（例如绞杀者模式）；/design 设计要变的画面、数据和接口；/roadmap 按迁移步骤拆 issue。
+## Common scenarios
 
-## 代码规范从哪来
+**A new idea**: say `/change I want users to export their orders` in Claude Code. It rates the change, asks, updates the requirements, draws new prototypes for changed screens for you to confirm, splits issues, then `/implement <issue>`. You can also record an issue with the "Feature" template on GitHub or your phone and run `/change #45` back at your computer. For small, clearly described changes, comment `@claude implement this` on the issue and it is done in the cloud.
 
-`skills/scaffold/stacks/` 是规范库，每个技术栈一套，分三部分：
+**An idea that reshapes existing classes and interfaces**: /change rates it D2, writes a redesign in `docs/design/refactor/` for you to confirm, then splits it into "characterization tests → refactor → expand with new interfaces → migrate callers → remove old interfaces → feature", small PRs that can each ship on their own.
 
-| 部分 | 内容 | 谁来执行 |
+**A complex, uncertain idea**: /kickoff, /architect, /design and /change suggest /spike first. UI spikes give you a URL to open (local, or a PR preview environment) to try yourself before deciding; spike code never enters the main branch, the conclusion goes into an ADR, and the real implementation follows the normal workflow.
+
+**Taking over an old project to modernize it**: /onboard reads without changing anything, documents the current state and measures the baseline; /kickoff (existing code entry) asks why change, what to achieve and what to keep; /architect designs the target architecture and migration steps that ship one at a time (e.g. strangler fig); /design designs the screens, data and interfaces that change; /roadmap splits the migration into issues.
+
+## Where the code standards come from
+
+`skills/scaffold/stacks/` is the standards library, one set per stack, in three parts:
+
+| Part | Content | Enforced by |
 |---|---|---|
-| 工具检查 | lint、格式化、复杂度和函数长度上限：Angular 用 angular-eslint 加 Prettier，Spring Boot 用 Spotless 加 Checkstyle 加 PMD，Python 用 ruff 加 mypy，React 用 oxlint 加 Prettier，Node.js 用 typescript-eslint 加 Prettier，.NET 用 `.editorconfig` 加 `dotnet format` 加分析器 | 格式化钩子（每改一个文件就跑）和 CI |
-| 架构检查 | 分层规则：前端的页面（容器）和展示组件分开、展示组件不能调 API；后端的 controller → service → repository；领域层不依赖框架；功能之间不互相引用；没有循环依赖。Angular、React、Node.js 用 dependency-cruiser，Spring Boot 用 ArchUnit，Python 用 import-linter，.NET 用 ArchUnitNET | 自检命令和 CI，违反就失败 |
-| 判断型规范 | `rules.md`：从官方风格指南、Google 风格指南、阿里巴巴 Java 开发手册、微软编码约定和通行的分层做法里，整理出工具查不出来的要点 | 装到项目的 `.claude/rules/`，Claude 改到对应目录时自动读取，AI 审查员也对照着审 |
+| Tool checks | Lint, formatting, complexity and function length limits: Angular with angular-eslint and Prettier, Spring Boot with Spotless, Checkstyle and PMD, Python with ruff and mypy, React with oxlint and Prettier, Node.js with Oxlint (type-aware) or typescript-eslint and Prettier, .NET with `.editorconfig`, `dotnet format` and analyzers | The format hook (after every changed file) and CI |
+| Architecture checks | Layering rules: frontend pages (containers) apart from presentational components, which never call APIs; backend controller → service → repository; a domain layer free of frameworks; features that do not reference each other; no circular dependencies. dependency-cruiser for Angular, React and Node.js, ArchUnit for Spring Boot, import-linter for Python, ArchUnitNET for .NET | Self-check commands and CI; violations fail |
+| Judgment rules | `rules.md`: what tools cannot check, distilled from official style guides, the Google style guides, the Alibaba Java Coding Guidelines, Microsoft's coding conventions and common layering practice | Installed into the project's `.claude/rules/`, read by Claude when it changes matching directories, and used by the AI reviewer |
 
-每个技术栈的 `stack.md` 还列出了"决策点"（例如构建工具、状态管理、数据访问方式），/architect 会逐个问你，不写死。要加新的技术栈，照着任意一个目录的结构写一套：`stack.md`、`rules.md`、`files/`，再加一个 `tests/stacks/<技术栈>.sh` 冒烟测试。
+Each stack's `stack.md` also lists "decision points" (e.g. build tool, lint tool, state management, data access) that /architect asks you instead of hard-coding them, and a "Versions" section on how versions are looked up. To add a stack, write a set modeled on any directory — `stack.md`, `rules.md`, `files/` — plus a `tests/stacks/<stack>.sh` smoke test.
 
-## 防止代码越改越像补丁
+## Keeping code from turning into patchwork
 
-| 环节 | 做法 |
+| Point | How |
 |---|---|
-| 设计 | /design 先把画面、数据、接口和规则定清楚，开发时不用边写边猜；/change 的设计冲击评估：现有结构放不下时，先写重新设计方案、先重构，再加功能 |
-| 写代码 | 项目 CLAUDE.md「写代码的方式」；/implement 每一步都是"测试 → 实现 → 重构" |
-| 写完 | /open-pr 先跑一轮 `simplify` 简化审查 |
-| 审查 | REVIEW.md「补丁味和臃肿」，AI 审查员专门查；也对照 `docs/design/` 查行为和设计是否一致 |
-| 机器检查 | 复杂度和长度上限、jscpd 重复代码检查、架构检查；lint 和架构检查的配置文件改动一律算高风险，防止"放宽规则来迁就代码" |
+| Design | /design settles screens, data, interfaces and rules up front, so nothing is guessed while coding; /change assesses design impact and, when the structure cannot take a change, writes a redesign and refactors before adding the feature |
+| Writing code | "How to write code" in the project's CLAUDE.md; every /implement step is "test → implement → refactor" |
+| After writing | /open-pr runs a `simplify` pass first |
+| Review | "Patchwork and bloat" in REVIEW.md, which the AI reviewer checks specifically; it also checks behavior against `docs/design/` |
+| Machine checks | Complexity and length limits, jscpd duplicate detection, architecture checks; changes to lint and architecture check configuration are always high risk, so rules are never relaxed to fit the code |
 
-## 视觉和布局
+## Visuals and layout
 
-画面应该长什么样，以设计稿（有的话；Figma 可以通过它的 MCP 服务让 Claude 直接读取）或 /design 确认过的原型截图为标准答案。颜色、字号、间距统一成设计令牌，取值和原型用的 `tokens.css` 一致；/implement 把实现出来的画面和原型截图并排放进 PR；展示组件在 Storybook 里逐个检查；视觉回归测试用 Playwright 截图对比，外观有意外变化时 PR 会失败并给出对比图。说明见 `skills/scaffold/shared/visual-testing.md`。
+What a screen should look like is defined by design files (when you have them; Claude can read Figma through its MCP server) or by the prototype screenshots confirmed in /design. Colors, font sizes and spacing become design tokens with the same values as the prototypes' `tokens.css`; /implement puts the implemented screen next to the prototype screenshot in the PR; presentational components are checked one by one in Storybook; visual regression tests compare Playwright screenshots, and an unexpected change fails the PR with comparison images. See `skills/scaffold/shared/visual-testing.md`.
 
-## 维护和升级
+## Maintenance and upgrades
 
-工具和生成器大约每几个月就会变一次（例如 create-vite 从 ESLint 换成了 oxlint、TypeScript 7 发布后周边工具还没跟上、PMD 给规则改了名）。这个插件自带体检：
+Tools and generators change every few months (e.g. create-vite moved from ESLint to oxlint, TypeScript 7 shipped without a JS API, PMD renamed rules). The plugin checks itself:
 
 ```
-node --test "tests/*.test.mjs"                     # 装进项目的那些脚本的单元测试，几秒钟
-RENDER_SMOKE=1 node --test "tests/*.test.mjs"      # 再加上画面截图脚本的真实截图，第一次要下载 Chromium
-bash tests/stacks/<技术栈>.sh                       # 某个技术栈的冒烟测试，真建一个项目，几分钟
+node --test "tests/*.test.mjs"                     # unit tests of the scripts installed into projects, seconds
+RENDER_SMOKE=1 node --test "tests/*.test.mjs"      # plus a real screenshot by the screen rendering script; downloads Chromium the first time
+bash tests/stacks/<stack>.sh                        # one stack's smoke test, creates a real project, minutes
 BUILD_TOOL=gradle bash tests/stacks/spring-boot.sh
+LINT=eslint bash tests/stacks/node-ts.sh
 ```
 
-仓库推到 GitHub 后，`.github/workflows/self-test.yml` 每周一自动跑一遍全部技术栈和真实截图，失败时开一个 issue。修的时候在 Claude Code 里说明哪个技术栈坏了、贴上日志，让它更新对应的 `stack.md` 和配置，再跑一遍冒烟测试确认。
+Once pushed to GitHub, `.github/workflows/self-test.yml` runs every stack every Monday with the versions a project created that week would get (the current LTS runtimes, the latest tools), and opens an issue when something fails. To fix it, tell Claude Code which stack broke and paste the log; have it update that stack's `stack.md` and configuration, then run the smoke test again. Never fix it by pinning an old version.
 
-项目里的依赖由各项目自己的 Dependabot 每周检查升级。
+Each project's own Dependabot checks its dependencies weekly.
 
-改了插件以后，按 Conventional Commits 提交，并把 `.claude-plugin/plugin.json` 的版本号按语义化版本加一。
+After changing the plugin, commit with Conventional Commits and bump the version in `.claude-plugin/plugin.json` following semantic versioning.
 
-## 没有自动验证的部分
+## Not verified automatically
 
-下面这些写进了文档和模板，但需要真实的账号或环境，没有在冒烟测试里跑过，第一次用时留意：
+These are in the documents and templates but need real accounts or environments, so the smoke tests do not run them; watch them the first time:
 
-- 部署流水线（`skills/scaffold/shared/deploy.yml`）和各部署平台的 PR 预览。
-- 视觉回归测试在 Docker 里生成基准截图的命令（需要 Docker Desktop 在运行）。
-- GitHub 上的工作流：AI 审查、安全审查、`@claude`、Dependabot、分支规则。它们只有在真实的仓库里才能跑。
+- The deployment pipeline (`skills/scaffold/shared/deploy.yml`) and each platform's PR previews.
+- Generating visual regression baselines in Docker (Docker Desktop must be running).
+- The GitHub workflows: AI review, security review, `@claude`, Dependabot, branch rules. They only run in a real repository.
+- Parallel development with `/implement batch`, which depends on Claude Code's subagents and worktrees in a real project.

@@ -1,54 +1,54 @@
-# 数据定义
+# Data definitions
 
-- 状态：{{AI 设计，待确认 / 已确认（YYYY-MM-DD）}}
-- 存储：{{按 ADR 选定的，例如 PostgreSQL；没有数据库时写"无"，只写下面"文件、配置和消息"一节}}
+- Status: {{AI draft, awaiting confirmation / Confirmed (YYYY-MM-DD)}}
+- Storage: {{as chosen in the ADRs, e.g. PostgreSQL; "None" without a database, then only the "Files, configuration and messages" section}}
 
-## 实体关系
+## Entity relationships
 
 ```mermaid
 erDiagram
   {{CUSTOMER}} ||--o{ {{ORDER}} : {{places}}
 ```
 
-## 共通约定
+## Common conventions
 
-| 项目 | 约定 |
+| Item | Convention |
 |---|---|
-| 主键 | {{例如 bigint 自增 / UUID v7}} |
-| 审计字段 | {{例如每张表都有 created_at、updated_at；需要追溯操作人的表加 created_by、updated_by}} |
-| 删除方式 | {{例如默认标记删除（deleted_at）；个人数据按需求物理删除}} |
-| 命名 | {{例如表名用复数、列名用小写加下划线}} |
-| 时间 | {{例如一律存 UTC，显示时转成用户所在时区}} |
-| 金额 | {{例如 numeric(12,2)，不用浮点数}} |
+| Primary keys | {{e.g. bigint identity / UUID v7}} |
+| Audit columns | {{e.g. created_at and updated_at on every table; created_by and updated_by where the actor must be traceable}} |
+| Deletion | {{e.g. soft delete (deleted_at) by default; personal data hard-deleted as the requirements say}} |
+| Naming | {{e.g. plural table names, snake_case columns}} |
+| Time | {{e.g. stored in UTC, shown in the user's time zone}} |
+| Amounts | {{e.g. numeric(12,2), never floating point}} |
 
-## ENT-{{001}} {{实体名称}}（`{{表名}}`）
+## ENT-{{001}} {{entity name}} (`{{table}}`)
 
-- 对应需求：{{REQ-xxx}}
-- 说明：{{这个实体代表什么}}
-- 删除方式：{{物理删除 / 标记删除；被其他数据引用时能不能删}}
-- 数据量：{{例如现在 1 万行，每月增加 500 行}}
+- Requirements: {{REQ-xxx}}
+- Description: {{what this entity represents}}
+- Deletion: {{hard / soft; whether it can be deleted while referenced}}
+- Data volume: {{e.g. 10,000 rows now, 500 more per month}}
 
-| 列 | 类型 | 能否为空 | 默认值 | 约束 | 说明 |
+| Column | Type | Nullable | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| {{id}} | {{bigint}} | 否 | {{自增}} | 主键 | |
-| {{customer_name}} | {{varchar(100)}} | 否 | | | {{对应 SCR-002 项目 1}} |
-| {{amount}} | {{numeric(12,2)}} | 否 | | {{大于 0}} | |
-| {{status}} | {{varchar(20)}} | 否 | {{'draft'}} | {{取值见 LGC-001}} | |
+| {{id}} | {{bigint}} | no | {{identity}} | primary key | |
+| {{customer_name}} | {{varchar(100)}} | no | | | {{SCR-002 field 1}} |
+| {{amount}} | {{numeric(12,2)}} | no | | {{greater than 0}} | |
+| {{status}} | {{varchar(20)}} | no | {{'draft'}} | {{values in LGC-001}} | |
 
-索引：
+Indexes:
 
-- `{{索引名}}`：`{{列}}`，{{唯一 / 普通}}，{{为了哪个查询}}
+- `{{index name}}`: `{{columns}}`, {{unique / non-unique}}, {{for which query}}
 
-## 文件、配置和消息
+## Files, configuration and messages
 
-没有数据库的系统，或者除了数据库还读写文件、配置、消息时写这一节。每种一小节：
+Write this section for systems without a database, or when files, configuration or messages are read or written besides the database. One subsection each:
 
-### {{文件名或消息名}}
+### {{file or message name}}
 
-- 格式：{{JSON / YAML / CSV / 二进制}}
-- 位置或主题：{{}}
-- 谁写、谁读：{{}}
+- Format: {{JSON / YAML / CSV / binary}}
+- Location or topic: {{}}
+- Written by, read by: {{}}
 
-| 字段 | 类型 | 必填 | 默认值 | 说明 | 示例 |
+| Field | Type | Required | Default | Description | Example |
 |---|---|---|---|---|---|
 | {{}} | {{}} | {{}} | {{}} | {{}} | {{}} |

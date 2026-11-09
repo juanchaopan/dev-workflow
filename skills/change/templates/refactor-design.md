@@ -1,64 +1,64 @@
-# {{设计标题}}
+# {{redesign title}}
 
-- 日期：{{YYYY-MM-DD}}
-- 状态：{{草稿 / 已确认 / 已完成}}
-- 相关需求：{{REQ-xxx}}
-- 相关决策：{{ADR-xxxx}}
+- Date: {{YYYY-MM-DD}}
+- Status: {{Draft / Confirmed / Done}}
+- Requirements: {{REQ-xxx}}
+- Decisions: {{ADR-xxxx}}
 
-## 为什么要重新设计
+## Why redesign
 
-{{新需求是什么，现在的设计为什么放不下：例如会出现哪些越来越多的条件分支、哪些重复、哪些接口表达不了新概念。}}
+{{What the new requirement is and why the current design cannot take it: e.g. which conditionals would keep piling up, which duplication would appear, which interfaces cannot express the new concept.}}
 
-## 现在的设计
+## Current design
 
 ```mermaid
 classDiagram
-  class {{现有类}} {
-    +{{方法}}()
+  class {{ExistingClass}} {
+    +{{method}}()
   }
 ```
 
-{{现在的类、接口、模块边界和数据结构，以及它们的问题。}}
+{{Today's classes, interfaces, module boundaries and data structures, and their problems.}}
 
-## 目标设计
+## Target design
 
 ```mermaid
 classDiagram
-  class {{新接口}} {
+  class {{NewInterface}} {
     <<interface>>
-    +{{方法}}()
+    +{{method}}()
   }
-  {{新接口}} <|.. {{实现 A}}
-  {{新接口}} <|.. {{实现 B}}
+  {{NewInterface}} <|.. {{ImplementationA}}
+  {{NewInterface}} <|.. {{ImplementationB}}
 ```
 
-{{每个类和接口的职责、依赖方向、扩展点。说明以后再加一种同类需求时，要改哪里、不用改哪里。}}
+{{Each class and interface's responsibility, dependency directions and extension points. Say what changes, and what does not, when another requirement of the same kind arrives.}}
 
-## 接口对比
+## Interfaces before and after
 
-| 接口 | 现在 | 改成 | 兼容方式 |
+| Interface | Now | Becomes | Compatibility |
 |---|---|---|---|
-| `{{接口或方法}}` | `{{旧签名}}` | `{{新签名}}` | {{新旧并存到第几步 / 直接替换（没有外部调用方）}} |
+| `{{interface or method}}` | `{{old signature}}` | `{{new signature}}` | {{old and new coexist until step N / replaced directly (no external callers)}} |
 
-## 数据结构变更
+## Data structure changes
 
-{{表、字段、消息格式的变化；按"扩展 → 迁移 → 收缩"怎么分步做；旧数据怎么处理。没有就写"无"。}}
+{{Changes to tables, columns and message formats; how they are staged as "expand → migrate → contract"; what happens to old data. "None" when there are none.}}
 
-## 迁移步骤
+## Migration steps
 
-| 步骤 | 内容 | 行为是否改变 | issue |
+| Step | Content | Behavior changes | Issue |
 |---|---|---|---|
-| 1 | 特征测试：{{要固定的行为}} | 否 | #{{编号}} |
-| 2 | 重构：{{调整什么}} | 否 | #{{编号}} |
-| 3 | 扩展：{{加什么新接口}} | 否 | #{{编号}} |
-| 4 | 迁移：{{改哪些调用方}} | 否 | #{{编号}} |
-| 5 | 收缩：{{删掉什么}} | 否 | #{{编号}} |
-| 6 | 功能：{{新需求}} | 是 | #{{编号}} |
+| 1 | Characterization tests: {{behavior to pin down}} | no | #{{number}} |
+| 2 | Refactoring: {{what is restructured}} | no | #{{number}} |
+| 3 | Expand: {{which new interface is added}} | no | #{{number}} |
+| 4 | Migrate: {{which callers move}} | no | #{{number}} |
+| 5 | Contract: {{what is deleted}} | no | #{{number}} |
+| 6 | Feature: {{the new requirement}} | yes | #{{number}} |
 
-## 测试策略
+## Test strategy
 
-{{哪些测试保证重构没改坏行为；新功能怎么测。}}
+{{Which tests prove the refactoring kept behavior; how the new feature is tested.}}
 
-## 考虑过但没采用的方案
+## Options considered and rejected
 
-- {{方案}}：{{为什么不用}}
+- {{option}}: {{why not}}

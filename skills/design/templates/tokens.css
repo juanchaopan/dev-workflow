@@ -1,6 +1,8 @@
 /*
- * 画面原型共用的样式：上半部分是设计令牌（颜色、字号、间距、圆角、阴影），下半部分是常用元素的基础样式。
- * 有设计稿或品牌规范时，只改令牌的值。实现时照这些值建项目的设计令牌，原型和真实画面才对得上。
+ * Shared styles for screen prototypes: design tokens first (colors, font sizes, spacing, radius, shadow),
+ * then base styles for common elements.
+ * With design files or brand guidelines, change only the token values. The project's design tokens are built
+ * from the same values, so prototypes and real screens match.
  */
 :root {
   --color-primary: #2563eb;

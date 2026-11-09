@@ -1,120 +1,122 @@
 ---
 name: architect
-description: 根据 docs/product/ 的需求做技术选型和架构设计。先把需求换算成架构指标（规模、性能、可用性、一致性、成本、维护人力），再一层层给出候选技术的对比和推荐让用户选，接着把每个选定技术栈的细节决策（例如构建工具、数据访问方式、状态管理、组件分层）逐个问清楚；设计分层、组件、部署实例、环境和 PR 预览、数据归属和故障处理（包括多服务、多实例的分布式架构），以及前端的视觉验证方式；拿不准的地方建议先用 /spike 验证；找出架构漏洞并给建议，最后写出 docs/architecture/overview.md 和 docs/adr/。已有系统要现代化时，设计目标架构和可以逐步上线的迁移步骤。在 /kickoff 之后使用；/change 判定架构要变时也会用它。完成后接 /design，把画面、字段、数据和接口细化到可以开发的程度。
+description: Technology choices and architecture design from the requirements in docs/product/. Turns requirements into architecture metrics (scale, performance, availability, consistency, cost, maintenance capacity), compares candidate technologies layer by layer for the user to choose, settles each chosen stack's decision points (e.g. build tool, lint tool, data access, state management), and designs layers, components, deployment, environments and PR previews, data ownership, failure handling and visual verification, including distributed designs. Suggests /spike where uncertain, checks for architectural holes, and writes docs/architecture/overview.md and docs/adr/. For modernization, designs the target architecture and migration steps that ship one at a time. Use after /kickoff, or when /change finds the architecture must change. Followed by /design.
 ---
 
-# 技术选型和架构设计
+# Technology choices and architecture
 
-你的角色是一个务实的架构师：架构要满足需求里的数字，同时让维护的人维护得动。每个决策都要说清为什么，以及放弃了什么。
+Your role is a pragmatic architect: the architecture must meet the numbers in the requirements and stay maintainable by the people who will maintain it. Every decision says why, and what was given up.
 
-架构定的是"用什么技术、分成哪几块、数据归谁、怎么部署"。每个画面的项目、每张表的列、每个接口的参数，由下一步 /design 细化。
+The architecture settles which technologies, which components, who owns which data and how it is deployed. The fields of each screen, the columns of each table and the parameters of each interface are detailed in the next step, /design.
 
-## 怎么提问
+## How to ask
 
-- 用 AskUserQuestion 提问。每轮最多 4 个决策，每个决策 2 到 4 个候选，推荐的放第一个并在标签后加"（推荐）"。
-- 每个候选的 description 写清：优点、缺点、适合什么条件，以及对这个项目意味着什么。例如"PostgreSQL：事务和复杂查询强，生态成熟；需要自己备份，或者用托管服务（每月约 15 美元起）"。
-- 候选之间差别大、需要细说时，先在消息里用表格对比，再提问。
-- 用户说"你定"时选推荐项，在 ADR 里把状态写为"已接受（AI 建议，用户默认）"。
-- 某个决策光靠讨论定不下来（性能拿不准、没用过的技术、集成方式不清楚、交互用户会不会用）时，ADR 状态写"提议"，建议用户先用 /spike 验证，验证完再定。
+- Ask with AskUserQuestion, in the user's language. At most 4 decisions per round, 2 to 4 candidates each, the recommended one first with "(Recommended)" appended to its label.
+- Each candidate's description gives its strengths, weaknesses, when it fits and what it means for this project. For example "PostgreSQL: strong transactions and complex queries, mature ecosystem; you run backups yourself, or use a managed service (from about $15 a month)".
+- When candidates differ a lot and need explaining, compare them in a table in your message first, then ask.
+- When the user says "you decide", take the recommended option and set the ADR status to "Accepted (AI suggestion, user default)".
+- When a decision cannot be settled by discussion (uncertain performance, unfamiliar technology, unclear integration, whether users will understand an interaction), set the ADR status to "Proposed" and suggest verifying with /spike first.
 
-## 三种用法
+## Three uses
 
-- **新架构**：从第 0 步做到最后。
-- **架构变更**（/change 判定为架构变化时调用）：读现有的 `docs/architecture/overview.md` 和 `docs/adr/`，只重做受影响的部分。新决策写成新的 ADR，被替代的旧 ADR 状态改为"被 ADR-xxxx 替代"。
-- **现代化**（已有系统，/onboard 写过现状文档，/kickoff 写过目标）：先设计目标架构（第 1 到 7 步），再做第 8 步"迁移方案"。
+- **New architecture**: from step 0 to the end.
+- **Architecture change** (called by /change): read the existing `docs/architecture/overview.md` and `docs/adr/` and redo only the affected parts. New decisions get new ADRs; the old ones they replace get the status "Superseded by ADR-xxxx".
+- **Modernization** (existing system; /onboard documented the current state, /kickoff the goals): design the target architecture first (steps 1 to 7), then step 8, "Migration plan".
 
-## 步骤
+## Steps
 
-### 0. 读需求
+### 0. Read the requirements
 
-读 `docs/README.md` 和 `docs/product/` 下的全部文件；现代化和架构变更时，还要读 `docs/architecture/`、`docs/adr/` 和 `docs/design/`。没有需求文档就告诉用户先运行 /kickoff。需求里缺少架构必需的信息（尤其是规模和约束的数字）时，先补问。
+Read `docs/README.md` and everything under `docs/product/`; for modernization and architecture changes also `docs/architecture/`, `docs/adr/` and `docs/design/`. Without requirement documents, tell the user to run /kickoff first. When the requirements lack information the architecture needs (especially numbers for scale and constraints), ask first.
 
-### 1. 架构指标
+### 1. Architecture metrics
 
-把需求换算成一张表：指标、目标值、依据（来自哪条 REQ 或约束）。至少覆盖：用户数和并发、数据量和增长、响应时间、可用性、一致性要求（哪些数据必须立刻一致，哪些可以晚几秒）、安全和合规、每月成本上限、维护人力。拿不准的数字用 AskUserQuestion 确认。
+Turn the requirements into a table: metric, target, basis (which REQ or constraint). Cover at least: users and concurrency, data volume and growth, response time, availability, consistency (which data must be consistent immediately and which can lag a few seconds), security and compliance, monthly cost limit, maintenance capacity. Confirm uncertain numbers with AskUserQuestion.
 
-### 2. 用户熟悉的技术
+### 2. Technologies the user knows
 
-问用户熟悉哪些语言、框架和云平台（多选）。维护的人少时，熟悉程度和技术本身一样重要。
+Ask which languages, frameworks and cloud platforms the user knows (multi-select). With few maintainers, familiarity matters as much as the technology itself.
 
-### 3. 架构风格
+### 3. Architecture style
 
-候选：单体、模块化单体、微服务、无服务器、事件驱动，或它们的组合。按第 1 步的指标推荐，并说清代价：
+Candidates: monolith, modular monolith, microservices, serverless, event-driven, or combinations. Recommend based on the metrics from step 1 and spell out the cost:
 
-- 不要为了"分布式"而分布式。只有指标真的需要（某部分要独立扩容、要隔离故障、要用不同技术栈、要独立发布）才拆成多个服务，每拆出一个服务都写明理由。
-- 告诉用户分布式的真实成本：网络调用会失败、数据一致性变难、部署和排查问题都更复杂。
-- 维护的人少时，默认推荐模块化单体，并预留以后拆分的边界；指标明确需要时再拆。
+- Do not distribute for its own sake. Split into services only when the metrics require it (a part must scale independently, failures must be isolated, a different stack is needed, independent releases), and give the reason for every service split off.
+- Tell the user the real cost of distribution: network calls fail, data consistency gets harder, deployment and troubleshooting get more complex.
+- With few maintainers, recommend a modular monolith by default, with boundaries left for a later split; split when the metrics clearly require it.
 
-### 4. 逐层选型
+### 4. Choose layer by layer
 
-按层做决策，每轮最多 4 个：
+Decide per layer, at most 4 per round:
 
-1. 前端（是否需要、Web 还是桌面或移动、框架）
-2. 后端和服务（语言、框架、服务怎么划分）
-3. 数据存储（关系型、文档型、缓存、搜索、对象存储，各需要哪些）
-4. 服务之间的通信（REST、gRPC、消息队列、事件）
-5. 身份认证和授权（自建还是用托管服务、协议）
-6. 可观测性（日志、指标、链路追踪、告警）
+1. Frontend (needed or not; web, desktop or mobile; framework)
+2. Backend and services (language, framework, how services are divided)
+3. Data storage (relational, document, cache, search, object storage; which are needed)
+4. Communication between services (REST, gRPC, message queues, events)
+5. Authentication and authorization (build or managed service; protocols)
+6. Observability (logs, metrics, tracing, alerts)
 
-优先推荐 scaffold 规范库已支持的技术栈（列出与本技能同级的 `scaffold/stacks/` 目录看有哪些），并告诉用户：选这些有现成的代码规范、架构检查和自动检查。选了规范库里没有的技术栈也可以，但要告诉用户需要另外补一套规范（照着 `scaffold/stacks/` 里的某个目录写一套新的）。
+Prefer stacks the scaffold standards library supports (list the `scaffold/stacks/` directory next to this skill) and tell the user that these come with code standards, architecture checks and automated checks. Stacks outside the library are fine, but tell the user a set of standards must be added (write one modeled on a directory in `scaffold/stacks/`).
 
-技术选的是"哪一种"，不定具体版本：版本在 /scaffold 搭项目时取当时最新的稳定版或长期支持版（LTS）。
+Choose which technology, not which version: /scaffold uses the latest stable or LTS release on the day the project is created, and explains any version conflict for the user to decide.
 
-### 5. 细化每个技术栈的决策点
+### 5. Settle each stack's decision points
 
-对每个选定的技术栈，读 `scaffold/stacks/<技术栈>/stack.md` 的"决策点"一节，逐个用 AskUserQuestion 问（每轮最多 4 个，推荐项按表里的推荐，并结合第 1、2 步的结论调整）。例如构建工具、数据访问方式、数据库迁移工具、状态管理、组件分层、样式方案、测试框架。
+For each chosen stack, read the "Decision points" section of `scaffold/stacks/<stack>/stack.md` and ask each one with AskUserQuestion (at most 4 per round; the recommended option follows the table, adjusted for the conclusions of steps 1 and 2). For example build tool, lint tool, data access, database migration tool, state management, component layering, styling, test framework.
 
-规范库里没有的技术栈，按同样的类别自己列出决策点：构建和依赖管理、项目结构和分层、数据访问、测试框架、lint 和格式化工具、架构检查工具。
+For stacks outside the library, list decision points in the same categories yourself: build and dependency management, project structure and layering, data access, test framework, lint and formatting tools, architecture check tool.
 
-决策结果写进 ADR：每个组件一份"<组件> 的技术细节"，把这些小决策汇总在一起，各自写一两句理由。
+Record the results in an ADR: one "<component> technical details" ADR per component, collecting these small decisions with a sentence or two of reasoning each.
 
-### 6. 交付和验证方式
+### 6. Delivery and verification
 
-1. **部署和环境**：按 `scaffold/shared/deployment.md` 和用户一起选部署平台、要哪些环境（本地、PR 预览、测试、生产）、生产部署由谁批准、怎么回滚。
-2. **视觉验证**（有前端时）：设计来源、是否用设计令牌、是否用 Storybook 展示组件、是否做视觉回归测试。设计来源有两种：用户有设计稿（例如 Figma）时以设计稿为准；没有时，由 /design 为每个画面画 HTML 原型、截图请用户逐个确认，确认过的截图就是标准。依据见 `scaffold/shared/visual-testing.md`；对应的决策点在前端技术栈的 stack.md 里。在意像素级效果的项目，推荐设计令牌、Storybook 和视觉回归测试都要。
+1. **Deployment and environments**: with the user, choose the platform from `scaffold/shared/deployment.md`, the environments (local, PR preview, staging, production), who approves production deployments and how to roll back.
+2. **Visual verification** (with a frontend): design source, design tokens or not, Storybook for components or not, visual regression tests or not. There are two design sources: when the user has design files (e.g. Figma), they are the reference; otherwise /design draws an HTML prototype of every screen and the user confirms the screenshots one by one, and the confirmed screenshots are the reference. See `scaffold/shared/visual-testing.md`; the decision points are in the frontend stack's stack.md. For projects that care about pixel-level results, recommend design tokens, Storybook and visual regression tests.
 
-### 7. 设计
+### 7. Design
 
-依次设计并写进文档：
+Design and document, in order:
 
-- **分层**：每层的职责，允许的依赖方向。每个组件的分层按它技术栈 `rules.md` 里的约定（例如前端的页面和展示组件、后端的 controller → service → repository），这些规则会由架构检查强制；需要不同的分层时，写成 ADR 并说明架构检查规则要怎么改。
-- **组件**：每个组件的职责、对外接口的形式（例如 REST、命令行、库）、拥有哪些数据、依赖谁、技术栈、代码目录（单仓库下一般放在 `apps/<组件名>`，共享代码放在 `libs/`）。具体每个接口的参数和错误由 /design 定。
-- **交互**：组件之间同步还是异步；对最重要的 2 到 3 个场景画时序图。
-- **部署**：每个环境里每个组件几个实例；有状态还是无状态；怎么扩容；负载均衡；健康检查；本地怎样用 docker compose 把整套跑起来。
-- **数据**：每类数据归哪个组件所有（一类数据只有一个主人）；存在哪里；一致性怎么保证；数据库结构怎么迁移；怎么备份和恢复。每张表的列和约束由 /design 定。
-- **横切关注点**：认证授权、配置和密钥、日志指标追踪、错误处理、限流、幂等、API 版本、功能开关。
-- **故障场景**：每个组件和外部依赖挂掉或变慢时，用户看到什么、系统怎么处理、怎么恢复。
-- **演进**：现在不做、但已经预留的扩展点。
+- **Layers**: each layer's responsibility and allowed dependency directions. Each component follows the layering convention in its stack's `rules.md` (e.g. pages and presentational components on the frontend, controller → service → repository on the backend); the architecture checks enforce these rules. When a component needs different layering, write an ADR and say how the architecture check rules change.
+- **Components**: each component's responsibility, the form of its external interface (e.g. REST, command line, library), the data it owns, its dependencies, its stack and its code directory (in a monorepo usually `apps/<component>`, shared code in `libs/`). The parameters and errors of each interface are settled in /design.
+- **Interaction**: synchronous or asynchronous between components; sequence diagrams for the 2 or 3 most important scenarios.
+- **Deployment**: instances of each component per environment; stateful or stateless; scaling; load balancing; health checks; how docker compose runs the whole system locally.
+- **Data**: which component owns each kind of data (one owner per kind); where it is stored; how consistency is kept; how schema changes are migrated; backup and restore. The columns and constraints of each table are settled in /design.
+- **Cross-cutting concerns**: authentication and authorization, configuration and secrets, logs, metrics and tracing, error handling, rate limiting, idempotency, API versioning, feature flags.
+- **Failure scenarios**: when each component or external dependency is down or slow, what the user sees, how the system responds and how it recovers.
+- **Evolution**: extension points not built now but left room for.
 
-### 8. 迁移方案（现代化和架构变更时）
+### 8. Migration plan (modernization and architecture changes)
 
-从现状到目标，设计一组每一步都能单独上线、单独回滚的步骤。先列出候选策略，和用户一起选：
+From the current state to the target, design steps that can each ship and roll back on their own. List candidate strategies and choose with the user:
 
-| 策略 | 做法 | 适合 |
+| Strategy | How | Fits |
 |---|---|---|
-| 绞杀者（strangler fig） | 在老系统前面加一层路由，按功能把请求逐个切到新实现，老实现逐步下线 | 大多数现代化，尤其是 Web 系统 |
-| 抽象分支（branch by abstraction） | 在代码里先抽出接口，让新旧两个实现并存，用开关切换，确认后删掉旧实现 | 替换内部的一个模块或库 |
-| 并行运行 | 新旧系统同时处理同样的输入，比对结果，一致后再切换 | 计算类、结果必须完全正确的业务（例如计费） |
-| 一次性重写替换 | 新系统写完后一次切换 | 系统很小，或者老系统已经无法运行；一般不推荐 |
+| Strangler fig | Put a routing layer in front of the old system and move requests to the new implementation feature by feature, retiring the old one gradually | Most modernizations, especially web systems |
+| Branch by abstraction | Extract an interface in the code, run old and new implementations side by side behind a switch, delete the old one once confirmed | Replacing an internal module or library |
+| Parallel run | Old and new systems process the same input and the results are compared; switch once they match | Calculations whose results must be exactly right (e.g. billing) |
+| Big-bang rewrite | Switch once the new system is complete | Very small systems, or an old system that can no longer run; generally not recommended |
 
-每一步写清：做什么、上线后怎么验证、出问题怎么退回。动之前先补"特征测试"把现有行为固定下来；数据迁移用"扩展 → 迁移 → 收缩"：先加新结构、双写或回填数据，确认后切读，最后删旧结构。
+Each step says what is done, how it is verified after release and how to back out. Before touching old code, add characterization tests that pin down current behavior; migrate data with "expand → migrate → contract": add the new structure, dual-write or backfill, switch reads once confirmed, then drop the old structure.
 
-### 9. 架构漏洞检查
+### 9. Architecture hole check
 
-对照 `references/architecture-checklist.md` 检查整个设计，列出发现的问题（单点故障、分布式一致性、过度设计、需求没有被任何组件覆盖、迁移步骤不能单独回滚等），每条附建议。需要用户决定的用 AskUserQuestion。
+Check the whole design against `references/architecture-checklist.md` and list the problems found (single points of failure, distributed consistency, overdesign, requirements no component covers, migration steps that cannot roll back on their own, and so on), with a suggestion for each. Use AskUserQuestion where the user must decide.
 
-### 10. 写文档
+### 10. Write the documents
 
-- `docs/architecture/overview.md`：按 `templates/overview.md` 写，图用 Mermaid（上下文图、容器图、部署图、关键时序图）。现代化时，保留"现状"一节，新增"目标"和"迁移步骤"两节。
-- `docs/adr/NNNN-<简短标题>.md`：每个重要决策一份，按 `templates/adr.md` 写。至少包括：架构风格、每一层的主要技术选择、每个组件的技术细节（第 5 步）、数据一致性方案、部署方式和环境、视觉验证方式（有前端时）、迁移策略（现代化时）。
-- 新冒出来、还没定的问题，记进 `docs/product/open-questions.md`；需要 /spike 验证的标出来。
+Write in the project's document language: the `Language` line in the project's CLAUDE.md when there is one, otherwise the language the user talks to you in.
 
-### 11. 确认并提交
+- `docs/architecture/overview.md`: from `templates/overview.md`, with Mermaid diagrams (context, containers, deployment, key sequences). For modernization, keep the "Current state" section and add "Target" and "Migration steps".
+- `docs/adr/NNNN-<short-title>.md`: one per significant decision, from `templates/adr.md`. At least: architecture style, the main technology choice of each layer, each component's technical details (step 5), the data consistency approach, deployment and environments, visual verification (with a frontend), migration strategy (for modernization).
+- New questions not yet settled go into `docs/product/open-questions.md`; mark those that need /spike.
 
-把架构要点和关键决策总结给用户，问有没有要改的。改完后提交，提交信息 `docs(architecture): <内容>`。仓库还没有分支保护时直接提交；有保护时新建 `docs/` 分支并用 /open-pr。
+### 11. Confirm and commit
 
-### 12. 下一步
+Summarize the key points and decisions for the user and ask what should change. After changes, commit with `docs(architecture): <content>`. Commit directly when the repository has no branch protection yet; otherwise create a `docs/` branch and use /open-pr.
 
-- 有状态为"提议"、等待验证的 ADR：先运行 /spike。
-- 新项目：运行 /design，把每个画面、字段、数据和接口逐个确认下来，再运行 /scaffold 搭建项目。
-- 现代化和架构变更：画面、数据或接口要变的，先运行 /design 改设计；再运行 /roadmap（或回到 /change），把迁移步骤拆成 issue。
+### 12. Next step
+
+- ADRs with the status "Proposed" waiting for verification: run /spike first.
+- New project: run /design to confirm every screen, field, data structure and interface, then /scaffold to create the project.
+- Modernization and architecture changes: when screens, data or interfaces change, run /design first; then /roadmap (or back to /change) to split the migration steps into issues.

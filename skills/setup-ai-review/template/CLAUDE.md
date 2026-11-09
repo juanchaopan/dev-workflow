@@ -1,64 +1,70 @@
-# {{项目名称}}
+# {{project name}}
 
-{{一句话说明这个项目是什么、给谁用。}}
+{{One sentence on what this project is and who it is for.}}
 
-## 组件
+## Language
 
-| 组件 | 目录 | 技术栈 | 职责 |
+Project documents (docs/), review comments and issue text are written in {{language, e.g. English}}. Code identifiers and commit message types follow the conventions below.
+
+## Components
+
+| Component | Directory | Stack | Responsibility |
 |---|---|---|---|
-| {{组件名}} | `{{目录}}` | {{语言、框架和版本}} | {{一句话职责}} |
+| {{component}} | `{{directory}}` | {{language, framework and version}} | {{one-sentence responsibility}} |
 
-## 自检命令
+## Self-check commands
 
-完成任何改动后，对改到的每个组件依次运行下面的命令，并在回复里贴出真实输出。有失败就继续修，不要只说"已完成"。命令都在组件目录下运行，没有的项写"—"。
+After any change, run the commands below for every component you changed and show their real output in your reply. Keep fixing until everything passes instead of just saying "done". Commands run in the component directory; "—" means none.
 
-| 组件 | 格式化 | lint 和架构检查 | 类型检查 | 测试 | 构建 |
+| Component | Format | Lint and architecture | Type check | Tests | Build |
 |---|---|---|---|---|---|
-| {{组件名}} | `{{命令}}` | `{{命令}}` | `{{命令}}` | `{{命令}}` | `{{命令}}` |
+| {{component}} | `{{command}}` | `{{command}}` | `{{command}}` | `{{command}}` | `{{command}}` |
 
-整个仓库还有一项重复代码检查：`npx jscpd .`（在仓库根目录运行）。
+The whole repository also has duplicate code detection: `npx jscpd .` (at the repository root).
 
-## 代码规范
+Heavy checks, which use a lot of memory or Docker and run one at a time when several issues are developed in parallel: {{e.g. `npx playwright test` for end-to-end and visual regression tests; "none"}}.
 
-- 各技术栈的规范在 `.claude/rules/`，改到对应目录的文件时会自动加载。里面的分层规则由架构检查强制，检查不通过时改代码的结构，不要改规则来迁就代码；确实需要改规则时，先问。
-- {{本项目特有的约定}}
-- 新逻辑要带测试。测试要能在代码出错时失败，不能和实现犯同一个错。
-- 不提交密钥、令牌和个人数据；这些通过环境变量或密钥管理读取。
+## Code standards
 
-## 写代码的方式
+- Each stack's standards are in `.claude/rules/` and load automatically when you change files in the matching directories. Their layering rules are enforced by the architecture checks: when a check fails, change the structure of the code, not the rules; when a rule really must change, ask first.
+- {{project-specific conventions}}
+- New logic comes with tests. Tests must fail when the code is wrong and must not repeat the implementation's mistakes.
+- Never commit secrets, tokens or personal data; read them from environment variables or a secret store.
 
-- 改完的代码要读起来像一次写成的。注释只说明现在的代码做什么、为什么这样设计；不写"改为…""新增…""修复…""原来是…"这类修改记录，修改历史留给提交信息。
-- 不留死代码、注释掉的代码、不再使用的参数和分支，也不为兼容旧写法保留代码，除非有调用方确实还在用。
-- 新需求放不进现有结构时，先调整结构，再加新功能：先做一个不改变行为的重构提交（测试保持通过），再做功能提交。不要往旧函数里不断追加 if 和参数。
-- 同样的逻辑出现第二次时考虑提取，第三次时必须提取。
-- 函数和文件变长、变复杂时拆开。复杂度和长度的上限由 lint 检查，重复代码由 jscpd 检查。
-- 改动会大面积影响现有的类、接口或模块划分时，先停下来，用 /change 评估设计影响，不要边写边改。
+## How to write code
 
-## 目标与非目标
+- Changed code reads as if written in one go. Comments explain what the code does now and why it is designed that way; no change-log comments such as "changed to...", "added...", "fixed...", "previously..."; history belongs in commit messages.
+- No dead code, commented-out code, unused parameters or branches, and no code kept for compatibility with an old way of doing things unless a caller really still uses it.
+- When a new requirement does not fit the current structure, restructure first, then add the feature: one refactoring commit that keeps behavior (tests stay green), then the feature commit. Do not keep adding ifs and parameters to old functions.
+- Consider extracting logic the second time it appears; extract it the third time.
+- Split functions and files as they grow long or complex. Lint checks complexity and length limits; jscpd checks duplication.
+- When a change would broadly affect existing classes, interfaces or module boundaries, stop and assess the design impact with /change instead of redesigning while coding.
 
-- 目标：{{这个项目现阶段要做到的事}}
-- 非目标：{{明确不做的事，免得范围被扩大}}
+## Goals and non-goals
 
-## 分支与提交
+- Goals: {{what the project must achieve at this stage}}
+- Non-goals: {{what is explicitly not done, to keep the scope from growing}}
 
-- 分支策略：{{选定分支策略的说明}}
-- 分支命名：{{分支命名规则，例如 feature/<issue 号>-<简述>、fix/<issue 号>-<简述>、refactor/<issue 号>-<简述>、docs/<简述>、chore/<简述>、spike/<简述>}}
-- 提交信息用 Conventional Commits：`<类型>(<范围>): <描述> (#<issue 号>)`，例如 `feat(auth): 支持邮箱登录 (#12)`。`.githooks/commit-msg` 和 CI 都会检查。
-- 一个提交只做一件事，每个提交都能单独通过自检命令，不把无关改动混进来。
-- 合并方式：{{合并方式，例如 merge commit，保留每个小提交}}。PR 开启自动合并，检查全部通过后由 GitHub 合并。
+## Branches and commits
 
-## 工作流程
+- Branching strategy: {{description of the chosen strategy}}
+- Branch names: {{naming rules, e.g. feature/<issue>-<summary>, fix/<issue>-<summary>, refactor/<issue>-<summary>, docs/<summary>, chore/<summary>, spike/<summary>}}
+- Commit messages follow Conventional Commits: `<type>(<scope>): <description> (#<issue>)`, e.g. `feat(auth): support e-mail sign-in (#12)`. `.githooks/commit-msg` and CI check them.
+- One commit does one thing, every commit passes the self-check commands on its own, and nothing unrelated is mixed in.
+- Merge method: {{e.g. merge commit, keeping every small commit}}. PRs have auto-merge enabled and GitHub merges them once every check passes.
 
-- 不直接提交到受保护的分支，所有改动通过 PR 合并。
-- 开 PR 用 `/open-pr`：它会先跑自检命令、本地简化审查、code-review 和 security-review，再按模板填写 PR。
-- 新功能尽量做成可以关掉的（开关或配置项），出了问题不用回滚代码就能停用。
-- 改动涉及 `.github/risk-rules.txt` 里 `[high]` 下的路径时，在 PR 的 Risk 一栏写明原因。
-- 用户能看到的行为——画面、项目、校验、提示、接口、数据结构、业务规则——以 `docs/design/` 为准，画面以用户确认过的截图为准。要改这些行为，先用 /change 改设计，再改代码。
-- 实现时发现需求、设计或架构文档不够用、或者和代码对不上，先停下来问，不要自己拍板。
-- 方案不确定、风险大时，先用 /spike 做一个用完就扔的验证，结论写进 ADR 再正式实现。
+## Workflow
 
-## 文档
+- Never commit directly to protected branches; every change merges through a PR.
+- Open PRs with `/open-pr`: it runs the self-check commands, a local simplification pass, code-review and security-review first, then fills in the PR template.
+- Make new features switchable where possible (a flag or setting), so they can be turned off without rolling back code.
+- When a change touches paths under `[high]` in `.github/risk-rules.txt`, give the reason in the Risk section of the PR.
+- Behavior users can see — screens, fields, validation, messages, interfaces, data structures, business rules — follows `docs/design/`, and screens follow the user-confirmed screenshots. To change such behavior, change the design with /change first, then the code.
+- When requirement, design or architecture documents are not enough or disagree with the code during implementation, stop and ask instead of deciding yourself.
+- When an approach is uncertain or risky, run a throwaway /spike first, record the conclusion in an ADR, then implement it properly.
 
-- 审查标准：`REVIEW.md`
-- 给其他 AI 工具的入口：`AGENTS.md`
-- {{文档索引，例如 docs/README.md：需求、架构、设计、决策记录、路线图}}
+## Documents
+
+- Review standards: `REVIEW.md`
+- Entry point for other AI tools: `AGENTS.md`
+- {{documentation index, e.g. docs/README.md: requirements, architecture, design, decision records, roadmap}}

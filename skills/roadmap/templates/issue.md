@@ -1,39 +1,40 @@
-## 类型
+## Type
 
-{{功能 / 修复 / 重构 / 工程 / 探针}}
+{{Feature / Bug / Refactoring / Chore / Spike}}
 
-## 目标
+## Goal
 
-{{完成后用户能做什么，一两句话。重构写"调整成什么结构、为什么"；探针写"要回答的问题"。}}
+{{What the user can do once it is done, in a sentence or two. Refactoring: "restructure into what, and why"; spike: "the question to answer".}}
 
-## 对应的需求和设计
+## Requirements and design
 
-- 需求：{{REQ-xxx 标题}}
-- 设计：{{SCR-xxx（docs/design/screens/SCR-xxx-name.md，确认过的截图 SCR-xxx-name.png）、API-xxx、ENT-xxx、JOB-xxx、LGC-xxx；重新设计代码结构的写 docs/design/refactor/xxx.md；相关决策写 ADR-xxxx}}
-- {{画面状态为"AI 设计，待确认"时写：开工前先请用户确认 SCR-xxx}}
+- Requirements: {{REQ-xxx title}}
+- Design: {{SCR-xxx (docs/design/screens/SCR-xxx-name.md, confirmed screenshot SCR-xxx-name.png), API-xxx, ENT-xxx, JOB-xxx, LGC-xxx; for code structure redesigns docs/design/refactor/xxx.md; related decisions ADR-xxxx}}
+- {{When a screen is "AI draft, awaiting confirmation": have the user confirm SCR-xxx before starting}}
 
-## 验收标准
+## Acceptance criteria
 
-- [ ] Given {{前提}}，When {{操作}}，Then {{结果}}
-- [ ] Given {{前提}}，When {{异常操作}}，Then {{系统怎么处理}}
-- [ ] {{满足 SCR-xxx 项目定义表第 N 到 M 项的全部规则 / API-xxx 的全部错误情况 / LGC-xxx 判定表的全部行}}
-- [ ] {{有画面时：实现出来的画面和确认过的截图一致（项目、顺序、文字、各种状态）}}
+- [ ] Given {{precondition}}, When {{action}}, Then {{result}}
+- [ ] Given {{precondition}}, When {{invalid action}}, Then {{how the system responds}}
+- [ ] {{All rules of fields N to M in the SCR-xxx field definitions / every error case of API-xxx / every row of the LGC-xxx decision table}}
+- [ ] {{With screens: the implemented screen matches the confirmed screenshots (fields, order, text, every state)}}
 
-{{重构写：行为不变，重构前后同样的测试都通过。探针写：成功和失败的判据。}}
+{{Refactoring: behavior unchanged; the same tests pass before and after. Spike: the criteria for success and failure.}}
 
-## 涉及的组件
+## Components and files
 
-- `{{组件目录}}`：{{要做什么}}
+- `{{component directory}}`: {{what to do}}
+- Expected files: {{main files or directories this issue will change}}
 
-## 依赖
+## Dependencies
 
-- {{#编号，或"无"}}
+- {{#number, or "None"}}
 
-## 大小和风险
+## Size and risk
 
-- 大小：{{S / M}}
-- 预估风险等级：{{低 / 中 / 高}}，{{理由}}
+- Size: {{S / M}}
+- Estimated risk tier: {{low / medium / high}}, {{reason}}
 
-## 测试要点
+## Test points
 
-- {{要覆盖的正常路径、边界和异常；校验规则的边界值，例如长度上限和上限加一}}
+- {{normal paths, boundaries and failures to cover; boundary values of validation rules, e.g. the length limit and the limit plus one}}

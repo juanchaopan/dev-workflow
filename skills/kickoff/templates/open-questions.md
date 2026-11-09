@@ -1,7 +1,7 @@
-# 未决问题
+# Open questions
 
-定下来以后，把结论写进对应的需求或架构文档，再把状态改为"已解决"并写明结论在哪里。
+Once a question is settled, write the conclusion into the matching requirement or architecture document, then set the status to "Resolved" and say where the conclusion lives.
 
-| 编号 | 问题 | 影响哪些需求或组件 | 最晚什么时候必须定 | 状态 |
+| ID | Question | Affected requirements or components | Must be settled by | Status |
 |---|---|---|---|---|
-| Q-001 | {{问题}} | {{REQ-xxx}} | {{例如：开发 REQ-003 之前}} | 未解决 |
+| Q-001 | {{question}} | {{REQ-xxx}} | {{e.g. before REQ-003 is developed}} | Open |

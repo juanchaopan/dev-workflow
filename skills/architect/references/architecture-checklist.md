@@ -1,80 +1,80 @@
-# 架构漏洞检查清单
+# Architecture hole checklist
 
-设计完成后逐项检查。发现问题时说清楚：哪里有问题、什么情况下会出事、建议怎么改，以及改的代价。
+Go through each item once the design is done. For each problem say where it is, in which situation it goes wrong, how to change it and what the change costs.
 
-## 和需求对得上吗
+## Does it match the requirements
 
-- 每条 MVP 需求都由至少一个组件负责吗？
-- 每个组件都能说出它为哪些需求存在吗？说不出来的，可能多余。
-- 架构指标（规模、响应时间、可用性、成本）每一项都有对应的设计吗？
-- 有没有"以后再做"的需求，其实现在就需要预留（多租户、多语言、开放 API、数据导出）？
+- Is every MVP requirement owned by at least one component?
+- Can every component name the requirements it exists for? One that cannot may be unnecessary.
+- Does every architecture metric (scale, response time, availability, cost) have a matching design element?
+- Is there a "later" requirement that actually needs room today (multi-tenancy, multiple languages, a public API, data export)?
 
-## 过度设计
+## Overdesign
 
-- 服务数量和维护人力匹配吗？每多一个能独立部署的服务，就多一份部署、监控、升级和排错的工作。
-- 用到的每种基础设施（消息队列、缓存、搜索引擎）都有需求撑着吗？能不能先用数据库顶上？
-- 有没有为了"以后可能"引入的复杂度？
-- 托管服务和自己搭建：维护的人少时，优先托管服务，除非成本或合规不允许。
+- Does the number of services match the maintenance capacity? Every independently deployed service adds deployment, monitoring, upgrades and troubleshooting.
+- Is every piece of infrastructure (message queue, cache, search engine) backed by a requirement? Could the database do the job for now?
+- Is there complexity added for "maybe later"?
+- Managed versus self-hosted: with few maintainers, prefer managed services unless cost or compliance rules them out.
 
-## 分布式特有的问题（有多个服务或多个实例时）
+## Distributed-system problems (several services or instances)
 
-- 网络调用：有超时吗？重试会不会造成重复执行？被调用的接口是幂等的吗？
-- 一次操作要改多个服务的数据时，怎样保证要么都成功、要么都不成功（Saga、Outbox，或者干脆不拆开）？
-- 最终一致时，用户会不会看到旧数据？界面上怎么处理？
-- 消息会重复、乱序、丢失吗？消费者能处理吗？失败的消息去哪（死信队列）？
-- 下游变慢时，上游会不会被拖垮（限流、熔断、背压）？
-- 服务怎样找到彼此？配置怎样下发？
-- 接口和事件的格式改了，新旧版本能不能同时运行？
-- 多个实例时：会话存在哪？定时任务会不会每个实例各跑一遍？本地缓存会不会不一致？
-- 不同机器的时钟不同步，会不会影响排序、过期和对账？
+- Network calls: is there a timeout? Can a retry execute something twice? Is the called endpoint idempotent?
+- When one operation changes data in several services, how is all-or-nothing guaranteed (Saga, Outbox, or not splitting at all)?
+- With eventual consistency, can users see stale data? How does the UI handle it?
+- Can messages be duplicated, reordered or lost? Can consumers cope? Where do failed messages go (dead-letter queue)?
+- When a downstream service slows down, can it drag the upstream down (rate limiting, circuit breakers, back pressure)?
+- How do services find each other? How is configuration distributed?
+- When an interface or event format changes, can old and new versions run at the same time?
+- With several instances: where do sessions live? Does a scheduled job run once per instance? Can local caches diverge?
+- Can clock differences between machines affect ordering, expiry and reconciliation?
 
-## 单点故障和容量
+## Single points of failure and capacity
 
-- 哪些组件只有一个实例？它挂了会怎样？可以接受吗？
-- 数据库挂了怎么办？有备份吗？恢复演练过吗？能接受丢多少数据（RPO）、停多久（RTO）？
-- 数据增长一年以后，查询还快吗？要不要分区、归档？
-- 流量高峰时，哪个组件最先撑不住？
+- Which components run as a single instance? What happens when one goes down? Is that acceptable?
+- What if the database goes down? Are there backups? Has a restore been rehearsed? How much data loss (RPO) and downtime (RTO) are acceptable?
+- After a year of data growth, are queries still fast? Is partitioning or archiving needed?
+- At peak traffic, which component gives out first?
 
-## 数据
+## Data
 
-- 每类数据只有一个主人吗？有没有两个服务都在写同一张表？
-- 数据库结构变更能不停机上线吗（先加字段、再迁数据、最后删旧字段）？回滚应用时要不要回滚数据库？
-- 敏感数据：加密存储了吗？日志里会不会打出来？谁能访问？
-- 删除和导出需求在设计里有对应吗？
+- Does each kind of data have exactly one owner? Do two services write the same table?
+- Can schema changes ship without downtime (add the column, migrate data, drop the old column last)? Does rolling back the application require rolling back the database?
+- Sensitive data: is it encrypted at rest? Can it end up in logs? Who can access it?
+- Are the deletion and export requirements reflected in the design?
 
-## 安全
+## Security
 
-- 每一跳调用都有认证吗？包括服务之间的内部调用。
-- 授权在服务端做吗？会不会只在前端隐藏按钮？
-- 密钥和令牌放在哪？会不会进代码仓库或镜像？
-- 外部输入在哪一层校验？
-- 管理功能和普通功能隔离了吗？
-- 依赖的第三方服务被攻破或滥用时，影响多大？
+- Is every hop authenticated, including internal calls between services?
+- Is authorization enforced on the server, not just by hiding buttons in the frontend?
+- Where do secrets and tokens live? Can they end up in the repository or in images?
+- At which layer is external input validated?
+- Are administrative functions separated from regular ones?
+- How bad is it if a third-party service you depend on is compromised or abused?
 
-## 代码结构
+## Code structure
 
-- 每个组件的分层和它技术栈的规范一致吗？不一致的写成 ADR 了吗，架构检查规则跟着改了吗？
-- 前端的页面和展示组件分清了吗？展示组件能不能只靠输入就渲染出来？
-- 模块之间的边界和数据的主人一致吗？有没有一个模块直接读写另一个模块的数据？
+- Does each component's layering match its stack's standards? If not, is there an ADR, and were the architecture check rules changed with it?
+- Are frontend pages separated from presentational components? Can a presentational component render from its inputs alone?
+- Do module boundaries match data ownership? Does any module read or write another module's data directly?
 
-## 交付和运维
+## Delivery and operations
 
-- 每个组件都有健康检查吗？会不会优雅停机（处理完手上的请求再退出）？
-- 一个请求穿过多个服务时，能用同一个追踪编号把日志串起来吗？
-- 出问题时你怎么知道？告警发到哪里？
-- 环境齐吗：本地能整套跑起来吗？每个 PR 有没有预览环境？生产部署有人批准吗？
-- 怎么回滚：代码、配置、数据库结构各自怎么回滚？
-- 功能开关放在哪，怎样不重新部署就关掉一个功能？
+- Does every component have a health check? Does it shut down gracefully (finishing in-flight requests before exiting)?
+- When a request crosses several services, can one trace ID tie the logs together?
+- How do you find out something is wrong? Where do alerts go?
+- Are the environments complete: can the whole system run locally? Does every PR get a preview environment? Does someone approve production deployments?
+- How do you roll back code, configuration and database schema?
+- Where do feature flags live, and how is a feature switched off without redeploying?
 
-## 迁移（现代化和架构变更时）
+## Migration (modernization and architecture changes)
 
-- 每一步都能单独上线、单独回滚吗？
-- 新旧实现并存期间，数据怎么保持一致？谁是数据的主人？
-- 动老代码之前，有没有特征测试把现有行为固定下来？
-- 有没有哪一步必须停机？停多久？用户能接受吗？
-- 老系统什么时候、按什么条件下线？
+- Can every step ship and roll back on its own?
+- While old and new implementations coexist, how is data kept consistent? Who owns the data?
+- Were characterization tests added to pin down current behavior before touching old code?
+- Does any step require downtime? How long? Can users accept it?
+- When, and under which conditions, is the old system retired?
 
-## 成本
+## Cost
 
-- 没有流量时每月花多少？流量是预期的 10 倍时花多少？
-- 有没有按流量或调用次数收费、可能失控的服务（AI 接口、出网流量、日志存储）？
+- What is the monthly cost with no traffic? With 10 times the expected traffic?
+- Are there services billed per traffic or per call that could run away (AI APIs, egress, log storage)?

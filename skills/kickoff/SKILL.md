@@ -1,108 +1,108 @@
 ---
 name: kickoff
-description: 需求挖掘：不管从哪里开始——一个还没想周全的点子、一个已有的代码目录（想改进或现代化）、一份现成的文档（需求文档、招标书、会议纪要、竞品分析），还是一个问题（太慢、总出错、用户投诉）——都通过多轮选择题提问，弄清目标、用户、功能一览、场景、业务规则、边界异常、规模约束和范围，每轮之后找出逻辑漏洞并给建议，最后在 docs/product/ 下写出同一套需求文档。只问到需求这一层，画面、字段、校验、表结构这些细节由 /design 逐个确认。用户说"我有个想法""帮我理一下需求""新项目立项""这个老系统怎么现代化""把这份文档变成需求""kickoff"时使用。完成后接 /architect，再接 /design。
+description: Requirements discovery from wherever the user starts — a half-formed idea, an existing code directory (to improve or modernize), an existing document (requirements, tender, meeting notes, competitor analysis) or a problem (too slow, keeps failing, user complaints). Asks rounds of multiple-choice questions to pin down goals, users, the full feature list, scenarios, business rules, edge cases, scale constraints and scope, looks for logical holes after each round with suggestions, and writes the same set of requirement documents under docs/product/. Stays at the requirement level; screens, fields, validation and table structure are confirmed one by one in /design. Use when the user says "I have an idea", "help me sort out the requirements", "new project", "how do we modernize this old system", "turn this document into requirements" or "kickoff". Followed by /architect, then /design.
 ---
 
-# 需求挖掘
+# Requirements discovery
 
-目标是把用户手里的东西——不管是一个想法、一堆旧代码、一份文档，还是一个问题——变成一份 AI 和人都能照着做的需求文档。入口不同，产出相同：最后都是 `docs/product/` 下的愿景、需求、术语和未决问题，后面的 /architect、/design、/roadmap、/implement 不用关心需求是从哪来的。
+The goal is to turn whatever the user brings — an idea, a pile of old code, a document or a problem — into requirement documents that both people and AI can work from. Different entry points, same output: the vision, requirements, glossary and open questions under `docs/product/`, so /architect, /design, /roadmap and /implement never need to know where the requirements came from.
 
-你的角色是一个有经验、会追问的产品经理：替用户想到他没想到的地方，但最后由用户拍板。
+Your role is an experienced product manager who keeps asking: think of what the user has not thought of, but let the user make the call.
 
-## 这一步问到什么程度
+## How deep this step goes
 
-需求说的是"系统要做什么、为什么、做到什么程度算成功"。这一步要弄清：目标和用户、完整的功能一览、每个功能的关键流程、业务规则、边界和异常、规模和约束、范围。
+Requirements say what the system must do, why, and what counts as success. This step settles: goals and users, a complete feature list, the key flow of each feature, business rules, edge cases and failures, scale and constraints, and scope.
 
-画面长什么样、每个字段是否必填、校验规则、表有哪些列、接口的参数，这些设计层面的细节不在这里问。它们由 /design 在架构定下来以后，一个画面一个画面地画出来请用户确认。用户主动说到这些细节时，照样记进对应需求的业务规则，/design 会用上。
+What screens look like, whether a field is required, validation rules, table columns and API parameters are design details and are not asked here. /design confirms them screen by screen once the architecture is settled. When the user volunteers such details, record them in the business rules of the matching requirement; /design will use them.
 
-## 怎么提问（每一轮都遵守）
+## How to ask (every round)
 
-- 用 AskUserQuestion 提问。每轮 2 到 4 个问题，每个问题 2 到 4 个选项。
-- 问题要落到这个项目上：用这个项目里的业务对象、角色和场景来问，例如"订单提交以后还能不能改金额"，而不是"数据可以修改吗"。放到任何项目里都成立的泛泛问题，先根据已知信息推测出这个项目最可能的答案，再请用户确认或修正。
-- 选项要具体：根据已知信息推测真实可能的答案，不要写"其他"，工具会自动提供自由填写。推荐的选项放第一个，标签后加"（推荐）"。
-- 每个选项的 description 写清这个选择意味着什么、会带来什么后果，例如"支持多人协作：需要账号和权限系统，工作量大约翻倍"。
-- 能多选的问题设 `multiSelect: true`。
-- 一轮只问同一个主题。用户的回答改变了方向时，调整后面的问题；已经从代码或文档里得到答案的问题不再问，只请用户确认推断是否正确。
-- 每轮之后，用三到五句话复述你理解到的内容，再列出这一轮发现的漏洞（对照 `references/requirement-holes.md`）。需要用户决定的漏洞，放进下一轮的问题里。
-- 用户说"你定""都行"时选推荐项，在文档里把来源标为"AI 建议，用户默认"。
-- 不确定的内容不要编。实在定不下来的，记进未决问题。需要先试一试才能定的（例如"这个交互用户会不会用""这个第三方服务够不够快"），记下来，建议用 /spike 验证。
-- 用户随时可以说"先到这"：把已经弄清的部分写成文档，没问到的记进未决问题。
+- Ask with AskUserQuestion, in the user's language. Each round has 2 to 4 questions, each with 2 to 4 options.
+- Ask about this project: use its business objects, roles and scenarios, e.g. "Can the amount still change after an order is submitted?", not "Can data be modified?". For a generic question that would fit any project, first infer the most likely answer for this project from what you know, then ask the user to confirm or correct it.
+- Make the options concrete: guess realistic answers from what you know. Do not add "Other"; the tool adds free text automatically. Put the recommended option first and append "(Recommended)" to its label.
+- Each option's description says what the choice means and what follows from it, e.g. "Multi-user collaboration: needs accounts and permissions, roughly doubles the work".
+- Set `multiSelect: true` for questions that allow several answers.
+- One topic per round. When an answer changes direction, adjust the following questions. Questions already answered by the code or documents are not asked again; only ask the user to confirm the inference.
+- After each round, restate what you understood in three to five sentences, then list the holes found in this round (check against `references/requirement-holes.md`). Holes that need the user's decision go into the next round.
+- When the user says "you decide" or "either is fine", take the recommended option and record the source as "AI suggestion, user default".
+- Do not make things up. What cannot be settled goes into the open questions. What needs a trial before it can be decided (e.g. "will users understand this interaction", "is this third-party service fast enough") is recorded with a suggestion to verify it with /spike.
+- The user can say "stop here" at any time: write up what is clear and put what was not asked into the open questions.
 
-## 第 0 步：判断入口
+## Step 0: find the entry point
 
-先看用户给了什么，再看当前目录里有什么：
+Look at what the user gave you, then at what is in the current directory:
 
-| 情况 | 入口 | 怎么做 |
+| Situation | Entry | What to do |
 |---|---|---|
-| 目录里已经有 `docs/product/requirements.md` | 已有需求 | 告诉用户：需求文档已经存在，加新功能、改需求应该用 /change。用户坚持重来再继续 |
-| 只有一个想法 | **点子** | 按下面"点子"的流程 |
-| 指向一个代码目录，或者当前目录有代码但没有 `docs/` | **已有代码** | 先用 Skill 工具运行 `onboard`，把现状整理成文档；再按"已有代码"的流程 |
-| 给了文档（文件、链接、贴进来的文字） | **文档** | 按"文档"的流程 |
-| 描述的是一个问题 | **问题** | 按"问题"的流程 |
+| `docs/product/requirements.md` already exists | Existing requirements | Tell the user the requirements already exist and that new features or changed requirements go through /change. Continue only if the user insists on starting over |
+| Only an idea | **Idea** | Follow "Idea" below |
+| Points at a code directory, or the current directory has code but no `docs/` | **Existing code** | First run `onboard` with the Skill tool to document the current state, then follow "Existing code" |
+| A document (file, link, pasted text) | **Document** | Follow "Document" |
+| Describes a problem | **Problem** | Follow "Problem" |
 
-几种情况混在一起时（例如"这是我们的老系统和一份新需求文档"），按各自的流程把信息都收集起来，再统一做漏洞检查和提问。
+When several apply (e.g. "here is our old system and a new requirements document"), collect information through each flow, then run the hole check and questions once for everything.
 
-新项目还要问项目名称（英文短名，用作目录名和仓库名）和放在哪个父目录，创建目录并运行 `git init`。
+For a new project, also ask for the project name (a short English name used for the directory and repository) and the parent directory; create the directory and run `git init`.
 
-## 点子
+## Idea
 
-1. **听想法**：用户调用时已经说了就直接用，否则请用户用自己的话说一遍。用一段话复述：要解决什么问题、给谁用、大概怎么做，让用户确认理解没有偏。
-2. **第 1 轮 目标和用户**：谁会用（角色可以有多个）；他们现在怎么解决这个问题；为什么需要新的东西；怎样算成功，要能衡量。
-3. **第 2 轮 功能一览和核心场景**：按角色列出推测的全部功能（每个功能一句话），让用户选第一版必须有哪些（多选），并补上漏掉的；功能一览要列全，/design 会按它逐个设计画面和接口。再挑最关键的一条流程走一遍：从哪里开始、经过哪些步骤、最后得到什么。
-4. **第 3 轮 业务规则和数据**：关键的业务对象有哪些；各有哪些状态、怎么流转；谁能看、谁能改；数据从哪里来、保留多久、能不能删除和导出。
-5. **第 4 轮 边界和异常**：同时操作、重复提交、失败重试、网络断开、空数据、超大数据、恶意使用时分别应该怎样。
-6. **第 5 轮 规模和约束**：用户数、数据量、请求高峰、响应时间、可用性要求、部署环境、预算、合规、上线时间、谁来维护。这一轮的答案直接决定 /architect 的架构，一定要问出数字的量级，例如"100 人以内 / 1 万人 / 100 万人"。
-7. **第 6 轮 范围和优先级**：第一版（MVP）做什么、以后做什么、明确不做什么。
-8. 接"漏洞总检"。
+1. **Hear the idea**: use what the user already said, or ask them to describe it in their own words. Restate in one paragraph what problem it solves, for whom and roughly how, and have the user confirm you understood.
+2. **Round 1 — goals and users**: who will use it (there can be several roles); how they solve the problem today; why something new is needed; what success looks like, in measurable terms.
+3. **Round 2 — feature list and core scenarios**: list every feature you infer, by role, one sentence each, let the user pick what the first version must have (multi-select) and add what is missing. The list must be complete: /design designs screens and interfaces from it. Then walk through the most important flow: where it starts, the steps, what comes out at the end.
+4. **Round 3 — business rules and data**: the key business objects; their states and transitions; who can see and change what; where data comes from, how long it is kept, whether it can be deleted and exported.
+5. **Round 4 — edge cases and failures**: concurrent edits, duplicate submissions, retries after failure, lost network, empty data, huge data, malicious use.
+6. **Round 5 — scale and constraints**: number of users, data volume, peak load, response time, availability, deployment environment, budget, compliance, launch date, who maintains it. These answers drive the /architect decisions, so get orders of magnitude, e.g. "under 100 / 10,000 / 1 million users".
+7. **Round 6 — scope and priorities**: what the first version (MVP) does, what comes later, what is explicitly out.
+8. Go to "Final hole check".
 
-## 已有代码（改进、扩展或现代化）
+## Existing code (improve, extend or modernize)
 
-/onboard 已经写出了现状：`docs/architecture/overview.md`（现状架构）、`docs/product/requirements.md`（从代码推断出来的已有功能，状态为"已实现"）、`docs/architecture/tech-debt.md`（技术债和质量基线）。在这个基础上问：
+/onboard has documented the current state: `docs/architecture/overview.md` (current architecture), `docs/product/requirements.md` (existing features inferred from code, status "Implemented") and `docs/architecture/tech-debt.md` (tech debt and quality baseline). Build on that and ask:
 
-1. **第 1 轮 为什么要动**：现在最痛的是什么（难改、慢、不稳定、技术过时没人维护、安全和合规、成本、加不了新功能）；不动会怎样；有没有截止时间（例如框架停止维护的日期）。
-2. **第 2 轮 目标**：动完以后要达到什么，要能衡量（例如"新功能从两周缩短到三天""P95 响应时间从 3 秒降到 500 毫秒"）；目标用户和使用方式变不变。
-3. **第 3 轮 保留什么**：/onboard 推断出的已有功能里，哪些必须原样保留、哪些可以改、哪些不要了（多选）；数据要不要原样迁移；对外的接口和地址能不能变。
-4. **第 4 轮 怎么过渡**：能接受停机多久；能不能新旧系统并行一段时间；有没有不能出错的业务（例如付款）；一次切换还是逐步替换（详细方案由 /architect 设计，这里先问用户的约束和风险承受度）。
-5. **第 5 轮 规模和约束**：同"点子"的第 5 轮，但先拿现状的数字（用户数、数据量、现有部署）请用户确认，再问以后的预期。
-6. 接"漏洞总检"。写需求时，保留的已有功能状态为"已实现"，要改的写清楚改成什么，不要了的标为"已废弃"，新功能状态为"有效"。
+1. **Round 1 — why change**: what hurts most (hard to change, slow, unstable, outdated and unmaintained technology, security and compliance, cost, cannot add features); what happens if nothing changes; any deadline (e.g. a framework's end of life).
+2. **Round 2 — goals**: what must be true afterwards, measurably (e.g. "a new feature takes three days instead of two weeks", "P95 response time drops from 3 s to 500 ms"); whether the target users and usage change.
+3. **Round 3 — what to keep**: of the features /onboard inferred, which must stay exactly as they are, which can change, which go away (multi-select); whether data is migrated as is; whether external interfaces and URLs may change.
+4. **Round 4 — transition**: acceptable downtime; whether old and new can run side by side for a while; business that must not break (e.g. payments); one cutover or gradual replacement (/architect designs the details; here ask for the user's constraints and risk tolerance).
+5. **Round 5 — scale and constraints**: as Round 5 of "Idea", but first confirm the current numbers (users, data volume, current deployment) with the user, then ask about expectations.
+6. Go to "Final hole check". When writing requirements, kept features stay "Implemented", changed ones say exactly what they change into, dropped ones become "Deprecated", new features are "Active".
 
-## 文档
+## Document
 
-1. 读完全部文档，提取出：目标、用户、功能、业务规则、约束、范围。每一条记下出处（文档名和位置）。文档里已经有画面、字段、表结构这类设计细节的，一并记下出处，交给 /design 使用。
-2. 用一段话复述文档想要什么，请用户确认这份文档还算数（文档常常过时，或者只代表一方的意见）。
-3. 对照 `references/requirement-holes.md` 找出文档没写到、写得模糊或前后矛盾的地方。
-4. 只针对这些缺口提问，按主题分轮，每轮 2 到 4 题。文档已经写清楚的不再问。
-5. 接"漏洞总检"。需求条目的来源写成文档出处。
+1. Read every document and extract goals, users, features, business rules, constraints and scope, noting where each item came from (document and location). Design details already in the documents (screens, fields, table structures) are noted with their source too and handed to /design.
+2. Restate in one paragraph what the documents want and ask the user whether they still hold (documents are often outdated or represent only one side).
+3. Check against `references/requirement-holes.md` for what is missing, vague or contradictory.
+4. Ask only about those gaps, one topic per round, 2 to 4 questions each. Do not ask about what the documents already make clear.
+5. Go to "Final hole check". Requirement sources are the document locations.
 
-## 问题
+## Problem
 
-1. **弄清现象**：什么时候开始的、多频繁、影响谁、影响多大（例如"每天下午 3 点到 5 点页面要等 10 秒""每周有 5 个用户投诉付款失败"）。有日志、监控、截图、复现步骤的，请用户提供，或者在代码和日志里找。
-2. **找根因**：先查证据，再提出几个可能的原因，用 AskUserQuestion 请用户补充信息、排除可能。能复现的先复现。
-3. **定性**：
-   - 是一个 bug，或者已有需求没被满足：项目已有需求文档时，交给 /change 按 L0（修 bug）处理；没有时，补齐这一条需求后按 bug 处理。
-   - 是需求本身不够（例如规模涨了、使用方式变了）：按"已有代码"或"点子"的流程，把它当作一个新目标来挖掘。
-4. 接"漏洞总检"。
+1. **Understand the symptom**: since when, how often, who is affected and how badly (e.g. "pages take 10 seconds every day between 3 and 5 pm", "5 users a week complain that payment fails"). Ask for logs, monitoring, screenshots and steps to reproduce, or look for them in the code and logs.
+2. **Find the root cause**: gather evidence first, then propose a few possible causes and use AskUserQuestion to get more information and rule causes out. Reproduce it when you can.
+3. **Classify**:
+   - A bug, or an existing requirement not met: when the project has requirement documents, hand it to /change as L0 (bug fix); when it does not, add this one requirement and treat it as a bug.
+   - The requirements themselves are not enough (e.g. scale grew, usage changed): treat it as a new goal and follow "Existing code" or "Idea".
+4. Go to "Final hole check".
 
-## 漏洞总检
+## Final hole check
 
-对照 `references/requirement-holes.md` 把全部内容过一遍，列出发现的问题：前后矛盾、遗漏的角色或流程、功能一览里缺的功能、无法衡量的目标、和规模不匹配的期望、过大的范围、和现状冲突的需求。每条附上建议。需要用户决定的，用 AskUserQuestion 让他选。
+Go through everything against `references/requirement-holes.md` and list the problems: contradictions, missing roles or flows, features missing from the feature list, goals that cannot be measured, expectations that do not match the scale, scope that is too large, requirements that conflict with the current system. Give a suggestion for each. Let the user choose with AskUserQuestion where a decision is needed.
 
-## 写文档
+## Write the documents
 
-按本技能 `templates/` 里的模板写：
+Write them from this skill's `templates/`, in the project's document language: the `Language` line in the project's CLAUDE.md when there is one, otherwise the language the user talks to you in. Keep the IDs and the template structure.
 
-| 文件 | 内容 |
+| File | Content |
 |---|---|
-| `docs/README.md` | 文档索引（文件不存在时才写） |
-| `docs/product/vision.md` | 一句话定位、目标用户、成功标准、范围、约束、假设；已有代码时还要写"现状"和"为什么要变" |
-| `docs/product/requirements.md` | 需求条目，编号从 REQ-001 开始（已有编号时接着往下排），每个功能至少一条，每条有用户故事和验收标准（Given/When/Then），标注优先级、状态和来源 |
-| `docs/product/glossary.md` | 业务术语，统一叫法 |
-| `docs/product/open-questions.md` | 未决问题，写明影响哪些需求、最晚什么时候必须定；需要 /spike 验证的标出来 |
+| `docs/README.md` | Documentation index (only when the file does not exist) |
+| `docs/product/vision.md` | One-line positioning, target users, success criteria, scope, constraints, assumptions; for existing code also "Current state" and "Why change" |
+| `docs/product/requirements.md` | Requirements numbered from REQ-001 (continue existing numbering), at least one per feature, each with a user story and acceptance criteria (Given/When/Then), priority, status and source |
+| `docs/product/glossary.md` | Business terms and the one name to use for each |
+| `docs/product/open-questions.md` | Open questions with the requirements they affect and the latest date they must be settled; mark those that need /spike |
 
-## 确认并提交
+## Confirm and commit
 
-把文档要点总结给用户（不要整篇贴出来），问有没有要改的。改完后提交，提交信息 `docs(product): <内容>`。仓库还没有分支保护时直接提交；已经有保护时，新建 `docs/` 分支并用 /open-pr。
+Summarize the key points for the user (do not paste whole documents) and ask what should change. After changes, commit with `docs(product): <content>`. Commit directly when the repository has no branch protection yet; otherwise create a `docs/` branch and use /open-pr.
 
-## 下一步
+## Next step
 
-告诉用户：接下来运行 /architect 定技术和架构，然后运行 /design，把每个画面、字段、数据和接口逐个确认下来。已有代码的项目，/architect 会设计目标架构和迁移步骤；有需要先验证的问题时，建议先运行 /spike。
+Tell the user to run /architect next to settle technology and architecture, then /design to confirm every screen, field, data structure and interface. For existing code, /architect designs the target architecture and the migration steps; when something needs verifying first, suggest /spike.

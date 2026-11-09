@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Spring Boot 冒烟测试：按 stacks/spring-boot/stack.md 建项目、装规范（BUILD_TOOL=maven 或 gradle），
-# 跑完整构建，再确认 ArchUnit、Checkstyle 会拦下违规。
-# Java 版本跟着本机装的 JDK 走；每周体检装的是当前的 LTS（见 .github/workflows/self-test.yml）。
-# 文件路径一律通过命令行参数交给 node：Windows 的 Git Bash 只会转换参数里的路径，不会转换写在代码字符串里的路径。
+# Spring Boot smoke test: creates a project following stacks/spring-boot/stack.md, installs the standards (BUILD_TOOL=maven or gradle),
+# runs the full build, then confirms ArchUnit and Checkstyle catch violations.
+# The Java version follows the local JDK; the weekly self-test installs the current LTS (see .github/workflows/self-test.yml).
+# File paths always reach node as command-line arguments: Git Bash on Windows converts paths in arguments, not inside code strings.
 source "$(dirname "$0")/lib.sh"
 F="$STACKS/spring-boot/files"
 BUILD_TOOL=${BUILD_TOOL:-maven}
@@ -10,10 +10,10 @@ BUILD_TOOL=${BUILD_TOOL:-maven}
 case "$BUILD_TOOL" in
   maven) TYPE=maven-project ;;
   gradle) TYPE=gradle-project-kotlin ;;
-  *) die "BUILD_TOOL 只能是 maven 或 gradle" ;;
+  *) die "BUILD_TOOL must be maven or gradle" ;;
 esac
 
-step "创建项目（$BUILD_TOOL）"
+step "Create the project ($BUILD_TOOL)"
 JAVA=$(java_major)
 echo "Java $JAVA"
 cd "$WORK"
@@ -24,12 +24,12 @@ mkdir -p app && unzip -q demo.zip -d app && rm demo.zip
 cd app
 chmod +x mvnw gradlew 2>/dev/null || true
 
-step "查最新版本"
+step "Look up the latest versions"
 ARCHUNIT=$(latest_maven com.tngtech.archunit archunit-junit5)
 CHECKSTYLE=$(latest_maven com.puppycrawl.tools checkstyle)
 echo "archunit $ARCHUNIT, checkstyle $CHECKSTYLE"
 
-step "装规范"
+step "Install the standards"
 if [ "$BUILD_TOOL" = maven ]; then
   SPOTLESS=$(latest_maven com.diffplug.spotless spotless-maven-plugin)
   CHECKSTYLE_PLUGIN=$(latest_maven org.apache.maven.plugins maven-checkstyle-plugin)
@@ -40,7 +40,7 @@ const [snippetPath, spotless, checkstylePlugin, checkstyle, pmdPlugin, archunit]
 const versions = { 'spotless-maven-plugin': spotless, 'maven-checkstyle-plugin': checkstylePlugin, checkstyle, 'maven-pmd-plugin': pmdPlugin };
 let plugins = fs.readFileSync(snippetPath, 'utf8').replace(/<!--[\s\S]*?-->/, '');
 plugins = plugins.replace(
-  /<artifactId>([^<]+)<\/artifactId>(\s*)<version>\{\{版本\}\}<\/version>/g,
+  /<artifactId>([^<]+)<\/artifactId>(\s*)<version>\{\{version\}\}<\/version>/g,
   (m, artifact, space) => `<artifactId>${artifact}</artifactId>${space}<version>${versions[artifact]}</version>`,
 );
 const dependency = `  <dependency>
@@ -64,7 +64,7 @@ const fs = require('fs');
 const [snippetPath, ...versions] = process.argv.slice(2);
 let snippet = fs.readFileSync(snippetPath, 'utf8').replace(/^\/\/.*\n/gm, '');
 let i = 0;
-snippet = snippet.replace(/\{\{版本\}\}/g, () => versions[i++]);
+snippet = snippet.replace(/\{\{version\}\}/g, () => versions[i++]);
 const take = (name) => {
   const match = snippet.match(new RegExp(`${name} \\{\\n([\\s\\S]*?)\\n\\}\\n`));
   snippet = snippet.replace(match[0], '');
@@ -83,15 +83,15 @@ fi
 cp "$F/checkstyle.xml" "$F/pmd-ruleset.xml" .
 mkdir -p src/test/resources
 cp "$F/archunit.properties" src/test/resources/
-sed 's/{{根包名}}/com.example.demo/g' "$F/ArchitectureTest.java" > src/test/java/com/example/demo/ArchitectureTest.java
+sed 's/{{root package}}/com.example.demo/g' "$F/ArchitectureTest.java" > src/test/java/com/example/demo/ArchitectureTest.java
 node - src/test/java/com/example/demo/DemoApplicationTests.java <<'EOF'
 const fs = require('fs');
 const file = process.argv[2];
 const source = fs.readFileSync(file, 'utf8');
-fs.writeFileSync(file, source.replace(/void contextLoads\(\) \{\s*\}/, 'void contextLoads() {\n    // 只验证 Spring 上下文能正常启动。\n  }'));
+fs.writeFileSync(file, source.replace(/void contextLoads\(\) \{\s*\}/, 'void contextLoads() {\n    // Only verifies that the Spring context starts.\n  }'));
 EOF
 
-step "按分层写示例代码"
+step "Layered sample code"
 M=src/main/java/com/example/demo/order
 mkdir -p $M/controller $M/service $M/repository $M/domain
 cat > $M/domain/Order.java <<'EOF'
@@ -158,11 +158,11 @@ public class OrderController {
 }
 EOF
 
-step "格式化和完整构建（格式、Checkstyle、PMD、测试、架构测试）"
+step "Format and full build (format, Checkstyle, PMD, tests, architecture tests)"
 "${FORMAT[@]}"
-should_pass "完整构建" "${BUILD[@]}"
+should_pass "full build" "${BUILD[@]}"
 
-step "违规会被拦下"
+step "Violations are caught"
 CONTROLLER=$M/controller/OrderController.java
 cp $CONTROLLER "$WORK/OrderController.java.bak"
 cat > $CONTROLLER <<'EOF'
@@ -186,7 +186,7 @@ public class OrderController {
   }
 }
 EOF
-should_fail "controller 跳过 service 直接访问 repository" "${TEST[@]}"
+should_fail "controller skips the service to reach the repository" "${TEST[@]}"
 cp "$WORK/OrderController.java.bak" $CONTROLLER
 cat > $M/service/Bad.java <<'EOF'
 package com.example.demo.order.service;
@@ -200,8 +200,8 @@ public class Bad {
   }
 }
 EOF
-should_fail "Checkstyle 和 PMD 拦下坏写法" "${BUILD[@]}"
+should_fail "Checkstyle and PMD catch bad code" "${BUILD[@]}"
 rm $M/service/Bad.java
 
 echo
-echo "Spring Boot（$BUILD_TOOL，Java $JAVA）冒烟测试通过"
+echo "Spring Boot ($BUILD_TOOL, Java $JAVA) smoke test passed"

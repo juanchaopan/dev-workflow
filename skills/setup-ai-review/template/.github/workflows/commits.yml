@@ -1,7 +1,7 @@
 name: commits
 
-# 检查 PR 里每个提交的提交信息是否符合 Conventional Commits，规则和本地的 .githooks/commit-msg 相同。
-# 分支规则按 job 名 "commit-lint" 把它设为合并前必须通过。
+# Checks that every commit message in the PR follows Conventional Commits, with the same rules as the local .githooks/commit-msg.
+# Branch rules require the job named "commit-lint" before merging.
 
 on:
   pull_request:

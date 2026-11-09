@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# React 冒烟测试：按 stacks/react-ts/stack.md 建项目、装规范，跑自检命令，再确认架构检查和复杂度上限会拦下违规。
-# TypeScript 用模板装的最新版；架构检查用 SWC 解析，不受 TypeScript 版本限制。
+# React smoke test: creates a project following stacks/react-ts/stack.md, installs the standards, runs the self-check commands,
+# then confirms the architecture check and complexity limits catch violations.
+# TypeScript is the latest release the template installs; the architecture check parses with SWC and is not limited by it.
 source "$(dirname "$0")/lib.sh"
 F="$STACKS/react-ts/files"
 
-step "创建项目"
+step "Create the project"
 cd "$WORK"
 npm create vite@latest app -- --template react-ts --no-interactive
 cd app
@@ -12,7 +13,7 @@ npm install
 TS_VERSION=$(npx tsc --version)
 echo "$TS_VERSION"
 
-step "装规范"
+step "Install the standards"
 npm install -D "@types/node@^$(node_major)" dependency-cruiser @swc/core prettier vitest jsdom \
   @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event
 node -e "
@@ -27,7 +28,7 @@ if (fs.existsSync('.oxlintrc.json')) {
   c.ignorePatterns = ['**/*.test.ts', '**/*.test.tsx', '**/*.stories.tsx', '.dependency-cruiser.cjs'];
   fs.writeFileSync('.oxlintrc.json', JSON.stringify(c, null, 2));
 } else {
-  throw new Error('模板没有 .oxlintrc.json：按 stack.md 用 ESLint 的写法补上复杂度规则后再更新这个测试');
+  throw new Error('The template has no .oxlintrc.json: add the complexity rules the ESLint way described in stack.md, then update this test');
 }"
 cp "$F/.dependency-cruiser.cjs" "$F/.prettierrc.json" "$F/.prettierignore" .
 mkdir -p scripts src/test && cp "$SHARED/arch-check.mjs" scripts/ && cp "$F/src/test/setup.ts" src/test/
@@ -52,7 +53,7 @@ EOF
 npm pkg set scripts.arch="node scripts/arch-check.mjs" scripts.test="vitest run" scripts.typecheck="tsc -b" \
   scripts.format="prettier --write ." scripts.format:check="prettier --check ."
 
-step "应用外壳、分层目录和示例代码"
+step "Application shell, layered directories and sample code"
 mkdir -p src/shared/ui src/shared/lib src/features/orders/pages src/features/orders/components src/features/orders/data-access
 cat > src/App.tsx <<'EOF'
 import { OrdersPage } from './features/orders/pages/OrdersPage';
@@ -60,7 +61,7 @@ import { OrdersPage } from './features/orders/pages/OrdersPage';
 export default function App() {
   return (
     <main>
-      <h1>订单</h1>
+      <h1>Orders</h1>
       <OrdersPage />
     </main>
   );
@@ -111,7 +112,7 @@ import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 describe('App', () => {
-  it('显示页面标题', () => {
+  it('shows the page title', () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('[]'))));
     render(<App />);
     expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
@@ -120,23 +121,23 @@ describe('App', () => {
 EOF
 npm run format
 
-step "自检命令"
-should_pass "格式检查" npm run format:check
+step "Self-check commands"
+should_pass "format check" npm run format:check
 should_pass "lint" npm run lint
-should_pass "架构检查（展示组件只引用 data-access 的类型，允许）" npm run arch
-should_pass "类型检查" npm run typecheck
-should_pass "测试" npm test
-should_pass "构建" npm run build
+should_pass "architecture check (a presentational component may import data-access types)" npm run arch
+should_pass "type check" npm run typecheck
+should_pass "tests" npm test
+should_pass "build" npm run build
 
-step "违规会被拦下"
+step "Violations are caught"
 COMPONENT=src/features/orders/components/OrderList.tsx
 cp $COMPONENT "$WORK/OrderList.tsx.bak"
 printf "import { listOrders } from '../data-access/orders-api';\nexport const load = listOrders;\n" >> $COMPONENT
-should_fail "展示组件在运行时调用 data-access" npm run arch
+should_fail "presentational component calls data-access at runtime" npm run arch
 cp "$WORK/OrderList.tsx.bak" $COMPONENT
 node -e "let b='export function f(x: number): number {\n  let r = 0;\n';for(let i=0;i<12;i++)b+='  if (x === '+i+') {\n    r += '+i+';\n  }\n';b+='  return r;\n}\n';require('fs').writeFileSync('src/shared/lib/complex.ts',b);"
-should_fail "函数复杂度超标" npx oxlint src/shared/lib/complex.ts
+should_fail "function too complex" npx oxlint src/shared/lib/complex.ts
 rm src/shared/lib/complex.ts
 
 echo
-echo "React 冒烟测试通过（$TS_VERSION）"
+echo "React smoke test passed ($TS_VERSION)"

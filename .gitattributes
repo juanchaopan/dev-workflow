@@ -1,4 +1,4 @@
-# 统一用 LF 换行，Windows 脚本例外。
+# LF line endings everywhere except Windows scripts.
 * text=auto eol=lf
 
 *.cmd text eol=crlf

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// 把画面原型（HTML）截成 PNG，给用户确认画面用。每个 HTML 截一张同名的 PNG，放在它旁边。
-// 用法：node render-screens.mjs [--open] <HTML 文件或目录>...
-//   --open  截完用系统的看图程序打开每张图。
-// 截图尺寸写在原型里：<meta name="screenshot-size" content="1280x800">，没写时用 1280x800。
-// 宽度固定，高度是最小高度：内容更长时截整页。
-// 截图用 Playwright 的命令行和它自带的 Chromium（免费、开源），第一次运行时自动下载。
+// Renders screen prototypes (HTML) to PNG so the user can confirm them. Each HTML file gets a PNG of the same name next to it.
+// Usage: node render-screens.mjs [--open] <HTML file or directory>...
+//   --open  open each image in the system image viewer afterwards.
+// The screenshot size is set in the prototype: <meta name="screenshot-size" content="1280x800">; 1280x800 when missing.
+// The width is fixed and the height is a minimum: taller content is captured as a full page.
+// Rendering uses the Playwright command line and its bundled Chromium (free, open source), downloaded on first run.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, relative, resolve } from 'node:path';
@@ -48,7 +48,7 @@ function screenshot(file) {
   const { width, height } = sizeOf(readFileSync(file, 'utf8'));
   const png = pngPathFor(file);
   const result = npx(['screenshot', `--viewport-size=${width},${height}`, '--full-page', pathToFileURL(file).href, png]);
-  if (result.status !== 0) throw new Error(`截图失败：${file}\n${result.stdout}${result.stderr}`);
+  if (result.status !== 0) throw new Error(`Rendering failed: ${file}\n${result.stdout}${result.stderr}`);
   return png;
 }
 
@@ -56,12 +56,12 @@ function main(argv) {
   const open = argv.includes('--open');
   const files = collectHtml(argv.filter((arg) => arg !== '--open'));
   if (files.length === 0) {
-    console.error('用法：node render-screens.mjs [--open] <HTML 文件或目录>...');
+    console.error('Usage: node render-screens.mjs [--open] <HTML file or directory>...');
     return 1;
   }
   const install = npx(['install', 'chromium']);
   if (install.status !== 0) {
-    console.error(`安装 Chromium 失败：\n${install.stdout}${install.stderr}`);
+    console.error(`Installing Chromium failed:\n${install.stdout}${install.stderr}`);
     return 1;
   }
   const rendered = files.map(screenshot);

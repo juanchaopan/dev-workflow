@@ -1,61 +1,61 @@
-# SCR-{{001}} {{画面名称}}
+# SCR-{{001}} {{screen name}}
 
-- 状态：{{进行中 / AI 设计，待确认 / 已确认（YYYY-MM-DD） / 已实现，从代码整理 / 已废弃}}
-- 对应需求：{{REQ-xxx}}
-- 原型和截图（同名的 `.html` 和 `.png`）：
-  - `SCR-{{001}}-{{name}}`：正常
-  - `SCR-{{001}}-{{name}}--error`：校验出错
-  - `SCR-{{001}}-{{name}}--{{状态}}`：{{其他状态}}
+- Status: {{In progress / AI draft, awaiting confirmation / Confirmed (YYYY-MM-DD) / Implemented, documented from code / Deprecated}}
+- Requirements: {{REQ-xxx}}
+- Prototypes and screenshots (`.html` and `.png` of the same name):
+  - `SCR-{{001}}-{{name}}`: normal
+  - `SCR-{{001}}-{{name}}--error`: validation errors
+  - `SCR-{{001}}-{{name}}--{{state}}`: {{other state}}
 
-## 目的
+## Purpose
 
-{{谁、在什么时候用这个画面、完成什么事。}}
+{{Who uses this screen, when, and to get what done.}}
 
-## 入口和去向
+## Entry and exits
 
-- 从哪里来：{{SCR-xxx 的哪个按钮或菜单；直接访问的地址}}
-- 到哪里去：{{操作成功、取消、出错以后分别去哪个画面}}
-- 地址：{{例如 /orders/:id；没有路由时写"无"}}
+- Comes from: {{which button or menu on SCR-xxx; direct URL}}
+- Goes to: {{which screen after success, cancel and error}}
+- URL: {{e.g. /orders/:id; "None" without routing}}
 
-## 布局
+## Layout
 
-{{按区域写：从上到下、从左到右各放什么。截图能看出来的不用重复，只写截图看不出来的：哪些区域固定、哪些随内容滚动，窗口变窄时怎么重新排列，哪些区域只有特定角色能看到。}}
+{{By area: what goes where, top to bottom and left to right. Skip what the screenshots already show; write only what they cannot: which areas are fixed and which scroll, how it rearranges in narrow windows, which areas only some roles see.}}
 
-## 项目定义
+## Field definitions
 
-| 编号 | 项目 | 种类 | 类型 | 必填 | 长度或范围 | 默认值 | 校验规则 | 错误提示 | 数据来源 |
+| # | Field | Kind | Type | Required | Length or range | Default | Validation | Error message | Data source |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | {{客户名称}} | {{输入}} | {{文本}} | {{是}} | {{1 到 100 个字符}} | {{空}} | {{去掉首尾空格后不能为空}} | {{请输入客户名称}} | {{ENT-002.customer_name}} |
-| 2 | {{金额（元）}} | {{输入}} | {{金额}} | {{是}} | {{0.01 到 9,999,999.99}} | {{空}} | {{大于 0，最多两位小数}} | {{金额要大于 0 / 最多两位小数}} | {{ENT-002.amount}} |
-| 3 | {{状态}} | {{显示}} | {{文本}} | — | — | — | — | — | {{API-003 响应的 status，显示名称见 LGC-001}} |
-| 4 | {{保存}} | {{按钮}} | — | — | — | — | — | — | {{见"操作和事件"}} |
+| 1 | {{Customer name}} | {{input}} | {{text}} | {{yes}} | {{1 to 100 characters}} | {{empty}} | {{not blank after trimming}} | {{Enter the customer name}} | {{ENT-002.customer_name}} |
+| 2 | {{Amount}} | {{input}} | {{amount}} | {{yes}} | {{0.01 to 9,999,999.99}} | {{empty}} | {{greater than 0, at most two decimals}} | {{The amount must be greater than 0 / At most two decimals}} | {{ENT-002.amount}} |
+| 3 | {{Status}} | {{display}} | {{text}} | — | — | — | — | — | {{status in the API-003 response; display names in LGC-001}} |
+| 4 | {{Save}} | {{button}} | — | — | — | — | — | — | {{see "Actions and events"}} |
 
-- 种类：输入、显示、按钮、链接。
-- 类型：文本、多行文本、数字、金额、日期、时间、单选、多选、下拉、开关、文件、图片等。
-- 下拉、单选、多选：写出全部选项和默认选中项，或者选项从哪里来（例如"API-005 返回的仓库列表，按名称排序"）。
-- 有多个校验规则时，写清检查的先后顺序，以及同时不满足时显示哪一条提示。
+- Kind: input, display, button, link.
+- Type: text, multi-line text, number, amount, date, time, radio, checkbox, drop-down, switch, file, image, etc.
+- Drop-downs, radio buttons and checkboxes: list every option and the default, or where the options come from (e.g. "warehouses returned by API-005, sorted by name").
+- With several validation rules, give the order they are checked in and which message shows when several fail.
 
-## 操作和事件
+## Actions and events
 
-| 操作 | 前提 | 处理 | 成功后 | 失败后 |
+| Action | Precondition | Processing | On success | On failure |
 |---|---|---|---|---|
-| {{点"保存"}} | {{全部输入项校验通过；保存过程中按钮不可再点}} | {{调用 API-002}} | {{提示"订单已保存"，回到 SCR-001}} | {{在表单上方显示错误；已输入的内容保留}} |
-| {{点"取消"}} | {{有没保存的修改}} | {{弹出确认"放弃修改吗？"}} | {{回到 SCR-001}} | — |
+| {{Click "Save"}} | {{all inputs valid; the button cannot be clicked again while saving}} | {{call API-002}} | {{show "Order saved", back to SCR-001}} | {{show the error above the form; keep the input}} |
+| {{Click "Cancel"}} | {{there are unsaved changes}} | {{ask "Discard changes?"}} | {{back to SCR-001}} | — |
 
-## 状态
+## States
 
-| 状态 | 什么时候出现 | 显示什么 | 原型 |
+| State | When it appears | What is shown | Prototype |
 |---|---|---|---|
-| 正常 | {{}} | {{}} | `SCR-{{001}}-{{name}}.html` |
-| 校验出错 | {{提交时有项目不满足规则}} | {{出错的项目标红并在下方显示提示，表单上方显示"有 N 处需要修改"}} | `SCR-{{001}}-{{name}}--error.html` |
-| {{空数据 / 加载中 / 没有权限 / 保存失败}} | {{}} | {{}} | {{}} |
+| Normal | {{}} | {{}} | `SCR-{{001}}-{{name}}.html` |
+| Validation errors | {{some field fails its rules on submit}} | {{invalid fields in red with the message below, "N fields need attention" above the form}} | `SCR-{{001}}-{{name}}--error.html` |
+| {{Empty / Loading / No permission / Save failed}} | {{}} | {{}} | {{}} |
 
-## 权限差异
+## Permission differences
 
-{{不同角色看到的内容、能做的操作有什么不同；没有差异写"无"。}}
+{{What different roles see and can do differently; "None" when there is no difference.}}
 
-## 用户确认记录
+## User confirmation log
 
-| 日期 | 用户的意见或问题 | 处理 |
+| Date | User comment or question | Handling |
 |---|---|---|
-| {{YYYY-MM-DD}} | {{例如"保存按钮放到右下角"}} | {{已改，重新截图}} |
+| {{YYYY-MM-DD}} | {{e.g. "Move the save button to the bottom right"}} | {{changed and rendered again}} |

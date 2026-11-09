@@ -1,101 +1,101 @@
-# 架构总览
+# Architecture overview
 
-相关决策见 `docs/adr/`。本文和 ADR 冲突时，以状态为"已接受"的最新 ADR 为准，并尽快修正本文。
+Related decisions are in `docs/adr/`. When this document conflicts with an ADR, the latest ADR with the status "Accepted" wins, and this document is corrected promptly.
 
-## 架构指标
+## Architecture metrics
 
-| 指标 | 目标 | 依据 |
+| Metric | Target | Basis |
 |---|---|---|
-| {{例如：并发用户}} | {{例如：200}} | {{REQ-xxx 或 vision.md 约束}} |
+| {{e.g. concurrent users}} | {{e.g. 200}} | {{REQ-xxx or a constraint in vision.md}} |
 
-## 架构风格
+## Architecture style
 
-{{选定的风格，一两句话说明理由。详见 ADR-0001。}}
+{{The chosen style and a sentence or two on why. See ADR-0001.}}
 
-## 系统上下文
+## System context
 
 ```mermaid
 flowchart LR
-  user([{{用户角色}}]) --> system[{{系统名称}}]
-  system --> ext[{{外部系统}}]
+  user([{{user role}}]) --> system[{{system name}}]
+  system --> ext[{{external system}}]
 ```
 
-## 分层
+## Layers
 
-| 层 | 职责 | 可以依赖 |
+| Layer | Responsibility | May depend on |
 |---|---|---|
-| {{层名}} | {{职责}} | {{允许依赖的层}} |
+| {{layer}} | {{responsibility}} | {{allowed layers}} |
 
-## 组件
+## Components
 
 ```mermaid
 flowchart LR
-  web[{{前端}}] -->|HTTPS| api[{{后端服务}}]
-  api --> db[({{数据库}})]
-  api -->|事件| queue[[{{消息队列}}]]
-  queue --> worker[{{后台任务}}]
+  web[{{frontend}}] -->|HTTPS| api[{{backend service}}]
+  api --> db[({{database}})]
+  api -->|events| queue[[{{message queue}}]]
+  queue --> worker[{{background worker}}]
 ```
 
-| 组件 | 目录 | 技术栈 | 职责 | 拥有的数据 | 对外接口 | 依赖 |
+| Component | Directory | Stack | Responsibility | Owned data | External interface | Depends on |
 |---|---|---|---|---|---|---|
-| {{组件}} | `apps/{{组件}}` | {{技术栈}} | {{职责}} | {{数据}} | {{接口}} | {{依赖}} |
+| {{component}} | `apps/{{component}}` | {{stack}} | {{responsibility}} | {{data}} | {{interface}} | {{dependencies}} |
 
-## 关键场景
+## Key scenarios
 
-### {{场景名称}}（REQ-xxx）
+### {{scenario}} (REQ-xxx)
 
 ```mermaid
 sequenceDiagram
-  actor U as {{用户}}
-  participant W as {{前端}}
-  participant A as {{后端}}
-  U->>W: {{操作}}
-  W->>A: {{请求}}
-  A-->>W: {{响应}}
+  actor U as {{user}}
+  participant W as {{frontend}}
+  participant A as {{backend}}
+  U->>W: {{action}}
+  W->>A: {{request}}
+  A-->>W: {{response}}
 ```
 
-## 部署
+## Deployment
 
 ```mermaid
 flowchart TB
-  lb[负载均衡] --> api1[{{服务}} 实例 1]
-  lb --> api2[{{服务}} 实例 2]
-  api1 --> db[({{数据库}}，主备)]
+  lb[Load balancer] --> api1[{{service}} instance 1]
+  lb --> api2[{{service}} instance 2]
+  api1 --> db[({{database}}, primary and standby)]
   api2 --> db
 ```
 
-| 组件 | 环境 | 实例数 | 有无状态 | 扩容方式 | 健康检查 |
+| Component | Environment | Instances | Stateful | Scaling | Health check |
 |---|---|---|---|---|---|
-| {{组件}} | {{生产}} | {{2}} | {{无状态}} | {{按 CPU 水平扩容}} | {{/health}} |
+| {{component}} | {{production}} | {{2}} | {{stateless}} | {{horizontal, by CPU}} | {{/health}} |
 
-本地开发：`infra/docker-compose.yml` 启动全部组件和依赖。
+Local development: `infra/docker-compose.yml` starts every component and dependency.
 
-## 数据
+## Data
 
-| 数据 | 主人 | 存储 | 一致性 | 备份 |
+| Data | Owner | Storage | Consistency | Backup |
 |---|---|---|---|---|
-| {{数据}} | {{组件}} | {{存储}} | {{强一致 / 最终一致}} | {{方式和频率}} |
+| {{data}} | {{component}} | {{storage}} | {{strong / eventual}} | {{method and frequency}} |
 
-数据库结构变更方式：{{例如：Flyway 迁移脚本，先加后删，不停机}}
+Schema changes: {{e.g. Flyway migration scripts, add before drop, no downtime}}
 
-## 横切关注点
+## Cross-cutting concerns
 
-| 方面 | 做法 |
+| Concern | Approach |
 |---|---|
-| 认证授权 | {{做法}} |
-| 配置和密钥 | {{做法}} |
-| 日志、指标、追踪 | {{做法}} |
-| 错误处理 | {{做法}} |
-| 限流和幂等 | {{做法}} |
-| API 版本 | {{做法}} |
-| 功能开关 | {{做法}} |
+| Authentication and authorization | {{approach}} |
+| Configuration and secrets | {{approach}} |
+| Logs, metrics, tracing | {{approach}} |
+| Error handling | {{approach}} |
+| Rate limiting and idempotency | {{approach}} |
+| API versioning | {{approach}} |
+| Feature flags | {{approach}} |
 
-## 故障场景
+## Failure scenarios
 
-| 故障 | 用户看到什么 | 系统怎么处理 | 怎么恢复 |
+| Failure | What the user sees | How the system responds | Recovery |
 |---|---|---|---|
-| {{组件或依赖}}挂了 | {{现象}} | {{降级或重试}} | {{恢复方式}} |
+| {{component or dependency}} is down | {{symptom}} | {{degradation or retry}} | {{recovery}} |
 
-## 演进
+## Evolution
 
-- {{现在不做但已预留的扩展点，以及触发条件，例如：日活超过 1 万时把 worker 拆成独立服务}}
+- {{extension points not built now but left room for, and their triggers, e.g. split the worker into its own service above 10,000 daily active users}}

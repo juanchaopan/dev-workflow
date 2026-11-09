@@ -1,77 +1,77 @@
 ---
 paths:
-  - "{{组件目录}}/**"
+  - "{{component directory}}/**"
 ---
 
-# Angular 规范：{{组件名}}
+# Angular standards: {{component name}}
 
-来源：Angular 官方风格指南（https://angular.dev/style-guide），以及社区通行的容器组件和展示组件（Container / Presentational，也叫 Smart / Dumb）分层。格式和能自动检查的规则交给 Prettier 和 angular-eslint；分层规则由 dependency-cruiser（`.dependency-cruiser.cjs`，`npm run arch`）检查；这里写需要判断的部分。
+Sources: the Angular style guide (https://angular.dev/style-guide) and the common container / presentational (smart / dumb) component layering. Prettier and angular-eslint handle formatting and the rules that can be checked automatically; dependency-cruiser (`.dependency-cruiser.cjs`, `npm run arch`) checks layering. This file covers what needs judgment.
 
-## 分层：页面和展示组件
+## Layers: pages and presentational components
 
 ```
 src/app/
-├── core/                  全局单例服务、HTTP 拦截器、守卫
-├── shared/ui/             几个功能共用的展示组件
-├── shared/util/           纯函数、管道
-└── features/<功能>/
-    ├── pages/             页面：路由指向它
-    ├── components/        展示组件
-    ├── data-access/       API 客户端、store、状态服务
-    └── models/            类型定义
+├── core/                  global singleton services, HTTP interceptors, guards
+├── shared/ui/             presentational components shared by features
+├── shared/util/           pure functions, pipes
+└── features/<feature>/
+    ├── pages/             pages: what routes point to
+    ├── components/        presentational components
+    ├── data-access/       API clients, stores, state services
+    └── models/            type definitions
 ```
 
-**页面（容器组件）**负责"数据从哪来、到哪去"：
+**Pages (container components)** decide where data comes from and where it goes:
 
-- 注入 data-access 的服务或 store，调 API，处理加载中、出错和空数据。
-- 持有状态（signal 或 store），通过属性绑定把数据交给子组件，通过子组件的事件更新状态；需要父子同步一个值时用 `model()` 双向绑定。
-- 处理导航和路由参数。
-- 本身尽量不写样式和复杂的模板，布局交给展示组件。
+- Inject data-access services or stores, call APIs, and handle loading, errors and empty data.
+- Hold state (signals or a store), pass data to children through property bindings and update state through their events; use `model()` two-way binding when parent and child must keep one value in sync.
+- Handle navigation and route parameters.
+- Keep their own styles and templates minimal; presentational components do the layout.
 
-**展示组件**只负责"长什么样"：
+**Presentational components** decide only what things look like:
 
-- 无状态：数据只从 `input()` 进，变化只通过 `output()` 或 `model()` 出。内部只允许纯界面状态，例如展开、收起、悬停。
-- 不注入服务，不调 API，不访问 store 和路由状态。需要什么数据，由页面传进来。
-- 设置 `changeDetection: ChangeDetectionStrategy.OnPush`。
-- 给定输入就能独立渲染，这样才能在 Storybook 里展示、单独测试。
+- Stateless: data comes in only through `input()` and changes go out only through `output()` or `model()`. Internal state is limited to pure UI state such as expanded, collapsed or hovered.
+- They inject no services, call no APIs, and touch neither stores nor routing state. Whatever data they need, the page passes in.
+- They set `changeDetection: ChangeDetectionStrategy.OnPush`.
+- Given inputs, they render on their own, so they can be shown in Storybook and tested in isolation.
 
-由 `npm run arch` 强制的依赖规则：
+Dependency rules enforced by `npm run arch`:
 
-- 展示组件（`components/`、`shared/ui/`）不能依赖 data-access、pages、core，也不能引用 `HttpClient` 和 NgRx；可以引用 models 里的类型。
-- data-access 不依赖界面。
-- 功能之间不互相引用，几个功能共用的东西提到 `shared/`。
-- shared 和 core 不依赖任何功能。
-- 不允许循环依赖。
+- Presentational components (`components/`, `shared/ui/`) do not depend on data-access, pages or core, and do not reference `HttpClient` or NgRx; types from models are fine.
+- data-access does not depend on UI.
+- Features do not reference each other; what several features share moves to `shared/`.
+- shared and core depend on no feature.
+- No circular dependencies.
 
-## 组件写法
+## Writing components
 
-- 只用独立组件（standalone），不新建 NgModule。
-- 组件、服务、守卫用 `ng generate` 创建，文件命名跟 CLI 生成的保持一致。一个文件只放一个组件或服务。
-- 输入输出用 `input()`、`output()`、`model()`，不用 `@Input`、`@Output` 装饰器。
-- 依赖注入用 `inject()`。
-- 模板用内置控制流 `@if`、`@for`（必须写 `track`）、`@switch`，不用 `*ngIf`、`*ngFor`。
-- 模板里不写复杂表达式和函数调用，派生值用 `computed()`。
+- Standalone components only; no new NgModules.
+- Create components, services and guards with `ng generate` and keep the file names the CLI produces. One component or service per file.
+- Inputs and outputs use `input()`, `output()` and `model()`, not the `@Input` and `@Output` decorators.
+- Dependency injection uses `inject()`.
+- Templates use the built-in control flow `@if`, `@for` (always with `track`) and `@switch`, not `*ngIf` and `*ngFor`.
+- No complex expressions or function calls in templates; derived values use `computed()`.
 
-## 状态和数据
+## State and data
 
-- 组件状态用 signal；跨组件共享的状态放在 data-access 的服务或 store 里。
-- RxJS 用于异步事件流（HTTP、WebSocket、防抖输入）。订阅用 `async` 管道、`toSignal()` 或 `takeUntilDestroyed()` 管理，不留下没取消的订阅。
-- HTTP 只在 data-access 里调用；接口数据用 models 里的类型描述，不用 `any`。
-- 表单用类型化的响应式表单，校验规则写在表单定义里。
+- Component state uses signals; state shared across components lives in data-access services or stores.
+- RxJS is for asynchronous event streams (HTTP, WebSocket, debounced input). Subscriptions are managed with the `async` pipe, `toSignal()` or `takeUntilDestroyed()`; no subscription is left uncancelled.
+- HTTP is called only in data-access; API data is described with types from models, never `any`.
+- Forms are typed reactive forms with validation rules in the form definition.
 
-## 路由和权限
+## Routing and permissions
 
-- 页面懒加载（`loadComponent`、`loadChildren`）。
-- 路由守卫用函数式守卫。前端的权限检查只是体验，真正的授权在后端做。
+- Pages are lazy-loaded (`loadComponent`, `loadChildren`).
+- Route guards are functional guards. Frontend permission checks are only for the experience; real authorization happens in the backend.
 
-## 样式
+## Styles
 
-- 颜色、字号、间距、圆角用设计令牌（`var(--...)`），不写死颜色值和像素值。
-- 展示组件的样式只作用于自己，不改写子组件和全局样式。
+- Colors, font sizes, spacing and radius come from design tokens (`var(--...)`), never hard-coded colors or pixel values.
+- A presentational component's styles apply only to itself, never overriding child components or global styles.
 
-## 质量
+## Quality
 
-- 可交互元素都能用键盘操作，图片有 alt，表单控件有 label。
-- 用户看得到的文字集中管理，方便以后做多语言。
-- 测试：data-access 测数据逻辑；展示组件测"给定输入显示什么、点了发出什么事件"；页面测和 data-access 的配合。
-- 生产代码里不留 `console.log`。
+- Every interactive element works with the keyboard, images have alt text, form controls have labels.
+- Text users see is managed in one place, ready for translation later.
+- Tests: data-access for data logic; presentational components for "given these inputs, what shows and which event a click emits"; pages for how they work with data-access.
+- No `console.log` in production code.

@@ -1,33 +1,33 @@
-# {{变更标题}}
+# {{change title}}
 
-- 日期：{{YYYY-MM-DD}}
-- 级别：{{L2 需求变了 / L3 目标变了 / L4 架构变了}}；设计冲击：{{D0 / D1 / D2}}
-- 来源：{{issue #编号，或用户的原话}}
+- Date: {{YYYY-MM-DD}}
+- Level: {{L2 requirements change / L3 goals change / L4 architecture changes}}; design impact: {{D0 / D1 / D2}}
+- Source: {{issue #number, or the user's own words}}
 
-## 变了什么
+## What changed
 
-{{一两段话说清变更前和变更后的区别。}}
+{{One or two paragraphs on the difference before and after the change.}}
 
-## 为什么
+## Why
 
-{{触发这次变更的原因。}}
+{{What triggered the change.}}
 
-## 影响
+## Impact
 
-| 类别 | 内容 |
+| Category | Content |
 |---|---|
-| 需求 | {{修改的 REQ-xxx，废弃的 REQ-xxx → 替代的 REQ-xxx}} |
-| 架构 | {{新增或替代的 ADR-xxxx}} |
-| 设计 | {{新增、修改、废弃的 SCR-xxx、ENT-xxx、API-xxx、JOB-xxx、LGC-xxx；重新设计方案 docs/design/refactor/xxx.md}} |
-| 代码 | {{受影响的组件和模块}} |
-| 数据 | {{要迁移或清理的数据}} |
+| Requirements | {{changed REQ-xxx; deprecated REQ-xxx → replacing REQ-xxx}} |
+| Architecture | {{new or superseded ADR-xxxx}} |
+| Design | {{new, changed and deprecated SCR-xxx, ENT-xxx, API-xxx, JOB-xxx, LGC-xxx; redesign docs/design/refactor/xxx.md}} |
+| Code | {{affected components and modules}} |
+| Data | {{data to migrate or clean up}} |
 
-## 决定
+## Decisions
 
-- {{补问和确认画面时用户做的选择}}
+- {{choices the user made in follow-up questions and screen confirmations}}
 
-## 拆出的工作
+## Work split out
 
-| issue | 标题 | 说明 |
+| Issue | Title | Notes |
 |---|---|---|
-| #{{编号}} | {{标题}} | {{说明}} |
+| #{{number}} | {{title}} | {{notes}} |

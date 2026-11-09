@@ -1,82 +1,82 @@
-# 接口定义
+# Interface definitions
 
-- 状态：{{AI 设计，待确认 / 已确认（YYYY-MM-DD）}}
+- Status: {{AI draft, awaiting confirmation / Confirmed (YYYY-MM-DD)}}
 
-只写这个系统有的部分，没有的整节删掉。
+Write only the parts this system has; delete the other sections.
 
-## 共通约定
+## Common conventions
 
-| 项目 | 约定 |
+| Item | Convention |
 |---|---|
-| 地址和版本 | {{例如 /api/v1/...}} |
-| 认证 | {{例如登录后的会话 Cookie / Bearer 令牌}} |
-| 错误响应格式 | {{例如 `{"code": "ORDER_NOT_FOUND", "message": "...", "fields": {"amount": "金额要大于 0"}}`}} |
-| 分页 | {{例如 page、size 参数，响应里带 total}} |
-| 时间格式 | {{例如 ISO 8601，带时区}} |
+| Paths and versions | {{e.g. /api/v1/...}} |
+| Authentication | {{e.g. session cookie after sign-in / Bearer token}} |
+| Error response format | {{e.g. `{"code": "ORDER_NOT_FOUND", "message": "...", "fields": {"amount": "The amount must be greater than 0"}}`}} |
+| Pagination | {{e.g. page and size parameters, total in the response}} |
+| Time format | {{e.g. ISO 8601 with time zone}} |
 
 ## HTTP API
 
-### API-{{001}} {{名称}}
+### API-{{001}} {{name}}
 
-- 对应需求：{{REQ-xxx}}；调用方：{{SCR-xxx}}
+- Requirements: {{REQ-xxx}}; called by: {{SCR-xxx}}
 - `{{POST}} {{/api/v1/orders}}`
-- 权限：{{哪些角色；只能操作自己的数据时写清按什么判断}}
-- 幂等：{{是 / 否；否的话重复提交怎么防}}
+- Permissions: {{which roles; for own data only, how ownership is checked}}
+- Idempotent: {{yes / no; if no, how duplicate submissions are prevented}}
 
-请求：
+Request:
 
-| 字段 | 位置 | 类型 | 必填 | 校验 | 说明 |
+| Field | Location | Type | Required | Validation | Description |
 |---|---|---|---|---|---|
-| {{customerName}} | {{body}} | {{string}} | {{是}} | {{1 到 100 个字符}} | {{对应 ENT-002.customer_name}} |
+| {{customerName}} | {{body}} | {{string}} | {{yes}} | {{1 to 100 characters}} | {{ENT-002.customer_name}} |
 
-成功：`{{201}}`
+Success: `{{201}}`
 
-| 字段 | 类型 | 说明 |
+| Field | Type | Description |
 |---|---|---|
 | {{id}} | {{number}} | {{}} |
 
-错误：
+Errors:
 
-| 状态码 | 错误码 | 什么时候 | 调用方怎么处理 |
+| Status | Error code | When | What the caller does |
 |---|---|---|---|
-| 400 | {{VALIDATION_FAILED}} | {{字段校验不通过}} | {{按 fields 在对应项目下显示提示}} |
-| 403 | {{FORBIDDEN}} | {{没有权限}} | {{}} |
+| 400 | {{VALIDATION_FAILED}} | {{a field fails validation}} | {{show the messages in fields under the matching inputs}} |
+| 403 | {{FORBIDDEN}} | {{no permission}} | {{}} |
 
-## 命令行
+## Command line
 
-### API-{{001}} `{{命令}}`
+### API-{{001}} `{{command}}`
 
-- 对应需求：{{REQ-xxx}}
-- 用法：`{{工具}} {{命令}} [选项] <参数>`
+- Requirements: {{REQ-xxx}}
+- Usage: `{{tool}} {{command}} [options] <arguments>`
 
-| 参数或选项 | 必填 | 默认值 | 校验 | 说明 |
+| Argument or option | Required | Default | Validation | Description |
 |---|---|---|---|---|
 | {{}} | {{}} | {{}} | {{}} | {{}} |
 
-输出：{{标准输出写什么、格式（文本 / JSON）；标准错误写什么}}
+Output: {{what goes to standard output and in which format (text / JSON); what goes to standard error}}
 
-| 退出码 | 什么时候 |
+| Exit code | When |
 |---|---|
-| 0 | {{成功}} |
+| 0 | {{success}} |
 | {{1}} | {{}} |
 
-## 库的公开接口
+## Public library API
 
-### API-{{001}} `{{函数或类型}}`
+### API-{{001}} `{{function or type}}`
 
-- 对应需求：{{REQ-xxx}}
-- 签名：`{{}}`
-- 参数和返回值：{{每个参数的约束；返回什么}}
-- 错误：{{会抛出或返回哪些错误，什么时候}}
+- Requirements: {{REQ-xxx}}
+- Signature: `{{}}`
+- Parameters and return value: {{constraints on each parameter; what is returned}}
+- Errors: {{which errors are thrown or returned, and when}}
 
-## 定时任务和批处理
+## Scheduled and batch jobs
 
-| 编号 | 名称 | 触发 | 输入 | 输出 | 失败后 | 重复执行 |
+| ID | Name | Trigger | Input | Output | On failure | Running twice |
 |---|---|---|---|---|---|---|
-| JOB-{{001}} | {{}} | {{例如每天 02:00（UTC）}} | {{}} | {{}} | {{例如告警，第二天自动补跑}} | {{例如按日期去重，重跑不会重复处理}} |
+| JOB-{{001}} | {{}} | {{e.g. daily at 02:00 UTC}} | {{}} | {{}} | {{e.g. alert, rerun automatically the next day}} | {{e.g. deduplicated by date, a rerun processes nothing twice}} |
 
-## 外部集成
+## External integrations
 
-| 对方 | 用途 | 超时 | 重试 | 对方出错或变慢时 |
+| Party | Purpose | Timeout | Retries | When it fails or slows down |
 |---|---|---|---|---|
-| {{}} | {{}} | {{}} | {{}} | {{用户看到什么、数据怎么补}} |
+| {{}} | {{}} | {{}} | {{}} | {{what the user sees, how data is repaired}} |

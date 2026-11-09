@@ -1,4 +1,4 @@
-# 仓库里统一用 LF 换行，Windows 脚本例外。这样在 Windows 和 Linux 上提交的文件不会因为换行符不同而出现整文件的差异。
+# LF line endings everywhere except Windows scripts, so files committed on Windows and Linux never differ by line endings alone.
 * text=auto eol=lf
 
 *.cmd text eol=crlf

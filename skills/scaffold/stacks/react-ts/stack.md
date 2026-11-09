@@ -1,49 +1,52 @@
-# React（TypeScript，Vite）
+# React (TypeScript, Vite)
 
-## 识别方法
+## How to recognize it
 
-组件目录的 `package.json` 依赖里有 `react`，并且有 `vite.config.ts`（或 `.js`）。
+The component's `package.json` depends on `react` and there is a `vite.config.ts` (or `.js`).
 
-## 需要的工具
+## Required tools
 
-- Node.js 当前的 LTS 版本（`node --version`），npm 随 Node.js 一起安装。
+- The current LTS of Node.js (`node --version`); npm comes with it.
 
-## 决策点
+## Decision points
 
-/architect 选定这个技术栈后，逐个问用户。推荐项是本文默认的做法；选了别的，按对应工具的官方文档做等效配置，并保证自检命令、钩子规则、CI 三处一致。
+/architect asks each of these once this stack is chosen. The recommended option is what this document does; for another option, configure the equivalent from the tool's official documentation and keep the self-check commands, hook rules and CI consistent.
 
-| 决策 | 候选 | 推荐 |
+| Decision | Options | Recommended |
 |---|---|---|
-| 框架 | Vite 单页应用 / Next.js / React Router 框架模式 | Vite 单页应用；需要服务端渲染、搜索引擎收录时用 Next.js（目录结构和本文不同，按它的官方文档） |
-| 组件分层 | 页面加展示组件（见 rules.md）/ 不分层 | 页面加展示组件 |
-| 路由 | React Router / TanStack Router | React Router |
-| 服务器状态 | TanStack Query / SWR | TanStack Query |
-| 全局状态 | 不需要 / Zustand / Redux Toolkit | 不需要；确实有跨页面的客户端状态时用 Zustand |
-| 样式 | CSS Modules / Tailwind CSS / CSS-in-JS | CSS Modules 加设计令牌 |
-| 组件库 | 不用 / MUI / Ant Design / shadcn/ui | 有设计稿时不用，或用 shadcn/ui 这类可以改源码的；要快速做出后台类界面时用 Ant Design 或 MUI |
-| 组件展示 | Storybook / 不用 | Storybook：展示组件多、在意视觉时 |
-| 视觉回归和端到端测试 | Playwright / 不做 | Playwright：在意视觉、有关键流程时 |
+| Framework | Vite single-page app / Next.js / React Router framework mode | Vite single-page app; Next.js when server-side rendering or search engine indexing is needed (its directory structure differs from this document; follow its documentation) |
+| Component layering | Pages plus presentational components (see rules.md) / none | Pages plus presentational components |
+| Routing | React Router / TanStack Router | React Router |
+| Server state | TanStack Query / SWR | TanStack Query |
+| Global state | None / Zustand / Redux Toolkit | None; Zustand when there really is client state shared across pages |
+| Styling | CSS Modules / Tailwind CSS / CSS-in-JS | CSS Modules with design tokens |
+| Component library | None / MUI / Ant Design / shadcn/ui | None with design files, or one whose source you own such as shadcn/ui; Ant Design or MUI to build admin-style UIs fast |
+| Component showcase | Storybook / none | Storybook, when there are many presentational components and the look matters |
+| Visual regression and end-to-end tests | Playwright / none | Playwright, when the look matters and there are key flows |
 
-## 创建命令
+## Versions
 
-在仓库根目录运行：
+TypeScript is the version the template installs (the latest release); do not change it. The architecture check parses sources with SWC and the template's oxlint does not depend on the TypeScript JS API, so neither limits the TypeScript version. When an older template's linter is ESLint with typescript-eslint, look up the versions typescript-eslint supports as in the "Versions" section of the Node.js stack's stack.md; when that is older than the latest release, tell the user and let them choose (switch to oxlint, or use the version found).
+
+## Create
+
+From the repository root:
 
 ```
-npm create vite@latest <目录> -- --template react-ts --no-interactive
-cd <目录> && npm install
+npm create vite@latest <directory> -- --template react-ts --no-interactive
+cd <directory> && npm install
 ```
 
-create-vite 不认识 `--no-interactive` 时去掉这个参数。
+Drop `--no-interactive` when create-vite does not recognize it.
 
-模板自带 linter 和它的配置，保留不动：新版模板用 oxlint（`.oxlintrc.json`，已开启 React Hooks 规则），旧版模板用 ESLint（`eslint.config.js`）。下文把模板 `lint` 脚本用的那个工具叫作"模板的 linter"。
+The template ships a linter and its configuration; keep it: newer templates use oxlint (`.oxlintrc.json`, React Hooks rules enabled), older ones ESLint (`eslint.config.js`). Below, "the template's linter" means whichever tool the template's `lint` script runs.
 
-## 创建后
+## After creating
 
-在组件目录下：
+In the component directory:
 
-1. TypeScript 用模板装的版本（npm 上的最新版），不要改。架构检查用 SWC 解析源码，模板的 oxlint 也不依赖 TypeScript 的 JS API，都不会限制 TypeScript 的版本。旧版模板的 linter 是 ESLint 加 typescript-eslint 时，按 Node.js 技术栈 stack.md 的"版本"一节现查 typescript-eslint 支持的版本；比最新版旧时，把情况告诉用户、让他选（换成 oxlint，或者用查出的版本）。
-2. `@types/node` 的主版本和项目用的 Node.js 主版本对齐（例如 Node 24 用 `npm install -D "@types/node@^24"`），否则装 Storybook 这类工具时会出现 peer 依赖冲突。
-3. 在模板的 linter 配置里加上复杂度和长度的上限。React 组件的 JSX 比较长，函数长度上限放宽到 100 行。oxlint 加在 `.oxlintrc.json` 的 `rules` 里：
+1. `@types/node` follows the project's Node.js major (e.g. `npm install -D "@types/node@^24"` for Node 24); otherwise installing tools such as Storybook runs into peer dependency conflicts.
+2. Add complexity and length limits to the template linter's configuration. React components have long JSX, so the function length limit is 100 lines. For oxlint, in the `rules` of `.oxlintrc.json`:
 
    ```json
    "eslint/complexity": ["error", 10],
@@ -51,9 +54,9 @@ create-vite 不认识 `--no-interactive` 时去掉这个参数。
    "eslint/max-lines-per-function": ["error", { "max": 100, "skipBlankLines": true, "skipComments": true }]
    ```
 
-   并加上 `"ignorePatterns": ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx", ".dependency-cruiser.cjs"]`。用 ESLint 时，在 `eslint.config.js` 里加同样的三条规则（不带 `eslint/` 前缀）。
-4. 架构检查：`npm install -D dependency-cruiser @swc/core`；把 `files/.dependency-cruiser.cjs` 复制到组件目录，把 scaffold 技能 `shared/arch-check.mjs` 复制到组件的 `scripts/` 目录；`npm pkg set scripts.arch="node scripts/arch-check.mjs"`。
-5. 单元测试：`npm install -D prettier vitest jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event`；把 `files/` 下的 `.prettierrc.json`、`.prettierignore`、`src/test/setup.ts` 复制到对应位置。在 `vite.config.ts` 第一行加 `/// <reference types="vitest/config" />`，在 `defineConfig` 里加：
+   and add `"ignorePatterns": ["**/*.test.ts", "**/*.test.tsx", "**/*.stories.tsx", ".dependency-cruiser.cjs"]`. With ESLint, add the same three rules to `eslint.config.js` (without the `eslint/` prefix).
+3. Architecture check: `npm install -D dependency-cruiser @swc/core`; copy `files/.dependency-cruiser.cjs` to the component directory and the scaffold skill's `shared/arch-check.mjs` to the component's `scripts/` directory; `npm pkg set scripts.arch="node scripts/arch-check.mjs"`.
+4. Unit tests: `npm install -D prettier vitest jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom @testing-library/user-event`; copy `.prettierrc.json`, `.prettierignore` and `src/test/setup.ts` from `files/` to the same places. Add `/// <reference types="vitest/config" />` as the first line of `vite.config.ts` and add to `defineConfig`:
 
    ```ts
    test: {
@@ -66,55 +69,55 @@ create-vite 不认识 `--no-interactive` 时去掉这个参数。
    },
    ```
 
-   用 `projects` 的写法，是为了以后装 Storybook 时，它的测试作为另一个项目并列加进来；`include` 只收 `src/` 下的测试，`e2e/` 的 Playwright 测试不会被 Vitest 拾取。
-6. `npm pkg set scripts.test="vitest run" scripts.typecheck="tsc -b" scripts.format="prettier --write ." scripts.format:check="prettier --check ."`
-7. 模板的 `App.tsx` 是演示页面，换成应用外壳（路由和布局，放在 `src/app/`），按 `rules.md` 建目录：`src/shared/ui/`、`src/shared/lib/`、`src/features/<第一个功能>/{pages,components,data-access}/`。写一个渲染应用外壳的冒烟测试，按页面上能看到的内容断言。
-8. `npm run format`，再跑一遍自检命令。
+   The `projects` form lets Storybook later add its tests as a second project next to this one; `include` only takes tests under `src/`, so Vitest never picks up the Playwright tests in `e2e/`.
+5. `npm pkg set scripts.test="vitest run" scripts.typecheck="tsc -b" scripts.format="prettier --write ." scripts.format:check="prettier --check ."`
+6. The template's `App.tsx` is a demo page: replace it with the application shell (routes and layout, in `src/app/`) and create the directories from `rules.md`: `src/shared/ui/`, `src/shared/lib/`, `src/features/<first feature>/{pages,components,data-access}/`. Write a smoke test that renders the shell and asserts on visible content.
+7. `npm run format`, then run the self-check commands once more.
 
-## 可选：Storybook
+## Optional: Storybook
 
-决策点选了 Storybook 时，在组件目录下：
+When the decision points chose Storybook, in the component directory:
 
-1. `npx -y storybook@latest init --yes --no-dev`。装完检查 `node_modules/@storybook` 是否存在，不存在就运行 `npm install` 补装。
-2. 安装器会改 `vite.config.ts`，往 `test.projects` 里加一个名为 `storybook` 的项目（在浏览器里跑每个 story）。确认第 5 步的 `unit` 项目还在，两个项目并列。
-3. 删掉安装器生成的示例 `src/stories/`：它们过不了本项目的 lint 和类型检查。
-4. story 从 `@storybook/react-vite` 导入类型（以安装器生成的 `.storybook/main.ts` 为准）。写 story 的约定和 CI 见 scaffold 技能 `shared/visual-testing.md`。
+1. `npx -y storybook@latest init --yes --no-dev`. Afterwards check that `node_modules/@storybook` exists; run `npm install` when it does not.
+2. The installer changes `vite.config.ts`, adding a project named `storybook` to `test.projects` (it runs every story in a browser). Make sure the `unit` project from step 4 is still there, side by side.
+3. Delete the example `src/stories/` the installer creates: it fails this project's lint and type check.
+4. Stories import their types from `@storybook/react-vite` (follow the `.storybook/main.ts` the installer generates). Story conventions and CI are in the scaffold skill's `shared/visual-testing.md`.
 
-## 可选：视觉回归和端到端测试
+## Optional: visual regression and end-to-end tests
 
-决策点选了 Playwright 时，按 scaffold 技能 `shared/visual-testing.md` 配置。启动命令用 `npm run build && npx vite preview --port 4173 --strictPort`，端口 4173。
+When the decision points chose Playwright, configure it from the scaffold skill's `shared/visual-testing.md`. The start command is `npm run build && npx vite preview --port 4173 --strictPort`, on port 4173.
 
-## 自检命令
+## Self-check commands
 
-| 格式化 | lint 和架构检查 | 类型检查 | 测试 | 构建 |
+| Format | Lint and architecture | Type check | Tests | Build |
 |---|---|---|---|---|
 | `npm run format` | `npm run lint && npm run arch` | `npm run typecheck` | `npm test` | `npm run build` |
 
-用了 Storybook 时，`npm test` 也会在浏览器里跑每个 story，构建一栏再加 `npm run build-storybook`。
+With Storybook, `npm test` also runs every story in a browser, and the build column adds `npm run build-storybook`.
 
-## 格式化钩子规则
+## Format hook rule
 
-`lint` 里填模板的 linter：oxlint 用 `npx oxlint {file}`，ESLint 用 `npx eslint {file}`。
+`lint` is the template's linter: `npx oxlint {file}` for oxlint, `npx eslint {file}` for ESLint.
 
 ```json
-{ "dir": "<目录>", "extensions": [".ts", ".tsx", ".css"], "format": "npx prettier --write {file}", "lint": "npx oxlint {file}" }
+{ "dir": "<directory>", "extensions": [".ts", ".tsx", ".css"], "format": "npx prettier --write {file}", "lint": "npx oxlint {file}" }
 ```
 
-## CI 步骤
+## CI steps
 
 ```yaml
-  <组件>:
+  <component>:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: <目录>
+        working-directory: <directory>
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: lts/*
           cache: npm
-          cache-dependency-path: <目录>/package-lock.json
+          cache-dependency-path: <directory>/package-lock.json
       - run: npm ci
       - run: npm run format:check
       - run: npm run lint
@@ -124,17 +127,17 @@ create-vite 不认识 `--no-interactive` 时去掉这个参数。
       - run: npm run build
 ```
 
-用了 Storybook 时，`npm test` 之前加一步 `npx playwright install --with-deps chromium`（story 测试在浏览器里跑），再加一步 `npm run build-storybook`；视觉回归测试的 job 见 `shared/visual-testing.md`。
+With Storybook, add `npx playwright install --with-deps chromium` before `npm test` (story tests run in a browser) and a `npm run build-storybook` step; the visual regression job is in `shared/visual-testing.md`.
 
-## 版本号
+## Version number
 
-`package.json` 的 `version`：`npm version <版本号> --no-git-tag-version`
+`version` in `package.json`: `npm version <version> --no-git-tag-version`
 
-## 参考资料
+## References
 
-- React 官方文档：https://react.dev/learn
-- 你可能不需要 Effect：https://react.dev/learn/you-might-not-need-an-effect
-- oxlint：https://oxc.rs/docs/guide/usage/linter
-- dependency-cruiser 规则写法：https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md
-- Storybook for React：https://storybook.js.org/docs/get-started/frameworks/react-vite
-- Testing Library：https://testing-library.com/docs/react-testing-library/intro/
+- React documentation: https://react.dev/learn
+- You might not need an Effect: https://react.dev/learn/you-might-not-need-an-effect
+- oxlint: https://oxc.rs/docs/guide/usage/linter
+- dependency-cruiser rules: https://github.com/sverweij/dependency-cruiser/blob/main/doc/rules-reference.md
+- Storybook for React: https://storybook.js.org/docs/get-started/frameworks/react-vite
+- Testing Library: https://testing-library.com/docs/react-testing-library/intro/

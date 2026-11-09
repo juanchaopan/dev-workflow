@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "dev-workflow",
-  "version": "1.3.0",
-  "description": "从想法、已有代码或文档出发的完整 AI 开发流程：需求挖掘、技术选型和架构、画面和数据的详细设计（原型截图逐个确认）、项目搭建和代码规范、AI 审查和风险把关、拆计划、开发、变更分诊、技术探针和发布。",
+  "version": "2.0.0",
+  "description": "A complete AI development workflow starting from an idea, existing code or a document: requirements discovery, technology choices and architecture, detailed design of screens and data (prototype screenshots confirmed one by one), project scaffolding on the latest versions with code standards, AI review and risk gates, planning, development one issue at a time or several in parallel, change triage, technical spikes and releases.",
   "author": {
     "name": "juanchaopan",
     "email": "p8499@126.com"

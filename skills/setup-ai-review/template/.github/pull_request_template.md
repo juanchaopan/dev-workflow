@@ -1,20 +1,20 @@
-## 改了什么、为什么
+## What and why
 
-<!-- 一两句话说明这次改动的意图。AI 审查员会对照这里，检查代码是否真的做到了。 -->
+<!-- The intent of this change in a sentence or two. The AI reviewer checks the code against it. -->
 
-## Testing（怎么测的）
+## Testing
 
-<!-- 贴出实际运行的命令和结果摘要，不要只写"已测试"。改了界面就附截图。 -->
+<!-- The commands actually run and a summary of the results, not just "tested". Screenshots for UI changes. -->
 
-## Risk（风险）
+## Risk
 
-<!-- 低 / 中 / 高，并写出理由：会影响哪些功能或用户？对照 .github/risk-rules.txt 判断。 -->
+<!-- Low / medium / high, with the reason: which features or users could be affected? Judge against .github/risk-rules.txt. -->
 
-## How to revert（坏了怎么撤回）
+## How to revert
 
-<!-- 例如：直接 revert 这个 PR；或关掉某个开关。涉及数据迁移或配置变更的，写清楚怎么恢复。 -->
+<!-- E.g. revert this PR, or switch off a flag. For data migrations or configuration changes, how to restore them. -->
 
-## 检查清单
+## Checklist
 
-- [ ] AI 审查和安全审查的每条意见都已修复，或写明理由后关闭
-- [ ] 中风险或高风险：我亲自读完了 diff，确认没问题后加上了 `human-reviewed` 标签
+- [ ] Every finding of the AI review and security review is fixed, or closed with a stated reason
+- [ ] Medium or high risk: I read the whole diff myself and added the `human-reviewed` label once satisfied

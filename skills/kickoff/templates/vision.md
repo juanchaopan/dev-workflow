@@ -1,46 +1,46 @@
-# 产品愿景
+# Product vision
 
-## 一句话
+## In one sentence
 
-{{给谁用、解决什么问题、怎么解决}}
+{{Who it is for, what problem it solves, how}}
 
-## 目标用户
+## Target users
 
-| 角色 | 是谁 | 现在怎么解决这个问题 | 痛点 |
+| Role | Who they are | How they solve the problem today | Pain points |
 |---|---|---|---|
-| {{角色}} | {{描述}} | {{现状}} | {{痛点}} |
+| {{role}} | {{description}} | {{current approach}} | {{pain points}} |
 
-## 成功标准
+## Success criteria
 
-- {{可衡量的指标，例如：上线 3 个月内每周 50 个活跃用户}}
+- {{measurable indicator, e.g. 50 weekly active users within 3 months of launch}}
 
-## 范围
+## Scope
 
-### 第一版（MVP）
+### First version (MVP)
 
-- {{功能，对应 REQ 编号}}
+- {{feature, with REQ IDs}}
 
-### 以后再做
+### Later
 
-- {{功能}}：{{为什么以后再做；如果会影响现在的设计，写明需要预留什么}}
+- {{feature}}: {{why later; if it affects today's design, what must be left room for}}
 
-### 明确不做
+### Out of scope
 
-- {{不做的事和原因}}
+- {{what is not done and why}}
 
-## 约束
+## Constraints
 
-| 类别 | 要求 | 来源 |
+| Category | Requirement | Source |
 |---|---|---|
-| 规模 | {{用户数、数据量、请求高峰的量级}} | {{用户回答 / AI 建议，用户默认}} |
-| 性能 | {{响应时间}} | |
-| 可用性 | {{例如：工作时间可用即可 / 7×24}} | |
-| 部署环境 | {{云、本地、离线，地区限制}} | |
-| 预算 | {{每月运行成本上限}} | |
-| 合规 | {{个人信息、支付等要求}} | |
-| 时间 | {{上线时间}} | |
-| 维护 | {{谁来维护，例如一个人}} | |
+| Scale | {{orders of magnitude of users, data volume, peak load}} | {{user answer / AI suggestion, user default}} |
+| Performance | {{response time}} | |
+| Availability | {{e.g. business hours are enough / 24×7}} | |
+| Deployment | {{cloud, on-premises, offline, regional restrictions}} | |
+| Budget | {{monthly running cost limit}} | |
+| Compliance | {{personal data, payment and other requirements}} | |
+| Timeline | {{launch date}} | |
+| Maintenance | {{who maintains it, e.g. one person}} | |
 
-## 假设
+## Assumptions
 
-- {{目前当作成立、但还没验证的事，以及怎么验证}}
+- {{things treated as true but not yet verified, and how to verify them}}

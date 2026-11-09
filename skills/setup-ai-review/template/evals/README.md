@@ -1,39 +1,39 @@
-# AI 审查员的考卷
+# An exam for the AI reviewer
 
-这个目录收集项目里真实出过的 bug，用来检验 AI 审查员：如果那次改动重新交给它审，它能不能抓到？
+This directory collects real bugs from the project to test the AI reviewer: given that change again, would it catch the bug?
 
-## 什么时候加案例
+## When to add a case
 
-- 一个 bug 合并后才被发现（被用户报告、上线后出错、或者被你 revert 了）。
-- AI 审查员误报了，而那次改动其实没问题。这种也值得记下来，作为"干净"案例，用来检查误报。
+- A bug was found only after merging (reported by users, failed in production, or you reverted it).
+- The AI reviewer raised a false alarm on a change that was actually fine. Record these too, as "clean" cases that check for false positives.
 
-## 怎么加
+## How to add one
 
-复制 `review-cases/_template.md`，改名为 `<日期>-<简短描述>.md`，填好开头的元数据：
+Copy `review-cases/_template.md` to `<date>-<short-description>.md` and fill in the metadata at the top:
 
-| 字段 | 含义 |
+| Field | Meaning |
 |---|---|
-| `id` | 案例名，和文件名一致即可 |
-| `expect` | `bug`：这段改动里有 bug，审查员应该报出来；`clean`：这段改动没问题，审查员不应该报 Important |
-| `pr` | 引入这次改动的 PR 编号。也可以不写 `pr`，改写 `base` 和 `head` |
-| `base` / `head` | 改动前和改动后的提交号，二者的差就是要审的 diff |
-| `file` / `line` | bug 所在的文件（相对仓库根目录）和改动后的行号。`clean` 案例不用填 |
+| `id` | The case name; the file name works |
+| `expect` | `bug`: the change contains a bug the reviewer should report; `clean`: the change is fine and the reviewer should report nothing Important |
+| `pr` | The PR number of the change. Instead of `pr` you can give `base` and `head` |
+| `base` / `head` | The commits before and after the change; the diff between them is what gets reviewed |
+| `file` / `line` | The file with the bug (relative to the repository root) and its line number after the change. Not needed for `clean` cases |
 
-正文写清楚发生了什么、根因是什么、后来怎么修的，方便以后回顾。
+In the body, describe what happened, the root cause and how it was fixed, for later reference.
 
-## 怎么跑
+## How to run
 
 ```
-node evals/run-review-evals.mjs            # 跑全部案例
-node evals/run-review-evals.mjs <id> ...   # 只跑指定案例
+node evals/run-review-evals.mjs            # every case
+node evals/run-review-evals.mjs <id> ...   # only the given cases
 ```
 
-审查员在 bug 所在行附近（默认上下 10 行内）报出 Important，就算抓到。每次的分数会追加到 `results.jsonl`，里面记下了当时 REVIEW.md 的版本。
+A bug counts as caught when the reviewer reports an Important finding near its line (within 10 lines by default). Every run appends its score to `results.jsonl`, together with the version of REVIEW.md at the time.
 
-可选的环境变量：`EVAL_MODEL` 指定模型，`EVAL_LINE_TOLERANCE` 设置行号允许的偏差。
+Optional environment variables: `EVAL_MODEL` sets the model, `EVAL_LINE_TOLERANCE` the allowed line deviation.
 
-## 什么时候跑
+## When to run
 
-改了 REVIEW.md 或 CLAUDE.md、换了模型、或者觉得审查质量变了的时候跑一次。分数没有上升，就撤回那次修改。
+After changing REVIEW.md or CLAUDE.md, switching models, or when review quality seems to have changed. If the score did not improve, revert the change.
 
-每跑一个案例就是一次 Claude 调用，会消耗额度。
+Each case is one Claude call and uses your allowance.

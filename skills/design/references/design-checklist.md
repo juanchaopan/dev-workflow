@@ -1,54 +1,54 @@
-# 设计完备性检查
+# Design completeness checklist
 
-/design 第 6 步对照这份清单检查。每发现一个问题，写清在哪里、为什么是问题、建议怎么改。
+Step 6 of /design checks against this list. For each problem say where it is, why it is a problem and how to fix it.
 
-## 覆盖
+## Coverage
 
-- 本次范围内每条"有效"的需求，至少对应一个设计元素。
-- 每个设计元素都能追溯到需求。追溯不到的，要么是需求漏写了（补需求），要么是多做了（删掉）。
-- 每条验收标准，都能在某个画面的操作、接口或逻辑里找到对应的行为。
+- Every "Active" requirement in scope maps to at least one design element.
+- Every design element traces back to a requirement. One that does not either reveals a missing requirement (add it) or extra work (remove it).
+- Every acceptance criterion has a matching behavior in some screen action, interface or logic item.
 
-## 画面
+## Screens
 
-- 每个输入项都写了类型、必填、长度或范围、校验规则和错误提示。
-- 下拉、单选、多选列出了全部选项，或者写清了选项从哪里来。
-- 每个按钮都写了前提、成功后和失败后怎样。
-- 连点两次、网络慢时重复提交怎么处理。
-- 列表：空数据、数据很多时（分页或滚动加载）、排序、筛选、搜索不到结果。
-- 很长的文字、很大的数字、很长的没有空格的英文单词会不会把布局撑坏。
-- 没有权限、登录过期、数据已被别人删除或修改时，用户看到什么。
-- 有没保存的内容时离开画面，要不要提醒。
-- 画面迁移图里每个画面都有入口，没有进去以后出不来的画面。
-- 需求要求手机或窄窗口时，有对应尺寸的原型。
-- 原型截图和项目定义表一致：项目、顺序、文字、必填标记都对得上。
+- Every input field has a type, required flag, length or range, validation rules and error messages.
+- Drop-downs, radio buttons and checkboxes list every option or say where the options come from.
+- Every button says its preconditions and what happens on success and on failure.
+- Double clicks and resubmission on a slow network are handled.
+- Lists: empty data, lots of data (paging or infinite scroll), sorting, filtering, a search with no results.
+- Long text, large numbers and long words without spaces do not break the layout.
+- What the user sees without permission, with an expired session, or when the data was deleted or changed by someone else.
+- Whether leaving a screen with unsaved input asks for confirmation.
+- Every screen in the screen flow has an entry, and no screen is a dead end.
+- When the requirements call for phones or narrow windows, there are prototypes at that size.
+- Screenshots match the field definitions: fields, order, text and required markers agree.
 
-## 数据
+## Data
 
-- 画面上必填 ↔ 列不能为空；长度、类型、取值范围一致。
-- 每个实体都有地方创建、有地方读取；需要修改和删除的，有对应的画面或接口。
-- 删除方式写清了；被其他数据引用时能不能删、删了以后引用方怎样。
-- 需求里"不能重复"的，有唯一约束。
-- 个人数据的保存期限、导出和删除符合合规要求。
-- 金额用定点数，不用浮点数；时间写清了时区。
-- 数据量大、经常查询的条件有索引。
+- Required on a screen ↔ non-null column; length, type and range agree.
+- Every entity is created somewhere and read somewhere; those that need it can be changed and deleted through a screen or interface.
+- Deletion is defined, including whether data referenced elsewhere can be deleted and what happens to the references.
+- Anything the requirements say "must not repeat" has a unique constraint.
+- Retention, export and deletion of personal data meet compliance requirements.
+- Amounts use fixed-point types, not floating point; times state their time zone.
+- Large tables have indexes for the conditions queried often.
 
-## 接口
+## Interfaces
 
-- 画面上每个会读写数据的操作，都有对应的接口。
-- 每个接口都写了权限和每种错误。
-- 写操作写清了是否幂等；重试或重复提交会不会产生两条数据。
-- 接口的校验和画面一致，画面上的校验不能代替接口的校验。
-- 外部系统超时、出错、返回意外数据时，用户看到什么、数据怎么补。
-- 定时任务重复执行、中途失败后重跑，结果仍然正确。
+- Every screen action that reads or writes data has an interface.
+- Every interface states its permissions and each error.
+- Write operations state whether they are idempotent; retries and resubmissions cannot create duplicates.
+- Interface validation matches the screens; validation on screens never replaces validation in interfaces.
+- What the user sees, and how data is repaired, when an external system times out, fails or returns unexpected data.
+- Scheduled jobs give correct results when run twice or rerun after failing halfway.
 
-## 权限
+## Permissions
 
-- 每个操作至少有一个角色能做。
-- 只限操作自己数据的，接口里按数据的归属检查，不只是在画面上隐藏按钮。
-- 管理类的操作有记录（谁、什么时候、改了什么）。
+- Every action can be performed by at least one role.
+- "Own data only" is enforced in the interface by checking ownership, not only by hiding buttons.
+- Administrative actions are logged (who, when, what changed).
 
-## 逻辑
+## Logic
 
-- 状态流转：除了终态，每个状态都有出口；不允许的流转怎么处理；两个人同时操作同一条数据怎样。
-- 判定表：条件组合全部覆盖，没有两行条件相同、结果不同。
-- 计算：精度和舍入方式、零、负数、上限、空值，以及每种情况的例子。
+- State machines: every state except final ones has a way out; invalid transitions are handled; concurrent edits of the same record are handled.
+- Decision tables: all combinations of conditions are covered, and no two rows have the same conditions with different results.
+- Calculations: precision and rounding, zero, negative numbers, upper limits and empty values, each with an example.

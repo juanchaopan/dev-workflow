@@ -1,21 +1,21 @@
-# 需求
+# Requirements
 
-编号规则：REQ 加三位数字，编号不复用。作废的需求保留原文，状态改为"已废弃"，写明被哪一条替代。
+Numbering: REQ followed by three digits; numbers are never reused. A dropped requirement keeps its text, its status becomes "Deprecated", and it names the requirement that replaces it.
 
-状态：有效（要做）、已实现（代码里已经有，从现有系统继承）、已废弃。
-来源：用户回答 / AI 建议，用户默认 / 文档出处 / 代码推断（未确认的推断要请用户确认后再改成"代码推断，用户已确认"）。
+Status: Active (to be built), Implemented (already in the code, inherited from the existing system), Deprecated.
+Source: user answer / AI suggestion, user default / document location / inferred from code (an unconfirmed inference becomes "inferred from code, confirmed by user" once the user confirms it).
 
-## REQ-001 {{标题}}
+## REQ-001 {{title}}
 
-- 优先级：{{MVP / 以后}}
-- 状态：{{有效 / 已实现 / 已废弃（被 REQ-xxx 替代）}}
-- 来源：{{来源}}
-- 用户故事：作为{{角色}}，我想要{{做什么}}，以便{{得到什么}}。
-- 验收标准：
-  1. Given {{前提}}，When {{操作}}，Then {{结果}}。
-  2. Given {{前提}}，When {{异常操作}}，Then {{系统怎么处理}}。
-- 业务规则：
-  - {{规则}}
-- 边界和异常：
-  - {{情况}}：{{处理方式}}
-- 相关：{{其他 REQ、术语、未决问题编号；已实现的写出代码位置}}
+- Priority: {{MVP / Later}}
+- Status: {{Active / Implemented / Deprecated (replaced by REQ-xxx)}}
+- Source: {{source}}
+- User story: As a {{role}}, I want to {{do something}}, so that {{benefit}}.
+- Acceptance criteria:
+  1. Given {{precondition}}, When {{action}}, Then {{result}}.
+  2. Given {{precondition}}, When {{invalid action}}, Then {{how the system responds}}.
+- Business rules:
+  - {{rule}}
+- Edge cases and failures:
+  - {{situation}}: {{handling}}
+- Related: {{other REQs, glossary terms, open question IDs; for implemented requirements, the code location}}

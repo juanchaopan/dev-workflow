@@ -1,92 +1,92 @@
 ---
 name: setup-ai-review
-description: 给一个 GitHub 仓库装上"AI 写代码、AI 先审、人按风险把关"的整套代码审查流程（参照 Claude Code 团队的代码审查做法，适合个人和小团队）：复制通用模板，按项目实际情况填写 CLAUDE.md、AGENTS.md、REVIEW.md、CI（含重复代码检查）、格式化钩子、风险规则、依赖自动升级和 @claude 云端协作，配置分支策略（GitHub Flow 或 Git Flow）和提交信息检查，再带用户完成 GitHub 上的密钥和分支规则设置。用户说"装审查流程""给项目加代码审查""setup ai review""审核 AI 写的代码"时使用；/scaffold 和 /onboard 也会调用它。
+description: Sets up a GitHub repository with the complete "AI writes the code, AI reviews it first, people check by risk" review workflow (modeled on the Claude Code team's code review practice, sized for individuals and small teams). Copies the generic templates, fills in CLAUDE.md, AGENTS.md, REVIEW.md, CI (with duplicate code detection), the format hook, risk rules, automatic dependency updates and @claude cloud collaboration for the actual project, configures the branching strategy (GitHub Flow or Git Flow) and commit message checks, then walks the user through the secrets and branch rules on GitHub. Use when the user says "set up the review workflow", "add code review to the project", "setup ai review" or "review AI-written code"; /scaffold and /onboard also call it.
 ---
 
-# 安装 AI 代码审查流程
+# Setting up the AI code review workflow
 
-本技能目录（加载技能时显示的 Base directory）里有：
+This skill's directory (the Base directory shown when the skill loads) contains:
 
-- `template/`：复制进项目的文件。分两种：通用文件原样使用；项目专属文件带 `{{…}}` 占位符或"项目专属"区段，需要按项目填写。
-- `install.mjs`：把 `template/` 复制到目标仓库，目标里已有的同名文件一律跳过。
-- `github-settings/ruleset.json`：受保护分支的规则，通过 GitHub API 创建。
-- `README.md`：给用户看的说明，解释每个文件的作用。用户问"这是什么""为什么要这样"时参考它。
+- `template/`: files copied into the project. Generic files are used as they are; project-specific files have `{{...}}` placeholders or "Project-specific" sections to fill in for the project.
+- `install.mjs`: copies `template/` into the target repository, skipping every file that already exists there.
+- `github-settings/ruleset.json`: the rules for protected branches, created through the GitHub API.
+- `README.md`: the explanation for the user of what each file does. Use it when the user asks "what is this" or "why like this".
 
-按下面的顺序做。每一步完成后用一两句话告诉用户做了什么。
+Follow the steps in order, telling the user in a sentence or two what each step did. Talk to the user in their language.
 
-## 1. 确认目标仓库
+## 1. Confirm the target repository
 
-- 运行 `git rev-parse --show-toplevel`。当前目录不是 git 仓库时，问用户要装到哪个项目。
-- 运行 `gh repo view --json nameWithOwner,defaultBranchRef,visibility,isPrivate`。没有 GitHub 远端时，告诉用户需要先在 GitHub 上建仓库并推送，问要不要现在做，不要自己建。
-- 工作区有未提交的改动时，先问用户怎么处理。
+- Run `git rev-parse --show-toplevel`. When the current directory is not a git repository, ask the user which project to set up.
+- Run `gh repo view --json nameWithOwner,defaultBranchRef,visibility,isPrivate`. Without a GitHub remote, tell the user the repository must be created on GitHub and pushed first, and ask whether to do that now; do not create it on your own.
+- When the working tree has uncommitted changes, ask the user how to handle them first.
 
-## 2. 复制模板
+## 2. Copy the templates
 
-运行 `node "<本技能目录>/install.mjs" "<仓库根目录>"`。记下输出里的 `copied` 和 `skipped`。
+Run `node "<this skill's directory>/install.mjs" "<repository root>"` and note `copied` and `skipped` in its output.
 
-## 3. 了解项目
+## 3. Learn the project
 
-读 README、依赖清单（package.json、pyproject.toml、pom.xml、build.gradle(.kts)、*.csproj、go.mod 等）、已有的 CI 配置和目录结构，弄清有哪些组件，每个组件用什么语言、框架、包管理器，格式化、lint、架构检查、类型检查、测试、构建各用什么命令。项目是 /scaffold 搭出来或装过规范的，就直接用 scaffold 规范库（与本技能同级的 `scaffold/stacks/`）里各技术栈 `stack.md` 给出的命令和 CI 步骤。
+Read the README, the dependency manifests (package.json, pyproject.toml, pom.xml, build.gradle(.kts), *.csproj, go.mod and so on), the existing CI configuration and the directory structure, and work out the components, each component's language, framework and package manager, and the commands for formatting, lint, architecture checks, type checking, tests and builds. For projects created by /scaffold or given its standards, take the commands and CI steps straight from each stack's `stack.md` in the scaffold standards library (`scaffold/stacks/` next to this skill).
 
-项目的技术栈在规范库里有对应、但还没装规范时，告诉用户可以运行 /scaffold 给现有项目装上；项目没有 `docs/` 时，告诉用户可以运行 /onboard 整理现状。
+When the project's stack is in the library but the standards are not installed yet, tell the user /scaffold can add them to the existing project; when the project has no `docs/`, tell the user /onboard can document the current state.
 
-## 4. 选分支策略
+## 4. Choose the branching strategy
 
-用 AskUserQuestion 让用户选（CLAUDE.md 里已经写明的就不用再问）：
+Let the user choose with AskUserQuestion (skip it when CLAUDE.md already says):
 
-- **GitHub Flow**（一个人开发推荐）：从 main 拉 `feature/`、`fix/`、`refactor/` 分支，PR 合回 main；发布就是在 main 上打版本标签。
-- **Git Flow**：develop 是默认分支，`feature/`、`fix/`、`refactor/` 从 develop 拉、PR 合回 develop；发布时从 develop 拉 `release/<版本号>`，PR 合入 main 并打标签，再把 main 合回 develop；线上紧急问题从 main 拉 `hotfix/<版本号>`，PR 合入 main，同样合回 develop。
+- **GitHub Flow** (recommended for one developer): `feature/`, `fix/` and `refactor/` branches from main, PRs back into main; a release is a version tag on main.
+- **Git Flow**: develop is the default branch; `feature/`, `fix/` and `refactor/` branch from develop and return to it by PR; a release branches `release/<version>` from develop, merges into main by PR and is tagged, then main is merged back into develop; urgent production problems branch `hotfix/<version>` from main, merge into main by PR, and are merged back into develop too.
 
-把选中策略的那段说明写进 CLAUDE.md「分支与提交」一节。
+Write the chosen strategy's description into the "Branches and commits" section of CLAUDE.md.
 
-## 5. 填写项目专属文件
+## 5. Fill in the project-specific files
 
-每个文件整体重写，删掉所有 `{{…}}` 占位符。推断不出来的内容问用户，不要编造；不适用的条目整行删掉。
+Rewrite each file as a whole and remove every `{{...}}` placeholder. Ask the user for what you cannot infer, never make it up; delete entries that do not apply.
 
-| 文件 | 怎么填 |
+| File | How to fill it |
 |---|---|
-| `CLAUDE.md` | 项目简介、组件表、每个组件的自检命令（lint 一栏包括架构检查）、代码规范、目标与非目标、分支与提交。自检命令要在本地真跑一次，确认能用。「写代码的方式」一节原样保留。保持简短，长内容链接到 docs/ |
-| `AGENTS.md` | 一般原样保留；项目文档的位置和模板不同时改一下 |
-| `REVIEW.md` | 按项目类型推断"什么算坏"、重点检查项和跳过的路径，写完给用户看并确认。评论语言用用户和你对话时用的语言。「补丁味和臃肿」一节原样保留 |
-| `.github/workflows/ci.yml` | 把"项目专属"区段换成每个组件一个 job（按 `stack.md` 的 CI 步骤），并把这些 job 名加进 `ci` 汇总 job 的 `needs`。`duplication` job 保留。分支规则靠 `ci` 这个名字识别 |
-| `.github/workflows/claude.yml` | "项目专属"区段换成运行自检命令需要的工具准备步骤（和 ci.yml 的一样）；`--allowedTools` 里的占位符换成自检命令对应的 Bash 权限，例如 `Bash(npm run lint:*),Bash(npm test:*),Bash(./mvnw:*)` |
-| `.github/dependabot.yml` | "项目专属"区段换成每个组件一条，`package-ecosystem` 按包管理器选（npm、maven、gradle、uv、pip、nuget），`directory` 填组件目录 |
-| `.claude/hooks/format.config.json` | 只给已经装好的格式化和 lint 工具加规则，先运行一次确认命令存在。每条规则用 `dir` 指定组件目录。格式见 README |
-| `.github/risk-rules.txt` | 按项目的目录结构调整 `[high]` 和 `[low]`：登录鉴权、付款、数据迁移、发布和安装脚本、CI 配置、lint 和架构检查的配置放 `[high]`；纯文档放 `[low]` |
-| `.jscpd.json` | 新项目原样保留。已有项目先在仓库根目录运行 `npx jscpd .` 量出现状的重复率，`threshold` 设成它向上取整，在 `docs/architecture/tech-debt.md` 里记下，以后逐步调低 |
+| `CLAUDE.md` | Project summary, the language for project documents (ask the user; default: the language they talk to you in), the component table, each component's self-check commands (the lint column includes the architecture check), code standards, goals and non-goals, branches and commits. Run the self-check commands locally once to confirm they work. Keep "How to write code" as it is. Keep it short and link to docs/ for longer content |
+| `AGENTS.md` | Usually kept as it is; adjust when the project's documents live somewhere other than the template says |
+| `REVIEW.md` | Infer from the project type what counts as "bad", what to focus on and which paths to skip, and confirm with the user. Review comments use the project's document language. Keep "Patchwork and bloat" as it is |
+| `.github/workflows/ci.yml` | Replace the "Project-specific" section with one job per component (from the CI steps in `stack.md`) and add those job names to the `needs` of the `ci` summary job. Keep the `duplication` job. Branch rules recognize the checks by the name `ci` |
+| `.github/workflows/claude.yml` | Replace the "Project-specific" section with the tool setup steps the self-check commands need (the same as in ci.yml); replace the placeholder in `--allowedTools` with Bash permissions for the self-check commands, e.g. `Bash(npm run lint:*),Bash(npm test:*),Bash(./mvnw:*)` |
+| `.github/dependabot.yml` | Replace the "Project-specific" section with one entry per component; `package-ecosystem` follows the package manager (npm, maven, gradle, uv, pip, nuget) and `directory` is the component directory |
+| `.claude/hooks/format.config.json` | Rules only for formatting and lint tools that are already installed; run each command once first to confirm it exists. Each rule sets `dir` to its component directory. The format is in the README |
+| `.github/risk-rules.txt` | Adjust `[high]` and `[low]` to the project's directory structure: authentication, payments, data migrations, release and install scripts, CI configuration and lint and architecture check configuration go under `[high]`; pure documentation under `[low]` |
+| `.jscpd.json` | Keep as it is for new projects. For existing projects, run `npx jscpd .` at the repository root to measure today's duplication rate, set `threshold` to it rounded up, record it in `docs/architecture/tech-debt.md`, and lower it over time |
 
-`skipped` 里的文件是项目原来就有的：读原文件，找出模板里有而原文件缺的部分，把打算怎么合并告诉用户，用户同意后整体重写那个文件。项目已有的 `CLAUDE.md` 尤其要保留原有内容。
+Files in `skipped` already existed in the project: read the original, find what the template has and the original lacks, tell the user how you plan to merge, and rewrite the file as a whole once they agree. Keep the existing content of an existing `CLAUDE.md` in particular.
 
-## 6. 本地验证
+## 6. Verify locally
 
-- `node --check` 检查 `.claude/hooks/format.mjs`、`.github/scripts/risk-classify.mjs`、`.github/scripts/check-commit-message.mjs`、`evals/run-review-evals.mjs`。
-- 拿项目里一个真实文件试格式化钩子：`echo '{"tool_input":{"file_path":"<文件绝对路径>"}}' | node .claude/hooks/format.mjs`，退出码应为 0。
-- 拿几组路径试风险规则：`node .github/scripts/risk-classify.mjs --dry-run README.md <某个源码文件> .github/workflows/ci.yml`，确认等级符合预期。
-- 启用提交信息检查：`git config core.hooksPath .githooks`，并运行 `git update-index --chmod=+x .githooks/commit-msg`，让 macOS 和 Linux 上克隆的仓库也能执行这个钩子。拿一句不合格的提交信息试一下：`echo "随便改改" > "$TMPDIR/msg" && node .github/scripts/check-commit-message.mjs --file "$TMPDIR/msg"`，应该报错。
-- 在仓库根目录运行 `npx jscpd .`，应该通过。
-- 运行 CLAUDE.md 里的全部自检命令。
+- `node --check` on `.claude/hooks/format.mjs`, `.github/scripts/risk-classify.mjs`, `.github/scripts/check-commit-message.mjs` and `evals/run-review-evals.mjs`.
+- Try the format hook on a real file of the project: `echo '{"tool_input":{"file_path":"<absolute path of the file>"}}' | node .claude/hooks/format.mjs`; the exit code should be 0.
+- Try the risk rules on a few paths: `node .github/scripts/risk-classify.mjs --dry-run README.md <a source file> .github/workflows/ci.yml` and confirm the tiers are as expected.
+- Enable the commit message check: `git config core.hooksPath .githooks`, and run `git update-index --chmod=+x .githooks/commit-msg` so clones on macOS and Linux can execute the hook. Try an invalid message: `echo "random change" > "$TMPDIR/msg" && node .github/scripts/check-commit-message.mjs --file "$TMPDIR/msg"` should report an error.
+- Run `npx jscpd .` at the repository root; it should pass.
+- Run every self-check command in CLAUDE.md.
 
-## 7. 提交并推送
+## 7. Commit and push
 
-征得用户同意后，按 Conventional Commits 把文件分成几个提交（例如 `ci: 加入 AI 审查、安全审查和重复代码检查`、`chore: 加入提交信息检查和依赖自动升级`、`docs: 加入 CLAUDE.md、AGENTS.md 和 REVIEW.md`），直接推到当前默认分支。这时分支规则还没打开，可以直接推；而且 `claude-code-action` 要求工作流文件在默认分支上已存在且内容相同才会运行。
+With the user's approval, split the files into a few Conventional Commits (e.g. `ci: add AI review, security review and duplicate code detection`, `chore: add commit message checks and automatic dependency updates`, `docs: add CLAUDE.md, AGENTS.md and REVIEW.md`) and push them straight to the current default branch. Branch rules are not on yet, so pushing directly works; besides, `claude-code-action` only runs when the workflow file already exists on the default branch with the same content.
 
-选了 Git Flow 时：确认 main 上已经有这些提交，再从 main 拉出 develop 并推送，然后 `gh repo edit --default-branch develop`。
+With Git Flow: confirm these commits are on main, branch develop from main and push it, then `gh repo edit --default-branch develop`.
 
-## 8. GitHub 设置
+## 8. GitHub settings
 
-这些操作会改动用户的 GitHub 账号或仓库。每项都先说明作用，得到同意后再做。需要用户自己输入的命令，请他们在提示符里输入 `! <命令>` 来运行。
+These change the user's GitHub account or repository. Explain each one and wait for approval before doing it. For commands the user must type themselves, ask them to run `! <command>` at the prompt.
 
-1. **安装 Claude GitHub App**：打开 https://github.com/apps/claude ，安装到这个仓库。
-2. **放密钥**，二选一：
-   - 有 Claude Pro/Max 订阅：用户运行 `! claude setup-token` 拿到令牌，再运行 `! gh secret set CLAUDE_CODE_OAUTH_TOKEN` 粘贴进去。
-   - 用 API 计费：用户运行 `! gh secret set ANTHROPIC_API_KEY` 粘贴 API key。
-3. **仓库选项**：`gh repo edit --enable-auto-merge --delete-branch-on-merge`。打开自动合并后，检查全部通过时 GitHub 会自动合并 PR；合并后自动删除分支。
-4. **issue 类型标签**：`type:feature`（`1d76db`）、`type:bug`（`d73a4a`）、`type:refactor`（`fbca04`）、`type:chore`（`c5def5`）、`type:spike`（`d4c5f9`），用 `gh label create <名称> --color <颜色> --force` 创建。风险标签（`risk:*`、`human-reviewed`）由 `ai-review` 工作流第一次运行时自动创建。
-5. **分支规则**：运行 `gh api repos/<owner>/<repo>/rulesets --method POST --input "<本技能目录>/github-settings/ruleset.json"`。规则保护默认分支和 main：所有改动走 PR，`ci`、`risk-gate`、`commit-lint` 通过、所有评论线程处理完才能合并。私有仓库在 GitHub 免费版上不能用分支规则，接口会报错：告诉用户可以改成公开仓库，或者升级 GitHub Pro；在那之前，这套流程只能靠自觉执行。
-6. **Dependabot**：`dependabot.yml` 推上去后自动生效。需要 Dependabot 安全更新时，在仓库 Settings → Code security 里打开。
+1. **Install the Claude GitHub App**: open https://github.com/apps/claude and install it on this repository.
+2. **Store the secret**, one of:
+   - With a Claude Pro or Max subscription: the user runs `! claude setup-token` for a token, then `! gh secret set CLAUDE_CODE_OAUTH_TOKEN` and pastes it.
+   - With API billing: the user runs `! gh secret set ANTHROPIC_API_KEY` and pastes the API key.
+3. **Repository options**: `gh repo edit --enable-auto-merge --delete-branch-on-merge`. With auto-merge on, GitHub merges a PR once every check passes; branches are deleted after merging.
+4. **Issue type labels**: `type:feature` (`1d76db`), `type:bug` (`d73a4a`), `type:refactor` (`fbca04`), `type:chore` (`c5def5`), `type:spike` (`d4c5f9`), created with `gh label create <name> --color <color> --force`. Risk labels (`risk:*`, `human-reviewed`) are created automatically on the first `ai-review` run.
+5. **Branch rules**: run `gh api repos/<owner>/<repo>/rulesets --method POST --input "<this skill's directory>/github-settings/ruleset.json"`. The rules protect the default branch and main: every change goes through a PR, and merging requires `ci`, `risk-gate` and `commit-lint` to pass and every review thread to be resolved. Private repositories on GitHub Free cannot use branch rules and the API returns an error: tell the user they can make the repository public or upgrade to GitHub Pro; until then the workflow relies on discipline.
+6. **Dependabot**: `dependabot.yml` takes effect once pushed. For Dependabot security updates, enable them under Settings → Code security.
 
-## 9. 试跑并汇报
+## 9. Trial run and report
 
-建议用户用一个小改动试一遍：改一处文档，运行 `/open-pr`，然后在 PR 页面看 `ci`、`commits`、`ai-review`、`security-review` 是否都跑起来了；再在一个 issue 里评论 `@claude 你好` 试一下云端协作。跑不跑由用户决定。
+Suggest a trial with a small change: edit a document, run `/open-pr`, and check on the PR page that `ci`, `commits`, `ai-review` and `security-review` all run; then comment `@claude hello` on an issue to try the cloud collaboration. Whether to run it is the user's call.
 
-最后汇报：装了哪些文件、各填了什么、选了哪种分支策略、哪些 GitHub 设置已完成、哪些还要用户自己做，并告诉用户 README.md 里有完整说明。
+Finally report: which files were installed and what was filled in, which branching strategy was chosen, which GitHub settings are done and which the user still has to do, and that README.md has the full explanation.

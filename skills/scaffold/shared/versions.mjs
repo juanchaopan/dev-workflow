@@ -1,13 +1,16 @@
 #!/usr/bin/env node
-// 搭项目时现查版本，插件里不写死任何版本号：今天搭出来的项目用今天的版本，以后搭的用以后的版本。
-// 用法：
-//   node versions.mjs lts <产品>          运行时当前的长期支持版本（LTS），例如 nodejs → 24、eclipse-temurin → 25、dotnet → 10。
-//                                         没有 LTS 说法的产品（例如 python）取最新的稳定版本。数据来自 https://endoflife.date。
-//   node versions.mjs npm <包> <工具>...   npm 包能用的最高稳定版本：给出的每个工具的最新版都声明支持它
-//                                         （package.json 的 peerDependencies 或 supportedTranspilers）。
-//                                         例如 `npm typescript typescript-eslint dependency-cruiser`：TypeScript 出了新的大版本、
-//                                         而这些工具还没跟上时，得到上一个大版本；工具跟上以后，自动得到新版本。
-// 版本号输出到标准输出，用了哪些限制写到标准错误。
+// Looks versions up when a project is created, so no version number is ever hard-coded in the plugin:
+// a project created today gets today's versions, one created later gets later versions.
+// Usage:
+//   node versions.mjs lts <product>         the current long-term support release of a runtime, e.g. nodejs → 24,
+//                                           eclipse-temurin → 25, dotnet → 10. Products without an LTS concept (e.g. python)
+//                                           get the latest stable release. Data from https://endoflife.date.
+//   node versions.mjs npm <package> <tool>...  the highest stable version of an npm package that the latest release of
+//                                           every given tool declares support for (peerDependencies or supportedTranspilers
+//                                           in its package.json). E.g. `npm typescript typescript-eslint`: when TypeScript
+//                                           ships a new major and the tool has not caught up, the previous major comes back;
+//                                           once the tool catches up, the new major does.
+// The version goes to standard output; the constraints used go to standard error.
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,14 +48,15 @@ export function supportRanges(info, pkg) {
   return [info.peerDependencies?.[pkg], info.supportedTranspilers?.[pkg]].filter(Boolean);
 }
 
-// npm view --json 的结果：查一个字段时，有的 npm 版本直接给值，有的包成只有一个元素的数组；查一个范围的 version 时给版本列表。
+// npm view --json results: for a single field some npm versions return the value and others a one-element array;
+// for the version of a range they return the list of matching versions.
 export const asList = (value) => (value === undefined ? [] : [value].flat());
 export const asSingle = (value) => (Array.isArray(value) && value.length === 1 ? value[0] : value);
 
 function npmView(args) {
   const command = ['npm', 'view', ...args.map((a) => `"${a}"`), '--json'].join(' ');
   const result = spawnSync(command, { shell: true, encoding: 'utf8' });
-  if (result.status !== 0) throw new Error(`${command} 失败：\n${result.stderr}`);
+  if (result.status !== 0) throw new Error(`${command} failed:\n${result.stderr}`);
   const text = result.stdout.trim();
   return text ? JSON.parse(text) : undefined;
 }
@@ -65,28 +69,28 @@ function compatibleNpmVersion(pkg, tools) {
   for (const tool of tools) {
     const info = { peerDependencies: npmField(tool, 'peerDependencies'), supportedTranspilers: npmField(tool, 'supportedTranspilers') };
     for (const range of supportRanges(info, pkg)) {
-      console.error(`${tool} 支持 ${pkg} ${range}`);
+      console.error(`${tool} supports ${pkg} ${range}`);
       ranges.push(range);
     }
   }
   const version = pickCompatible(ranges.map((range) => asList(npmView([`${pkg}@${range}`, 'version']))));
-  if (!version) throw new Error(`没有同时满足这些范围的 ${pkg} 版本：${ranges.join('；')}`);
-  if (version !== latest) console.error(`${pkg} 的最新版是 ${latest}，工具链还没全部支持，用 ${version}`);
+  if (!version) throw new Error(`No version of ${pkg} satisfies all of: ${ranges.join('; ')}`);
+  if (version !== latest) console.error(`The latest ${pkg} is ${latest}; not every tool supports it yet, so ${version} is used`);
   return version;
 }
 
 async function ltsVersion(product) {
   const response = await fetch(`https://endoflife.date/api/${product}.json`);
-  if (!response.ok) throw new Error(`查不到 ${product}：endoflife.date 返回 ${response.status}`);
+  if (!response.ok) throw new Error(`Cannot look up ${product}: endoflife.date returned ${response.status}`);
   const version = pickLts(await response.json(), new Date().toISOString().slice(0, 10));
-  if (!version) throw new Error(`${product} 没有已发布的版本`);
+  if (!version) throw new Error(`${product} has no released version`);
   return version;
 }
 
 async function main([mode, name, ...tools]) {
   if (mode === 'lts' && name) return ltsVersion(name);
   if (mode === 'npm' && name) return compatibleNpmVersion(name, tools);
-  throw new Error('用法：node versions.mjs lts <产品> | node versions.mjs npm <包> <工具>...');
+  throw new Error('Usage: node versions.mjs lts <product> | node versions.mjs npm <package> <tool>...');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

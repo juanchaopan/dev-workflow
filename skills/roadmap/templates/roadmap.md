@@ -1,25 +1,25 @@
-# 路线图
+# Roadmap
 
-进度以 GitHub 上 issue 和里程碑的状态为准，这里只记计划。
+Progress lives in the GitHub issues and milestones; this file holds only the plan.
 
-## M0 走通骨架
+## M0 Walking skeleton
 
-目标：{{一条最薄的端到端路径，例如：在页面上创建一条记录并显示出来}}
+Goal: {{the thinnest end-to-end path, e.g. create a record on a page and see it listed}}
 
-| issue | 标题 | 需求 | 大小 | 依赖 |
+| Issue | Title | Requirements | Size | Depends on |
 |---|---|---|---|---|
-| #{{编号}} | {{标题}} | {{REQ-xxx}} | {{S}} | {{—}} |
+| #{{number}} | {{title}} | {{REQ-xxx}} | {{S}} | {{—}} |
 
 ## M1 MVP
 
-目标：{{第一版要做到什么}}
+Goal: {{what the first version achieves}}
 
-| issue | 标题 | 需求 | 大小 | 依赖 |
+| Issue | Title | Requirements | Size | Depends on |
 |---|---|---|---|---|
-| #{{编号}} | {{标题}} | {{REQ-xxx}} | {{M}} | {{#编号}} |
+| #{{number}} | {{title}} | {{REQ-xxx}} | {{M}} | {{#number}} |
 
-## 以后
+## Later
 
-| 需求 | 说明 |
+| Requirement | Notes |
 |---|---|
-| {{REQ-xxx}} | {{为什么以后再做}} |
+| {{REQ-xxx}} | {{why it comes later}} |

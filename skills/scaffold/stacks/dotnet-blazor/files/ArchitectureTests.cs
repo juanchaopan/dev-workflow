@@ -6,19 +6,20 @@ using Microsoft.AspNetCore.Components;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 using static ArchUnitNET.Fluent.Slices.SliceRuleDefinition;
 
-namespace {{根命名空间}}.Tests;
+namespace {{root namespace}}.Tests;
 
 /// <summary>
-/// 架构规则：展示组件不注入任何服务、不依赖数据访问；功能之间互不依赖。说明见 .claude/rules/ 里本组件的规范。
-/// InjectAttribute 所在的程序集也要加载进来，否则项目里还没有任何注入时，规则会因为找不到这个类型而报错。
+/// Architecture rules: presentational components inject no services and do not depend on data access; features do not depend
+/// on each other. Explained in this component's standards in .claude/rules/.
+/// The assembly of InjectAttribute is loaded too; otherwise the rule fails to find the type while the project has no injection yet.
 /// </summary>
 public class ArchitectureTests
 {
     private static readonly Architecture _architecture =
-        new ArchLoader().LoadAssemblies(typeof({{根命名空间}}.Components.App).Assembly, typeof(InjectAttribute).Assembly).Build();
+        new ArchLoader().LoadAssemblies(typeof({{root namespace}}.Components.App).Assembly, typeof(InjectAttribute).Assembly).Build();
 
     private static readonly IObjectProvider<IType> _presentationalComponents =
-        Types().That().ResideInNamespaceMatching(@"^{{根命名空间的正则写法}}\.(Features\.[^.]+|Shared)\.Components(\..+)?$").As("展示组件");
+        Types().That().ResideInNamespaceMatching(@"^{{root namespace regex}}\.(Features\.[^.]+|Shared)\.Components(\..+)?$").As("presentational components");
 
     [Fact]
     public void PresentationalComponentsDoNotInjectAnything()
@@ -33,7 +34,7 @@ public class ArchitectureTests
     public void PresentationalComponentsDoNotUseDataAccess()
     {
         Types().That().Are(_presentationalComponents)
-            .Should().NotDependOnAny(Types().That().ResideInNamespaceMatching(@"^{{根命名空间的正则写法}}\.Features\.[^.]+\.(Services|Data)(\..+)?$"))
+            .Should().NotDependOnAny(Types().That().ResideInNamespaceMatching(@"^{{root namespace regex}}\.Features\.[^.]+\.(Services|Data)(\..+)?$"))
             .WithoutRequiringPositiveResults()
             .Check(_architecture);
     }
@@ -41,6 +42,6 @@ public class ArchitectureTests
     [Fact]
     public void FeaturesDoNotDependOnEachOther()
     {
-        Slices().Matching("{{根命名空间}}.Features.(*)").Should().NotDependOnEachOther().Check(_architecture);
+        Slices().Matching("{{root namespace}}.Features.(*)").Should().NotDependOnEachOther().Check(_architecture);
     }
 }
