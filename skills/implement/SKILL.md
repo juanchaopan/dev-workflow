@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Develops GitHub issues from branch to merge: reads the issue with its requirements, architecture, design (screen definitions and confirmed screenshots, data, interfaces, logic) and standards, branches per CLAUDE.md, refactors first when new logic does not fit, works in small test → implement → refactor commits with tests derived from the design, compares changed screens with the prototypes, opens the PR with /open-pr and handles every AI review comment until it merges; medium and high risk PRs wait for the user. Can develop several issues in parallel: this session coordinates, each issue gets a background subagent in its own worktree, the user answers all plan questions in one place, PRs merge in a fixed order and heavy checks queue behind a lock. Usage: /implement <issue>, /implement next, /implement batch, or /implement <issue> <issue> ...
+description: Develops GitHub issues from branch to merge: reads the issue with its requirements, architecture, design (screen definitions and confirmed screenshots, data, interfaces, logic) and standards, branches per CLAUDE.md, refactors first when new logic does not fit, works in small test → implement → refactor commits with tests derived from the design, compares changed screens with the prototypes, opens the PR with /open-pr and handles every AI review comment until it merges; medium and high risk PRs wait for the user. Can develop several issues in parallel: this session coordinates, each issue gets a background subagent in its own worktree, a batch holds no more issues than run at once (the user picks them, the rest wait for the next batch), the user answers all plan questions in one place, PRs merge in a fixed order and heavy checks queue behind a lock. Usage: /implement &lt;issue&gt;, /implement next, /implement batch, or /implement &lt;issue&gt; &lt;issue&gt; ...
 ---
 
 # Developing issues
@@ -11,8 +11,8 @@ Four ways to call it:
 |---|---|
 | `/implement <number>` | Develops that issue in this session ("One issue" below) |
 | `/implement next` | Picks the next available issue and develops it in this session |
-| `/implement batch` | Develops every open issue whose dependencies are done, in parallel ("Several issues in parallel" below) |
-| `/implement <number> <number> ...` | Develops the given issues in parallel |
+| `/implement batch` | Develops a batch of open issues whose dependencies are done, in parallel, at most as many as run at once; the rest wait for the next `/implement batch` ("Several issues in parallel" below) |
+| `/implement <number> <number> ...` | Develops the given issues in parallel, with the same limit |
 
 Talk to the user in their language.
 
@@ -131,22 +131,33 @@ This session becomes the coordinator: it talks to the user, decides the merge or
 
 Subagents never ask the user anything: they return questions and plans to the coordinator, which asks the user and sends the answers back with SendMessage, so the user only ever deals with this session.
 
-### B1. Choose the batch
+A batch is a fixed set of issues settled with the user in B2. Every issue in it gets its subagent at the start, all of them plan together and all their decisions are settled together. An issue outside the batch is never started during the run: not when a subagent finishes, not when a PR merges, not when a subagent is taken out. It waits for the next `/implement batch`, where it is planned against the code that has merged by then.
+
+### B1. Choose the candidates
 
 - `/implement batch`: the open issues of the earliest unfinished milestone whose dependencies are all closed.
 - `/implement <number> ...`: the given issues; check their dependencies the same way.
 
-Leave out, and tell the user why for each: issues still blocked by open issues (including ones in this batch; they go into a later batch), `type:spike` issues (for /spike), issues that need a real environment or manual steps (hardware, production credentials, third-party accounts), and issues whose screens are "AI draft, awaiting confirmation" until the user confirms those screens (offer to do that first).
+Leave out, and tell the user why for each: issues still blocked by open issues (including other candidates; they go into a later batch), `type:spike` issues (for /spike), issues that need a real environment or manual steps (hardware, production credentials, third-party accounts), and issues whose screens are "AI draft, awaiting confirmation" until the user confirms those screens (offer to do that first).
 
-Run at most 4 subagents at a time unless the user asks for more: each one installs dependencies and runs checks, which takes memory and CPU.
+The limit is how many subagents run at once: 4 unless the user asks for more, since each one installs dependencies and runs checks, which takes memory and CPU. A batch holds at most that many issues. When more candidates remain than the limit, B2 lets the user choose which go into this batch.
 
-### B2. Fix the merge order
+### B2. Settle the batch and the merge order
 
-Read each issue's "Components and files" (expected files) and its design elements, and estimate which files each one will change. Choose the merge order: issues that others build on, and smaller issues touching shared files, go first; issues that overlap heavily stay apart in the order so the later one adapts to the earlier. Show the user a table — order, issue, size, expected files, overlaps with earlier issues — and confirm it.
+Read each candidate's "Components and files" (expected files) and its design elements, and estimate which files each one will change.
+
+When there are more candidates than the limit, recommend which go into this batch: issues that other candidates build on first, then those that overlap least with each other (so they can develop side by side), then the lowest numbers. Ask the user with AskUserQuestion (multi-select) which candidates make up this batch, or whether to raise the limit. Say plainly that the candidates not chosen are not started in this run and wait for the next `/implement batch`.
+
+Choose the merge order within the batch: issues that others build on, and smaller issues touching shared files, go first; issues that overlap heavily stay apart in the order so the later one adapts to the earlier. Show the user two tables and confirm them:
+
+- **This batch**: order, issue, size, expected files, overlaps with earlier issues.
+- **Not in this batch**: issue and why — over the limit (next batch), blocked by which issue, `type:spike`, needs manual steps, screens awaiting confirmation.
+
+When the user later asks to add an issue to a running batch, it goes at the end of the merge order and goes through B3 and B4 before it starts developing; the limit still holds, so it starts only once a subagent of this batch has finished.
 
 ### B3. Start the subagents: plans only
 
-Start one background subagent per issue with the Agent tool (`isolation: "worktree"`, `run_in_background: true`). Give each a brief with:
+Start one background subagent per issue in the batch with the Agent tool (`isolation: "worktree"`, `run_in_background: true`). Give each a brief with:
 
 - The issue number and title, and that it works for the coordinator, never asks the user, and returns everything for the user to the coordinator.
 - Its place in the merge order, the issues ahead of it and the files they expect to change.
@@ -181,9 +192,9 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 ### B7. Reviews, merging and wrap-up
 
 - Each subagent handles its PR's reviews as in step 7 of "One issue", and stops when CI is green and every thread is handled, reporting the PR link and risk tier to the coordinator. It never merges or labels anything itself.
-- The coordinator checks each PR's CI itself (`gh pr checks <PR>`), tells the user which PRs need their review (medium and high risk) and in which order, and after each merge wakes the next subagent in the order.
+- The coordinator checks each PR's CI itself (`gh pr checks <PR>`), tells the user which PRs need their review (medium and high risk) and in which order, and after each merge wakes the next subagent of this batch in the order. A merge frees a slot but starts nothing new.
 - After each merge, the coordinator checks the issue closed and closes it with a comment when `Closes #<number>` did not.
-- At the end, summarize the batch: issues done with their PRs, issues left out and why, open follow-ups, and suggest the next batch.
+- The batch ends when every issue in it has merged or been taken out. Summarize it: issues done with their PRs, issues taken out and why, candidates not in this batch (over the limit, blocked, spike, manual steps, screens awaiting confirmation), open follow-ups, and which issues the next `/implement batch` would pick up now that this batch has merged.
 
 ### B8. Exceptions and pitfalls
 
@@ -191,4 +202,4 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 - **A worktree disappears** (worktrees can be cleaned up automatically): recreate it from the main repository with `git worktree add <path> <branch>` and continue; commit often so nothing is lost.
 - **A background script moved the worktree to another commit** (e.g. a per-commit check): wait for it to finish and confirm `git status` shows the branch again before continuing.
 - **Dependencies went stale after switching branches or rebasing**: when the lock file changed, reinstall (`npm ci` and the like) before running checks.
-- **A subagent is stuck or keeps failing**: the coordinator stops it, tells the user, and takes the issue out of the batch; it can be done alone with `/implement <number>`.
+- **A subagent is stuck or keeps failing**: the coordinator stops it, tells the user, and takes the issue out of the batch; it can be done alone with `/implement <number>`. No other issue takes its place.

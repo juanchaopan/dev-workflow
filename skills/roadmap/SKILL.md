@@ -75,4 +75,4 @@ Write it from `templates/roadmap.md`, in the project's document language, with e
 
 ### 6. Next step
 
-Tell the user: run `/implement next` to develop the first issue, `/implement <issue number>` for a specific one, or `/implement batch` to develop every issue whose dependencies are done in parallel; when a `type:spike` issue comes first, run /spike first.
+Tell the user: run `/implement next` to develop the first issue, `/implement <issue number>` for a specific one, or `/implement batch` to develop a batch of issues whose dependencies are done in parallel (up to four at once; the user picks which, and the rest wait for the next batch); when a `type:spike` issue comes first, run /spike first.
