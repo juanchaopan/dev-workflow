@@ -8,26 +8,35 @@ The plugin itself is written in English. It talks to you in your language, and w
 
 ## Installation
 
-**On your own machine**: put this folder at `~/.claude/skills/dev-workflow/`, and Claude Code loads it as a plugin automatically (`claude plugin list` shows `dev-workflow@skills-dir`). A folder copied or cloned there does not update by itself; pull it after each change, or install it from GitHub as below.
+Either way works:
 
-**From GitHub** (updates through the marketplace): run in Claude Code:
+- **On your own machine**: clone the repository to `~/.claude/skills/dev-workflow/` (`git clone <repository URL> ~/.claude/skills/dev-workflow`), and Claude Code loads it as a plugin automatically (`claude plugin list` shows `dev-workflow@skills-dir`).
+- **From GitHub through the marketplace**: run in Claude Code:
 
-```
-/plugin marketplace add <your GitHub user>/<repository>
-/plugin install dev-workflow@dev-workflow
-```
-
-Update with `/plugin marketplace update dev-workflow`, or turn on auto-update for the marketplace in `/plugin`.
+  ```
+  /plugin marketplace add <your GitHub user>/<repository>
+  /plugin install dev-workflow@dev-workflow
+  ```
 
 Type commands such as `/kickoff` or `/implement` in Claude Code; when another plugin has the same name, add the plugin name: `/dev-workflow:kickoff`. Without a command, Claude also picks the right skill from what you say. Each session loads the skill summaries, roughly 2,500 tokens.
+
+## Updating the plugin
+
+1. **See what changed**: the commit history on GitHub. Commits follow Conventional Commits, and a `!` after the type (e.g. `feat(implement)!:`) marks a change in how you use a command.
+2. **Get the new version**, the way you installed it:
+   - Cloned into `~/.claude/skills/dev-workflow/`: `git -C ~/.claude/skills/dev-workflow pull --ff-only`. A folder copied there without git does not update: delete it and clone the repository in its place.
+   - From the marketplace: `/plugin marketplace update dev-workflow`, or turn on auto-update for the marketplace in `/plugin` so it updates by itself.
+3. **Check the version**: `claude plugin list` shows the version of dev-workflow; it should match `version` in `.claude-plugin/plugin.json` on GitHub.
+4. **Start a new session**: an open Claude Code session keeps what it loaded at startup, so exit it and start `claude` again. Work already running in an old session, such as parallel issues in `/implement next`, finishes with the rules it started with; the new version applies from the next command in a new session.
+5. **Bring projects set up earlier up to date** when the change touches what was installed into them: updating the plugin never changes a project's own files (CLAUDE.md, REVIEW.md, the GitHub workflows, `/open-pr`, hooks) or its GitHub settings. Run `/setup-ai-review` in the project again: it adds files the project lacks, shows how each existing file differs from the new template and merges it once you agree, and redoes GitHub settings only with your approval.
 
 ## Workflow
 
 ```
 New project:
-  /kickoff ──► /architect ──► /design ──► /scaffold ──► /roadmap ──► /implement (next or batch) ──► /release
-  requirements  stack and       screens,      project and    issues        develop → PR → review → merge   release
-                architecture    data and      standards
+  /kickoff ──► /architect ──► /design ──► /scaffold ──► /roadmap ──► /implement next ──► /release
+  requirements  stack and       screens,      project and    issues        develop → PR →    release
+                architecture    data and      standards                    review → merge
                                 interfaces    + /setup-ai-review
                                 confirmed one
                                 by one
@@ -56,7 +65,7 @@ Whenever unsure (any stage):
 | `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
 | `/setup-ai-review` | CI, AI code review, security review, risk tiers, commit message checks, duplicate code detection, automatic dependency updates, `@claude` | Choose the branching strategy; store the secret |
 | `/roadmap` | Milestones and issues from requirements and design, one small PR per issue, acceptance criteria taken from the design; spikes and the skeleton first; for old systems characterization tests, data migration rehearsals and cutover | Confirm scope and order |
-| `/implement` | Branch, refactor first when needed, small "test → implement → refactor" commits (tests derived from the design's rules), screens compared with the confirmed screenshots, PR, review handling, automatic merge. `batch` develops several issues in parallel with one subagent each | Say how many issues run at once and which go into the batch; answer plan questions; read the diff of medium and high risk PRs and add `human-reviewed` |
+| `/implement` | Branch, refactor first when needed, small "test → implement → refactor" commits (tests derived from the design's rules), screens compared with the confirmed screenshots, PR, review handling, automatic merge. `next` says how many issues can start and asks how many to develop: one in this session, several in parallel with one subagent each | Say how many issues to develop and which; answer plan questions; read the diff of medium and high risk PRs and add `human-reviewed` |
 | `/change` | Rates a new idea twice — how much the requirements change, how hard it hits the code structure — asks, updates requirements and design, has changed screens confirmed again, splits issues | Confirm the levels; answer; confirm changed screens |
 | `/release` | Computes the version, writes the CHANGELOG, runs the release branch, tags, creates the Release, follows the production deployment | Confirm the version; approve the production deployment |
 
@@ -88,7 +97,7 @@ Nothing in the plugin pins a version. When /scaffold creates a project it looks 
 
 ## Developing several issues at once
 
-`/implement batch` (or `/implement 128 133 134`) develops a batch of issues whose dependencies are done in parallel. It first tells you how many issues can be developed in parallel now, with their expected files and overlaps, and asks how many to run at once, recommending a number from how much they overlap and what the machine can carry. A batch holds that many issues; when you choose fewer than are ready, you pick which go in (with a recommendation), and the rest wait for the next `/implement batch` instead of starting when a slot frees up. This session coordinates; each issue gets a background subagent in its own git worktree. The subagents plan first, and you answer all their questions in one place; the merge order is fixed up front so the result equals doing the issues one by one; later PRs rebase onto what merged before them; heavy checks such as end-to-end and Docker visual tests queue behind a lock. Each subagent stops when its PR is green and reviewed, and the coordinator tells you which PRs need your review, wakes the next one after each merge, and summarizes the batch with the issues the next batch would pick up.
+`/implement next` first tells you how many issues can start now (dependencies done), with their expected files and overlaps, and asks how many to develop, recommending a number from how much they overlap and what the machine can carry. One is developed in this session. With more, they form a batch developed in parallel; when you choose fewer than are ready, you pick which go in (with a recommendation), and the rest wait for the next `/implement next` instead of starting when a slot frees up. `/implement 128 133 134` does the same with the issues you name. This session coordinates; each issue in the batch gets a background subagent in its own git worktree. The subagents plan first, and you answer all their questions in one place; the merge order is fixed up front so the result equals doing the issues one by one; later PRs rebase onto what merged before them; heavy checks such as end-to-end and Docker visual tests queue behind a lock. Each subagent stops when its PR is green and reviewed, and the coordinator tells you which PRs need your review, wakes the next one after each merge, and summarizes the batch with the issues the next `/implement next` would offer.
 
 ## Branches stay on GitHub
 
@@ -141,7 +150,7 @@ Each stack's `stack.md` also lists "decision points" (e.g. build tool, lint tool
 
 What a screen should look like is defined by design files (when you have them; Claude can read Figma through its MCP server) or by the prototype screenshots confirmed in /design. Colors, font sizes and spacing become design tokens with the same values as the prototypes' `tokens.css`; /implement puts the implemented screen next to the prototype screenshot in the PR; presentational components are checked one by one in Storybook; visual regression tests compare Playwright screenshots, and an unexpected change fails the PR with comparison images. See `skills/scaffold/shared/visual-testing.md`.
 
-## Maintenance and upgrades
+## Maintaining the plugin
 
 Tools and generators change every few months (e.g. create-vite moved from ESLint to oxlint, TypeScript 7 shipped without a JS API, PMD renamed rules). The plugin checks itself:
 
@@ -157,7 +166,7 @@ Once pushed to GitHub, `.github/workflows/self-test.yml` runs every stack every 
 
 Each project's own Dependabot checks its dependencies weekly.
 
-After changing the plugin, commit with Conventional Commits and bump the version in `.claude-plugin/plugin.json` following semantic versioning.
+After changing the plugin, commit with Conventional Commits, bump the version in `.claude-plugin/plugin.json` following semantic versioning, and push; installed copies then update as in "Updating the plugin".
 
 ## Not verified automatically
 
@@ -166,5 +175,5 @@ These are in the documents and templates but need real accounts or environments,
 - The deployment pipeline (`skills/scaffold/shared/deploy.yml`) and each platform's PR previews.
 - Generating visual regression baselines in Docker (Docker Desktop must be running).
 - The GitHub workflows: AI review, security review, `@claude`, Dependabot, branch rules. They only run in a real repository.
-- Parallel development with `/implement batch`, which depends on Claude Code's subagents and worktrees in a real project.
+- Parallel development with `/implement next`, which depends on Claude Code's subagents and worktrees in a real project.
 - /onboard on a real legacy system: capturing screens behind a sign-in, data profiling on a database copy, and the subagent split by area.

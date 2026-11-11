@@ -1,18 +1,17 @@
 ---
 name: implement
-description: Develops GitHub issues from branch to merge and beyond: reads the issue with its requirements, architecture, design (screen definitions and confirmed screenshots, data, interfaces, logic) and standards, branches per CLAUDE.md, refactors first when new logic does not fit, works in small test → implement → refactor commits with tests derived from the design, compares changed screens with the prototypes, opens the PR with /open-pr and handles every AI review comment; medium and high risk PRs wait for the user and are watched until they merge; an issue is done only when CI on the base branch passes for the merge and staging runs it. Heavy checks clean up their containers and leave nothing running. Can develop several issues in parallel: this session coordinates, tells the user how many issues can be developed in parallel now and asks how many to run, each issue in the batch gets a background subagent in its own worktree, the rest wait for the next batch, the user answers all plan questions in one place, PRs merge in a fixed order, heavy checks queue behind a lock, and worktrees are removed once their issue is finished. Branches stay on the remote; only local copies are removed. Usage: /implement &lt;issue&gt;, /implement next, /implement batch, or /implement &lt;issue&gt; &lt;issue&gt; ...
+description: Develops GitHub issues from branch to merge and beyond: reads the issue with its requirements, architecture, design (screen definitions and confirmed screenshots, data, interfaces, logic) and standards, branches per CLAUDE.md, refactors first when new logic does not fit, works in small test → implement → refactor commits with tests derived from the design, compares changed screens with the prototypes, opens the PR with /open-pr and handles every AI review comment; medium and high risk PRs wait for the user and are watched until they merge; an issue is done only when CI on the base branch passes for the merge and staging runs it. Heavy checks clean up their containers and leave nothing running. /implement next tells the user how many issues can start now and asks how many to develop: one is developed in this session, several in parallel (this session coordinates, each issue gets a background subagent in its own worktree, the user answers all plan questions in one place, PRs merge in a fixed order, heavy checks queue behind a lock, worktrees are removed once their issue is finished), and the rest wait for the next /implement next. Branches stay on the remote; only local copies are removed. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
 ---
 
 # Developing issues
 
-Four ways to call it:
+Three ways to call it:
 
 | Call | What happens |
 |---|---|
-| `/implement <number>` | Develops that issue in this session ("One issue" below) |
-| `/implement next` | Picks the next available issue and develops it in this session |
-| `/implement batch` | Tells the user how many open issues whose dependencies are done can be developed in parallel, asks how many to run, and develops that many in parallel; the rest wait for the next `/implement batch` ("Several issues in parallel" below) |
-| `/implement <number> <number> ...` | Develops the given issues in parallel the same way: the user hears how many can start and chooses how many run |
+| `/implement next` | Lists the issues that can start now, tells the user how many there are and asks how many to develop ("Choosing how many" below). One is developed in this session ("One issue"); more are developed in parallel ("Several issues in parallel"); the rest wait for the next `/implement next` |
+| `/implement <number>` | Develops that issue in this session ("One issue") |
+| `/implement <number> <number> ...` | Takes the given issues as the candidates and goes on as `/implement next` does |
 
 Talk to the user in their language.
 
@@ -20,12 +19,39 @@ An issue is done when its PR has merged, CI on the base branch has passed for th
 
 Branches are never deleted on the remote: once work is merged, only the local branch (and, in parallel work, the worktree) is removed. Never run `git push origin --delete`, `gh pr merge --delete-branch` or anything else that removes a remote branch.
 
+## Choosing how many
+
+### N1. The candidates
+
+- `/implement next`: the open issues of the earliest unfinished milestone whose dependencies are all closed (`gh issue list --milestone "<milestone>" --state open --json number,title,body,labels`). Without milestones, the open issues by number.
+- `/implement <number> <number> ...`: the given issues; check their dependencies the same way.
+
+Leave out, and note why for each: issues still blocked by open issues (including other candidates; they come up in a later `/implement next`), `type:spike` issues (for /spike), issues that need a real environment or manual steps (hardware, production credentials, third-party accounts), and issues whose screens are "AI draft, awaiting confirmation" until the user confirms those screens (offer to do that first).
+
+Read each candidate's "Components and files" (expected files) and its design elements, and estimate which files each one will change.
+
+### N2. Ask how many
+
+There is no fixed number; the user decides how many issues are developed this time.
+
+1. Tell the user how many issues can start now, in a table: issue, title, size, expected files, overlaps with other candidates. Below it, list the issues left out in N1 and why.
+2. When no candidate is left, say what blocks them and stop. When exactly one is left, say so and develop it as in "One issue".
+3. Otherwise ask with AskUserQuestion how many to develop: "1, in this session", one option for all of the candidates in parallel, and a number in between when there is room; the user can type any other number. Recommend one, weighing:
+   - Overlap: issues that change the same files gain little from running side by side, since each later one rebases onto and adapts to the earlier ones.
+   - The machine: each parallel issue gets a subagent that installs dependencies in its own worktree and runs its own checks, which takes memory and CPU. When it is easy to see, mention the machine's CPU cores and free memory.
+   - Review load: every medium and high risk PR waits for the user to read it.
+4. When the user's request already gave the number (e.g. "three at a time"), use it without asking.
+
+### N3. Go on
+
+- **One**: take the issue that other candidates build on, otherwise the lowest number; tell the user which one (they can name another instead), and develop it as in "One issue".
+- **More than one**: go on with B1 of "Several issues in parallel".
+
 ## One issue
 
 ### 0. Pick the issue
 
-- `/implement <number>`: `gh issue view <number> --comments`.
-- `/implement next`: list the open issues of the earliest unfinished milestone (`gh issue list --milestone "<milestone>" --state open --json number,title,body,labels`), pick the one with the lowest number whose dependencies are all closed, and tell the user which one. Without milestones, go by issue number. `type:spike` issues go to /spike, not here.
+`gh issue view <number> --comments`, for the issue given with `/implement <number>` or chosen in N2 and N3. `type:spike` issues go to /spike, not here.
 
 ### 1. Read the context
 
@@ -150,56 +176,35 @@ This session becomes the coordinator: it talks to the user, decides the merge or
 
 Subagents never ask the user anything: they return questions and plans to the coordinator, which asks the user and sends the answers back with SendMessage, so the user only ever deals with this session.
 
-A batch is a fixed set of issues settled with the user in B2 and B3. Every issue in it gets its subagent at the start, all of them plan together and all their decisions are settled together. An issue outside the batch is never started during the run: not when a subagent finishes, not when a PR merges, not when a subagent is taken out. It waits for the next `/implement batch`, where it is planned against the code that has merged by then.
+A batch is the fixed set of issues settled with the user in N2 and B1. Every issue in it gets its subagent at the start, all of them plan together and all their decisions are settled together. An issue outside the batch is never started during the run: not when a subagent finishes, not when a PR merges, not when a subagent is taken out. It waits for the next `/implement next`, where it is planned against the code that has merged by then.
 
-### B1. Choose the candidates
+### B1. Settle the batch and the merge order
 
-- `/implement batch`: the open issues of the earliest unfinished milestone whose dependencies are all closed.
-- `/implement <number> ...`: the given issues; check their dependencies the same way.
-
-Leave out, and note why for each: issues still blocked by open issues (including other candidates; they go into a later batch), `type:spike` issues (for /spike), issues that need a real environment or manual steps (hardware, production credentials, third-party accounts), and issues whose screens are "AI draft, awaiting confirmation" until the user confirms those screens (offer to do that first).
-
-Read each candidate's "Components and files" (expected files) and its design elements, and estimate which files each one will change.
-
-### B2. Ask how many run at once
-
-There is no fixed number; the user decides how many subagents run at once, and the batch holds that many issues.
-
-1. Tell the user how many issues can be developed in parallel now, in a table: issue, title, size, expected files, overlaps with other candidates. Below it, list the issues left out in B1 and why.
-2. When no candidate is left, say what blocks them and stop. When exactly one is left, say so and offer to develop it in this session as in "One issue".
-3. Otherwise ask with AskUserQuestion how many to run at once: one option for all of the candidates, plus a few smaller numbers; the user can type any other number. Recommend one, weighing:
-   - Overlap: issues that change the same files gain little from running side by side, since each later one rebases onto and adapts to the earlier ones.
-   - The machine: each subagent installs dependencies in its own worktree and runs its own checks, which takes memory and CPU. When it is easy to see, mention the machine's CPU cores and free memory.
-   - Review load: every medium and high risk PR waits for the user to read it.
-4. When the user's request already gave the number (e.g. "three at a time"), use it without asking.
-
-### B3. Settle the batch and the merge order
-
-When the chosen number covers every candidate, they all go into this batch. When it is smaller, recommend which go in: issues that other candidates build on first, then those that overlap least with each other (so they can develop side by side), then the lowest numbers. Let the user choose with AskUserQuestion: a multi-select of the candidates when they fit in the options, otherwise the recommended set as one option, with the user free to name other issues instead. Say plainly that the candidates not chosen are not started in this run and wait for the next `/implement batch`.
+When the number chosen in N2 covers every candidate, they all go into this batch. When it is smaller, recommend which go in: issues that other candidates build on first, then those that overlap least with each other (so they can develop side by side), then the lowest numbers. Let the user choose with AskUserQuestion: a multi-select of the candidates when they fit in the options, otherwise the recommended set as one option, with the user free to name other issues instead. Say plainly that the candidates not chosen are not started in this run and wait for the next `/implement next`.
 
 Choose the merge order within the batch: issues that others build on, and smaller issues touching shared files, go first; issues that overlap heavily stay apart in the order so the later one adapts to the earlier. Show the user two tables and confirm them:
 
 - **This batch**: order, issue, size, expected files, overlaps with earlier issues.
-- **Not in this batch**: issue and why — beyond the number chosen (next batch), blocked by which issue, `type:spike`, needs manual steps, screens awaiting confirmation.
+- **Not in this batch**: issue and why — beyond the number chosen (next time), blocked by which issue, `type:spike`, needs manual steps, screens awaiting confirmation.
 
-When the user later asks to add an issue to a running batch, it goes at the end of the merge order and goes through B4 and B5 before it starts developing. The number running at once still holds: it starts once a subagent of this batch has finished, unless the user raises the number.
+When the user later asks to add an issue to a running batch, it goes at the end of the merge order and goes through B2 and B3 before it starts developing. The number running at once still holds: it starts once a subagent of this batch has finished, unless the user raises the number.
 
-### B4. Start the subagents: plans only
+### B2. Start the subagents: plans only
 
 Start one background subagent per issue in the batch with the Agent tool (`isolation: "worktree"`, `run_in_background: true`). Give each a brief with:
 
 - The issue number and title, and that it works for the coordinator, never asks the user, and returns everything for the user to the coordinator.
 - Its place in the merge order, the issues ahead of it and the files they expect to change.
 - What to do now: steps 1 to 3 of "One issue" in this skill (read the context, check whether work can start, make a small plan) in its own worktree, then stop and return the plan: steps, files and tests, size, whether it should become several PRs, problems that block it, and the decisions the user must make, each with concrete options and a recommendation.
-- The rules for working in a worktree, heavy checks and their lock (B6), the pitfalls (B9), and that it never deletes a remote branch.
+- The rules for working in a worktree, heavy checks and their lock (B4), the pitfalls (B7), and that it never deletes a remote branch.
 
-### B5. Settle the decisions with the user
+### B3. Settle the decisions with the user
 
 Collect the plans. Summarize them for the user in one table, then ask every decision point with AskUserQuestion, grouped by issue (each question names its issue; at most 4 questions per round, as many rounds as needed). Send each subagent its answers with SendMessage and tell it to start developing.
 
 When an answer overturns the plan (e.g. the interaction changes completely): when it changes behavior users can see, first update the design with the user through the design skill (only the affected elements); then the subagent records the new acceptance criteria as a comment on its issue before writing code.
 
-### B6. Development in the subagents
+### B4. Development in the subagents
 
 Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 
@@ -211,14 +216,14 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
   3. Release the lock right away, whether the check passed or failed: `rm -rf "$LOCK"`.
   4. When a lock is older than an hour, do not delete it; report it to the coordinator, which checks whether its owner is still working.
 
-### B7. Open PRs in order
+### B5. Open PRs in order
 
 - The first issue in the merge order opens its PR as soon as it is done locally (step 6 of "One issue").
 - Every later issue finishes locally first (all commits made, all checks passing), reports "ready, waiting for #<previous>" and waits. Once the issue ahead of it has merged, the coordinator tells it to continue: `git fetch origin`, rebase onto the latest base branch, adapt to the changes already merged, rerun every check (heavy ones through the lock), then open its PR.
 - Once a branch is pushed, keep it in sync with the base branch only by merging (`git merge origin/<base>`); never force-push.
 - An issue split into several PRs stacks the later PRs locally on the earlier one; once the earlier one merges, move the next onto the base branch with `git rebase --onto origin/<base> <old base of the stack> <branch>`.
 
-### B8. Reviews, merging and wrap-up
+### B6. Reviews, merging and wrap-up
 
 - Each subagent handles its PR's reviews as in step 7 of "One issue", and stops when CI is green and every thread is handled, reporting the PR link and risk tier to the coordinator. It never merges or labels anything itself.
 - The coordinator checks each PR's CI itself (`gh pr checks <PR>`) and tells the user which PRs need their review (medium and high risk) and in which order. It watches every PR of the batch in the background until it merges, as in step 8 of "One issue", so a label the user adds is followed through to the merge.
@@ -229,12 +234,12 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
   3. `git worktree remove <worktree>`, then delete its local branch with `git branch -D <branch>` (step 1 showed nothing is only local). The branch stays on the remote.
   4. When Windows cannot delete it because a path is too long, remove the directory in PowerShell with `Remove-Item -LiteralPath '\\?\<absolute path of the worktree>' -Recurse -Force`, then `git worktree prune`.
 - The batch ends when every issue in it is done or has been taken out. Before the summary, confirm with `git worktree list` that only the main repository is left (remove any other the same way), that no heavy-check lock is left behind, and that `docker ps` shows nothing the batch started.
-- Summarize the batch: issues done with their PRs and the results of CI on the base branch and staging, issues taken out and why, candidates not in this batch (beyond the number chosen, blocked, spike, manual steps, screens awaiting confirmation), open follow-ups, and which issues the next `/implement batch` would pick up now that this batch has merged.
+- Summarize the batch: issues done with their PRs and the results of CI on the base branch and staging, issues taken out and why, candidates not in this batch (beyond the number chosen, blocked, spike, manual steps, screens awaiting confirmation), open follow-ups, and which issues the next `/implement next` would offer now that this batch has merged.
 
-### B9. Exceptions and pitfalls
+### B7. Exceptions and pitfalls
 
 - **GitHub Actions or GitHub itself is down**: subagents report it and keep doing local work. The coordinator watches https://www.githubstatus.com and, once it recovers, tells the subagents to rerun failed runs (`gh run rerun <run id> --failed`).
 - **A worktree disappears** (worktrees can be cleaned up automatically): recreate it from the main repository with `git worktree add <path> <branch>` and continue; commit often so nothing is lost.
 - **A background script moved the worktree to another commit** (e.g. a per-commit check): wait for it to finish and confirm `git status` shows the branch again before continuing.
 - **Dependencies went stale after switching branches or rebasing**: when the lock file changed, reinstall (`npm ci` and the like) before running checks.
-- **A subagent is stuck or keeps failing**: the coordinator stops it, tells the user, and takes the issue out of the batch; it can be done alone with `/implement <number>`. No other issue takes its place. Its worktree is removed as in B8 only after the check there shows nothing would be lost.
+- **A subagent is stuck or keeps failing**: the coordinator stops it, tells the user, and takes the issue out of the batch; it can be done alone with `/implement <number>`. No other issue takes its place. Its worktree is removed as in B6 only after the check there shows nothing would be lost.
