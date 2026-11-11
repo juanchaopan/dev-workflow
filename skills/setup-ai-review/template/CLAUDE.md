@@ -24,6 +24,8 @@ The whole repository also has duplicate code detection: `npx jscpd .` (at the re
 
 Heavy checks, which use a lot of memory or Docker and run one at a time when several issues are developed in parallel: {{e.g. `npx playwright test` for end-to-end and visual regression tests; "none"}}.
 
+After a heavy check, whether it passed or failed, nothing it started keeps running: stop it with {{e.g. `docker compose -f infra/docker-compose.e2e.yml down`; containers run with `docker run --rm` remove themselves}}. Docker Desktop after heavy checks: {{"quit it with `docker desktop stop` when the check started it" or "leave it running"}}.
+
 ## Code standards
 
 - Each stack's standards are in `.claude/rules/` and load automatically when you change files in the matching directories. Their layering rules are enforced by the architecture checks: when a check fails, change the structure of the code, not the rules; when a rule really must change, ask first.
@@ -52,6 +54,11 @@ Heavy checks, which use a lot of memory or Docker and run one at a time when sev
 - Commit messages follow Conventional Commits: `<type>(<scope>): <description> (#<issue>)`, e.g. `feat(auth): support e-mail sign-in (#12)`. `.githooks/commit-msg` and CI check them.
 - One commit does one thing, every commit passes the self-check commands on its own, and nothing unrelated is mixed in.
 - Merge method: {{e.g. merge commit, keeping every small commit}}. PRs have auto-merge enabled and GitHub merges them once every check passes.
+
+## Environments
+
+- Staging: {{URL, and how to see which commit it runs, e.g. `curl <url>/version` or the `staging` deployments on GitHub; "none"}}.
+- A change is done when its PR has merged, CI on {{integration branch}} has passed for the merge commit, and staging runs it.
 
 ## Workflow
 

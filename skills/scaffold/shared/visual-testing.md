@@ -47,7 +47,9 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
      sh -c "npm ci && npx playwright test --update-snapshots"
    ```
 
-   In Git Bash on Windows, prefix the command with `MSYS_NO_PATHCONV=1` and convert the path with `cygpath -w`. Commit the generated `e2e/**-snapshots/*.png`. Docker Desktop must be running.
+   In Git Bash on Windows, prefix the command with `MSYS_NO_PATHCONV=1` and convert the path with `cygpath -w`. Commit the generated `e2e/**-snapshots/*.png`.
+
+   This is a heavy check: it goes into the "Heavy checks" line of the project's CLAUDE.md and leaves nothing running. When `docker info` fails, start Docker first (Docker Desktop: `docker desktop start`). `--rm` removes the container when it exits; anything else the run started (e.g. a `docker compose` stack the tests use) is stopped with `docker compose -f <file> down` afterwards, whether the run passed or failed. When CLAUDE.md says to quit Docker Desktop after heavy checks and the run started it, quit it with `docker desktop stop`.
 5. CI runs in the same image:
 
    ```yaml
