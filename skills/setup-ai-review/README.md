@@ -35,6 +35,8 @@ Chosen at setup and written into the project's CLAUDE.md; `/open-pr`, `/implemen
 
 The code in a release PR (`release/*` → main) was reviewed when it went into develop, so it gets no further AI review, but it always counts as high risk: merging is releasing, and you confirm it. PRs merging main back into develop count as low risk and merge automatically.
 
+Branches stay on GitHub after they merge, under both strategies: feature, fix, refactor, release, hotfix and spike branches are never deleted on the remote. The workflow removes only local branches and worktrees once their work is pushed.
+
 ## Keeping code from turning into patchwork
 
 A common weakness of AI-written code is growing bloat: more and more ifs and parameters added to old functions, dead code left behind, comments that read like change logs. There are defenses at four points:
@@ -84,7 +86,7 @@ A common weakness of AI-written code is growing bloat: more and more ifs and par
 |---|---|
 | Claude GitHub App | Lets Claude comment on PRs and respond to `@claude` |
 | Secrets | Holds `CLAUDE_CODE_OAUTH_TOKEN` (subscribers) or `ANTHROPIC_API_KEY` (API users) |
-| Auto-merge, delete branch after merge | Merges automatically once checks pass and cleans up the branch afterwards |
+| Auto-merge on, "Automatically delete head branches" off | Merges automatically once checks pass; merged branches stay on GitHub |
 | Branch rules (ruleset) | The default branch and main change only through PRs; merging requires `ci`, `risk-gate` and `commit-lint` to pass and every review thread to be resolved |
 
 This skill's `github-settings/ruleset.json` is the branch rule configuration `/setup-ai-review` uses to create the rules. Private repositories on GitHub Free cannot use branch rules: make the repository public or upgrade to GitHub Pro.

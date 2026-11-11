@@ -1,13 +1,13 @@
 ---
 name: spike
-description: Technical spike (proof of concept). When an approach is uncertain, run a time-boxed, throwaway verification first — write down the question and what counts as success, build the minimum, produce evidence (a URL to open, screenshots, performance numbers, logs) for the user, record the conclusion as an ADR once the user decides, then archive the spike code as a pushed tag, throw the branch away and implement through the normal workflow. Use when the user says "let's do a POC first", "verify this first", "will this approach work" or "build a quick prototype"; /kickoff, /architect, /design and /change also suggest it for uncertain, risky points.
+description: Technical spike (proof of concept). When an approach is uncertain, run a time-boxed, throwaway verification first — write down the question and what counts as success, build the minimum, produce evidence (a URL to open, screenshots, performance numbers, logs) for the user, record the conclusion as an ADR once the user decides, then archive the spike code as a pushed tag, keep the spike branch on the remote (only the local copy is removed) and implement through the normal workflow. Use when the user says "let's do a POC first", "verify this first", "will this approach work" or "build a quick prototype"; /kickoff, /architect, /design and /change also suggest it for uncertain, risky points.
 ---
 
 # Technical spike
 
 A spike answers exactly one question. Its code does not aim for quality, has no complete tests and **is never merged into production code**; what it produces is a conclusion backed by evidence. The real implementation comes after the conclusion and is written from scratch through /roadmap and /implement.
 
-Every spike lives in git from the first attempt to the archive tag, so nothing is lost when it is cleaned up.
+Every spike lives in git from the first attempt to the archive tag, and its branch stays on the remote afterwards, so nothing is lost when it is cleaned up.
 
 ## Steps
 
@@ -66,14 +66,16 @@ Put the question, criteria, evidence and your assessment side by side. For UI qu
 
 ### 8. Clean up
 
-Archive first, delete afterwards, and check each step before the next:
+Archive first, then remove only the local copy, and check each step before the next. The spike branch on the remote is never deleted.
 
-1. Close the draft PR, when there is one.
+1. Close the draft PR, when there is one; closing it leaves its branch in place.
 2. Check nothing is left out: on the spike branch `git status` is clean, and SPIKE.md with the results, evidence and conclusion is committed. Otherwise commit them now (`chore(spike): record the results`).
-3. Archive: `git tag archive/spike-<short-name> spike/<short-name>`, `git push origin archive/spike-<short-name>`, and confirm the tag is on the remote with `git ls-remote --tags origin archive/spike-<short-name>`. A spike in its own `git init` directory has no remote: ask the user whether to push it to a new private repository (`gh repo create <name> --private --source . --push`, then push the tag) or keep it only on this machine, and tell them where it is.
-4. Delete the branch: switch away from it and `git branch -D spike/<short-name>`. Delete the remote branch only when it was pushed (`git ls-remote --heads origin spike/<short-name>` lists it): `git push origin --delete spike/<short-name>`. A standalone `git init` directory is deleted only once it is pushed, or when the user says to drop it.
+3. Archive: `git tag archive/spike-<short-name> spike/<short-name>`, `git push origin archive/spike-<short-name>`, and confirm the tag is on the remote with `git ls-remote --tags origin archive/spike-<short-name>`.
+4. Keep the branch on the remote: push it (`git push -u origin spike/<short-name>`; when it was pushed before, this sends the last commits) and confirm `git ls-remote --heads origin spike/<short-name>` lists it at the same commit as the local branch.
+5. Remove the local copy: switch away from the branch and `git branch -D spike/<short-name>`.
+6. A spike in its own `git init` directory has no remote: ask the user whether to push it to a new private repository (`gh repo create <name> --private --source . --push`, then push the tag) or keep it only on this machine, and tell them where it is. The directory is deleted only once it is pushed, or when the user says to drop it.
 
-The tag brings the spike back when needed: `git switch -c spike/<short-name> archive/spike-<short-name>`.
+The spike comes back when needed from its remote branch (`git switch spike/<short-name>` creates the local branch from `origin`) or from the tag (`git switch -c spike/<short-name> archive/spike-<short-name>`).
 
 ### 9. The real implementation
 

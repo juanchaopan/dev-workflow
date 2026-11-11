@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Develops GitHub issues from branch to merge and beyond: reads the issue with its requirements, architecture, design (screen definitions and confirmed screenshots, data, interfaces, logic) and standards, branches per CLAUDE.md, refactors first when new logic does not fit, works in small test → implement → refactor commits with tests derived from the design, compares changed screens with the prototypes, opens the PR with /open-pr and handles every AI review comment; medium and high risk PRs wait for the user and are watched until they merge; an issue is done only when CI on the base branch passes for the merge and staging runs it. Heavy checks clean up their containers and leave nothing running. Can develop several issues in parallel: this session coordinates, tells the user how many issues can be developed in parallel now and asks how many to run, each issue in the batch gets a background subagent in its own worktree, the rest wait for the next batch, the user answers all plan questions in one place, PRs merge in a fixed order, heavy checks queue behind a lock, and worktrees are removed once their issue is finished. Usage: /implement &lt;issue&gt;, /implement next, /implement batch, or /implement &lt;issue&gt; &lt;issue&gt; ...
+description: Develops GitHub issues from branch to merge and beyond: reads the issue with its requirements, architecture, design (screen definitions and confirmed screenshots, data, interfaces, logic) and standards, branches per CLAUDE.md, refactors first when new logic does not fit, works in small test → implement → refactor commits with tests derived from the design, compares changed screens with the prototypes, opens the PR with /open-pr and handles every AI review comment; medium and high risk PRs wait for the user and are watched until they merge; an issue is done only when CI on the base branch passes for the merge and staging runs it. Heavy checks clean up their containers and leave nothing running. Can develop several issues in parallel: this session coordinates, tells the user how many issues can be developed in parallel now and asks how many to run, each issue in the batch gets a background subagent in its own worktree, the rest wait for the next batch, the user answers all plan questions in one place, PRs merge in a fixed order, heavy checks queue behind a lock, and worktrees are removed once their issue is finished. Branches stay on the remote; only local copies are removed. Usage: /implement &lt;issue&gt;, /implement next, /implement batch, or /implement &lt;issue&gt; &lt;issue&gt; ...
 ---
 
 # Developing issues
@@ -17,6 +17,8 @@ Four ways to call it:
 Talk to the user in their language.
 
 An issue is done when its PR has merged, CI on the base branch has passed for the merge commit, and staging runs that commit (when the project has staging). Merging alone is not done.
+
+Branches are never deleted on the remote: once work is merged, only the local branch (and, in parallel work, the worktree) is removed. Never run `git push origin --delete`, `gh pr merge --delete-branch` or anything else that removes a remote branch.
 
 ## One issue
 
@@ -128,11 +130,11 @@ Run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs th
 - Medium and high risk: give the user the PR link and risk tier and ask them to read the whole diff and add the `human-reviewed` label once satisfied; it merges automatically after that. Handle changes the user asks for as in step 7 (a new commit removes the label and the user confirms again).
 - When the project has PR preview environments, give the user the preview URL to see the result.
 
-Watch the PR in the background until it merges, at every risk tier: poll `gh pr view <PR> --json state,mergeCommit,labels` every minute (run it with `run_in_background`). When it is still open after the checks pass and the label is on, read why (`gh pr checks <PR>`, unresolved threads, `gh pr view <PR> --json mergeStateStatus`) and handle it or tell the user. Merge it yourself only when the user asks.
+Watch the PR in the background until it merges, at every risk tier: poll `gh pr view <PR> --json state,mergeCommit,labels` every minute (run it with `run_in_background`). When it is still open after the checks pass and the label is on, read why (`gh pr checks <PR>`, unresolved threads, `gh pr view <PR> --json mergeStateStatus`) and handle it or tell the user. Merge it yourself only when the user asks, and then without deleting the branch.
 
 ### 9. After the merge
 
-1. **Local cleanup**: switch back to the base branch, `git pull --ff-only`, delete the local branch.
+1. **Local cleanup**: switch back to the base branch, `git pull --ff-only`, delete the local branch with `git branch -d <branch>`. The branch stays on the remote.
 2. **The issue**: check it closed (`gh issue view <number> --json state`); `Closes #<number>` occasionally fails to close it, so close it with `gh issue close <number> --comment "Done in #<PR>"`.
 3. **CI on the base branch**: take the merge commit from `gh pr view <PR> --json mergeCommit`, list its runs with `gh run list --commit <sha> --json databaseId,workflowName,status,conclusion` (they can take a minute to appear; list again until they do), and wait for each with `gh run watch <run id> --exit-status` in the background.
 4. **Staging** (when CLAUDE.md names one): confirm staging runs the merge commit, or a later commit that contains it (`git merge-base --is-ancestor <sha> <deployed sha>`). Check it the way CLAUDE.md says (e.g. its version endpoint), or from the deployment records: `gh api "repos/<owner>/<repo>/deployments?environment=staging&sha=<sha>"`, then `gh api repos/<owner>/<repo>/deployments/<id>/statuses` until the latest status is `success`. When no deployment starts within the deployment workflow's usual time, look at the deploy workflow's runs.
@@ -189,7 +191,7 @@ Start one background subagent per issue in the batch with the Agent tool (`isola
 - The issue number and title, and that it works for the coordinator, never asks the user, and returns everything for the user to the coordinator.
 - Its place in the merge order, the issues ahead of it and the files they expect to change.
 - What to do now: steps 1 to 3 of "One issue" in this skill (read the context, check whether work can start, make a small plan) in its own worktree, then stop and return the plan: steps, files and tests, size, whether it should become several PRs, problems that block it, and the decisions the user must make, each with concrete options and a recommendation.
-- The rules for working in a worktree, heavy checks and their lock (B6), and the pitfalls (B9).
+- The rules for working in a worktree, heavy checks and their lock (B6), the pitfalls (B9), and that it never deletes a remote branch.
 
 ### B5. Settle the decisions with the user
 
@@ -224,7 +226,7 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 - **Removing a worktree**, once its issue is done (merged, CI and staging green) or taken out of the batch:
   1. Check nothing would be lost: `git -C <worktree> status --porcelain` prints nothing, and `git -C <worktree> log --oneline @{u}..HEAD` prints nothing (for a branch never pushed: `git -C <worktree> log --oneline origin/<base>..HEAD`). When something is uncommitted or unpushed, keep the worktree and ask the user whether to push it or drop it.
   2. When `git worktree list --porcelain` shows it as `locked`, `git worktree unlock <worktree>`.
-  3. `git worktree remove <worktree>`, then delete its local branch with `git branch -D <branch>` (step 1 showed nothing is only local).
+  3. `git worktree remove <worktree>`, then delete its local branch with `git branch -D <branch>` (step 1 showed nothing is only local). The branch stays on the remote.
   4. When Windows cannot delete it because a path is too long, remove the directory in PowerShell with `Remove-Item -LiteralPath '\\?\<absolute path of the worktree>' -Recurse -Force`, then `git worktree prune`.
 - The batch ends when every issue in it is done or has been taken out. Before the summary, confirm with `git worktree list` that only the main repository is left (remove any other the same way), that no heavy-check lock is left behind, and that `docker ps` shows nothing the batch started.
 - Summarize the batch: issues done with their PRs and the results of CI on the base branch and staging, issues taken out and why, candidates not in this batch (beyond the number chosen, blocked, spike, manual steps, screens awaiting confirmation), open follow-ups, and which issues the next `/implement batch` would pick up now that this batch has merged.
