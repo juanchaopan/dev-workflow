@@ -1,5 +1,5 @@
 // Unit tests for the scripts the plugin installs into projects or runs inside them:
-// commit message check, risk tiers, format hook, installer, screen rendering, current-system screen capture, version lookup.
+// commit message check, git hooks session hook, risk tiers, format hook, installer, screen rendering, current-system screen capture, version lookup.
 // Run: node --test "tests/*.test.mjs"
 // The real screenshot tests download Chromium and only run with RENDER_SMOKE=1.
 import { test } from 'node:test';
@@ -18,6 +18,7 @@ const template = join(root, 'skills', 'setup-ai-review', 'template');
 const commitCheck = join(template, '.github', 'scripts', 'check-commit-message.mjs');
 const riskClassify = join(template, '.github', 'scripts', 'risk-classify.mjs');
 const formatHook = join(template, '.claude', 'hooks', 'format.mjs');
+const enableGitHooks = join(template, '.claude', 'hooks', 'enable-git-hooks.mjs');
 const installer = join(root, 'skills', 'setup-ai-review', 'install.mjs');
 const renderScreens = join(root, 'skills', 'design', 'render-screens.mjs');
 const captureScreens = join(root, 'skills', 'onboard', 'capture-screens.mjs');
@@ -77,6 +78,31 @@ test('commit message: checks a commit range, fixup is not allowed in CI', () => 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /scribble/);
   assert.match(result.stderr, /fixup/);
+});
+
+test('git hooks session hook: sets core.hooksPath once, leaves other hook directories alone', () => {
+  const dir = tempDir();
+  const hooksPath = () => run('git', ['config', '--get', 'core.hooksPath'], { cwd: dir }).stdout.trim();
+  const session = () => run('node', [enableGitHooks], { env: { ...process.env, CLAUDE_PROJECT_DIR: dir } });
+  execFileSync('git', ['init', '-q'], { cwd: dir });
+
+  assert.equal(session().status, 0);
+  assert.equal(hooksPath(), '', 'nothing is set when the repository has no .githooks/commit-msg');
+
+  mkdirSync(join(dir, '.githooks'));
+  writeFileSync(join(dir, '.githooks', 'commit-msg'), '#!/bin/sh\n');
+  const first = session();
+  assert.equal(first.status, 0);
+  assert.equal(hooksPath(), '.githooks');
+  assert.match(first.stdout, /Set core\.hooksPath/);
+  assert.equal(session().stdout, '', 'silent once set');
+
+  execFileSync('git', ['config', 'core.hooksPath', '.husky'], { cwd: dir });
+  const other = session();
+  assert.equal(other.status, 0);
+  assert.equal(hooksPath(), '.husky');
+  assert.match(other.stdout, /check-commit-message\.mjs --range/);
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test('risk tiers: by path and branch', () => {
@@ -145,6 +171,7 @@ test('installer: copies the template and skips existing files', () => {
   assert.deepEqual(result.skipped, ['CLAUDE.md']);
   assert.ok(result.copied.includes('.github/workflows/ai-review.yml'));
   assert.ok(result.copied.includes('AGENTS.md'));
+  assert.ok(result.copied.includes('.claude/hooks/enable-git-hooks.mjs'));
   assert.ok(existsSync(join(dir, '.githooks', 'commit-msg')));
   assert.equal(readFileSync(join(dir, 'CLAUDE.md'), 'utf8'), '# existing content\n');
   rmSync(dir, { recursive: true, force: true });

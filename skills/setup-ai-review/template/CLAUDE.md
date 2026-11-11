@@ -51,7 +51,9 @@ After a heavy check, whether it passed or failed, nothing it started keeps runni
 
 - Branching strategy: {{description of the chosen strategy}}
 - Branch names: {{naming rules, e.g. feature/<issue>-<summary>, fix/<issue>-<summary>, refactor/<issue>-<summary>, docs/<summary>, chore/<summary>, spike/<summary>}}
-- Commit messages follow Conventional Commits: `<type>(<scope>): <description> (#<issue>)`, e.g. `feat(auth): support e-mail sign-in (#12)`. `.githooks/commit-msg` and CI check them.
+- Commit messages follow Conventional Commits: `<type>(<scope>): <description> (#<issue>)`, first line at most 100 characters, e.g. `feat(auth): support e-mail sign-in (#12)`.
+- After every commit and before every push, run `node .github/scripts/check-commit-message.mjs --range origin/<target branch>..HEAD` and reword what it reports while the commits are still local. CI's `commit-lint` checks every commit of the PR with the same rules, and a commit already pushed cannot be fixed by adding another one.
+- `.githooks/commit-msg` also checks each message as it is committed, once the clone's `core.hooksPath` is `.githooks`. Claude Code sets it at session start (`.claude/settings.json`); in other clones run `git config core.hooksPath .githooks` once after cloning.
 - One commit does one thing, every commit passes the self-check commands on its own, and nothing unrelated is mixed in.
 - Merge method: {{e.g. merge commit, keeping every small commit}}. PRs have auto-merge enabled and GitHub merges them once every check passes.
 

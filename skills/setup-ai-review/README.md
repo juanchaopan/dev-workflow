@@ -11,7 +11,7 @@ Open Claude Code in any GitHub project and type `/setup-ai-review`. Claude copie
 Once set up, the daily flow is:
 
 1. Have Claude write the code (or use `/implement <issue number>`).
-2. When it is done, type `/open-pr`. Claude runs the tests, lint and architecture checks, does a simplification pass, then a local code review and security review, fixes the problems, tidies the commits, opens the PR and enables auto-merge.
+2. When it is done, type `/open-pr`. Claude runs the tests, lint and architecture checks, does a simplification pass, then a local code review and security review, fixes the problems, tidies the commits and checks their messages, opens the PR and enables auto-merge.
 3. The PR runs these checks automatically: `ci` (tests, lint, architecture checks and build of each component, plus duplicate code detection), `commit-lint` (commit message format), `ai-review` (risk tier and AI code review), `security-review` (AI security review).
 4. Every comment the AI leaves on a code line is either fixed by Claude or resolved with a stated reason.
 5. Look at the risk label on the PR:
@@ -62,7 +62,9 @@ A common weakness of AI-written code is growing bloat: more and more ifs and par
 | `.github/workflows/commits.yml` | Checks the message of every commit in the PR |
 | `.github/scripts/risk-classify.mjs` | The risk tier script `ai-review` calls |
 | `.github/scripts/check-commit-message.mjs` | The commit message check shared by the local hook and CI |
-| `.githooks/commit-msg` | Checks commit messages locally. Takes effect after running `git config core.hooksPath .githooks` once |
+| `.githooks/commit-msg` | Checks each commit message as it is committed, once the clone's `core.hooksPath` is `.githooks` |
+| `.claude/settings.json` | The hooks Claude Code runs in this project, and permission to run the commit message check |
+| `.claude/hooks/enable-git-hooks.mjs` | At the start of every Claude Code session, sets the clone's `core.hooksPath` to `.githooks` when it is not set |
 | `.claude/hooks/format.mjs` | Runs formatting and lint automatically after Claude changes each file |
 | `.claude/commands/open-pr.md` | The `/open-pr` command: self-check, simplify, local review, tidy commits, then open the PR |
 | `evals/run-review-evals.mjs` | Scores the AI reviewer |
@@ -147,7 +149,17 @@ These multi-person practices from the article are not copied here: two approvals
 <optional body explaining why>
 ```
 
-Types: `feat` feature, `fix` bug fix, `docs` documentation, `style` formatting, `refactor` refactoring, `perf` performance, `test` tests, `build` build and dependencies, `ci` CI configuration, `chore` miscellaneous, `revert` revert. Breaking changes add `!` after the type, e.g. `feat(api)!: remove the old endpoint`. `/release` derives the next version from these types.
+The first line is at most 100 characters. Types: `feat` feature, `fix` bug fix, `docs` documentation, `style` formatting, `refactor` refactoring, `perf` performance, `test` tests, `build` build and dependencies, `ci` CI configuration, `chore` miscellaneous, `revert` revert. Breaking changes add `!` after the type, e.g. `feat(api)!: remove the old endpoint`. `/release` derives the next version from these types.
+
+CI's `commit-lint` checks every commit of a PR, not just the last one, so a bad message that has been pushed cannot be fixed by adding another commit: the branch would have to be rewritten and force-pushed, or the work moved to a new PR. The checks therefore run before anything is pushed, at three points:
+
+| Point | How |
+|---|---|
+| On commit | `.githooks/commit-msg`. Git keeps `core.hooksPath` in each clone's own configuration and never shares it through the repository, so every new clone, machine or cloud session starts with the hook off. Claude Code turns it on at session start with `.claude/hooks/enable-git-hooks.mjs`; in other clones run `git config core.hooksPath .githooks` once after cloning |
+| Before pushing | `/open-pr` and /implement run `node .github/scripts/check-commit-message.mjs --range origin/<target branch>..HEAD` after every commit and before every push, and reword what it reports while the commits are still local. This does not depend on the hook being on; `AGENTS.md` and the `@claude` workflow tell other tools to do the same |
+| In the PR | `commits.yml` (`commit-lint`), with the same script and rules |
+
+When a pushed commit still fails `commit-lint`, Claude stops and asks you whether to reword the branch and push it with `git push --force-with-lease`, or to move the work to a new branch and PR.
 
 ## Cost
 

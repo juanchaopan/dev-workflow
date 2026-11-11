@@ -78,6 +78,7 @@ Read "Branches and commits" in CLAUDE.md:
 - Base branch: main for GitHub Flow; for Git Flow, develop for feature, fix and refactor, main for hotfix.
 - `git fetch origin`, switch to the base branch, `git pull --ff-only`.
 - Create the branch following the naming rules, e.g. `feature/12-email-login`, `fix/31-empty-list`, `refactor/40-payment-strategy`.
+- `git config core.hooksPath` should print `.githooks` (the project's SessionStart hook sets it). When it does not, tell the user the local commit message hook is off and suggest they run `! git config core.hooksPath .githooks` once. Work goes on either way: step 5 checks every message itself.
 
 ### 5. Implement in small steps
 
@@ -91,7 +92,7 @@ Read "Branches and commits" in CLAUDE.md:
 2. **Implement**: write the code that makes the tests pass. Field names, order, messages and formats follow the design and its common rules.
 3. **Refactor**: once the tests pass, tidy this step's code and the code around it — remove duplication, improve names, split functions that grew long — so it reads as if written in one go (see "How to write code" in CLAUDE.md). Do not keep adding layers of conditionals to old functions.
 4. **Self-check**: run the self-check commands in CLAUDE.md for the components you changed; all must pass.
-5. **Commit**: one commit does one thing, with a Conventional Commits message that includes the issue number, e.g. `feat(auth): support e-mail sign-in (#12)`, `test(auth): cover wrong passwords (#12)`.
+5. **Commit**: one commit does one thing, with a Conventional Commits message that includes the issue number and a first line of at most 100 characters, e.g. `feat(auth): support e-mail sign-in (#12)`, `test(auth): cover wrong passwords (#12)`. Then run `node .github/scripts/check-commit-message.mjs --range origin/<base>..HEAD`, the same rules as CI's `commit-lint`, and when it reports the new commit, fix it right away with `git commit --amend -m "<message>"` while it is still local. Do not rely on `.githooks/commit-msg`: it runs only in clones whose `core.hooksPath` is set, and judging the length by eye misses the limit.
 
 Rules:
 
@@ -146,8 +147,8 @@ Run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs th
    - Fixed problems: reply "Fixed in <commit>" and resolve the thread.
    - Reply: `gh api repos/<owner>/<repo>/pulls/<PR>/comments/<comment databaseId>/replies -f body="<text>"`
    - Resolve: `gh api graphql -F id=<thread id> -f query='mutation($id: ID!) { resolveReviewThread(input: {threadId: $id}) { thread { isResolved } } }'`
-4. Commit fixes following step 5 (e.g. `fix(auth): address review: validate the e-mail format (#12)`) and push. Pushing starts a new review round; go back to 1.
-5. When CI fails, read the log (`gh run view <run id> --log-failed`), fix and push again. When visual regression tests fail, download the comparison images to tell unexpected changes from intended ones.
+4. Commit fixes following step 5 (e.g. `fix(auth): address review: validate the e-mail format (#12)`), run `node .github/scripts/check-commit-message.mjs --range origin/<base>..HEAD` once more and push only when it passes. Pushing starts a new review round; go back to 1.
+5. When CI fails, read the log (`gh run view <run id> --log-failed`), fix and push again. When visual regression tests fail, download the comparison images to tell unexpected changes from intended ones. When `commit-lint` fails on a commit that is already pushed, a new commit cannot fix it: ask the user whether to reword the branch and push it with `git push --force-with-lease`, or to move the work to a new branch and PR.
 6. When the AI review hits its round limit, stop, tell the user, and suggest a smaller PR or a different approach.
 
 ### 8. Merge
@@ -196,7 +197,7 @@ Start one background subagent per issue in the batch with the Agent tool (`isola
 - The issue number and title, and that it works for the coordinator, never asks the user, and returns everything for the user to the coordinator.
 - Its place in the merge order, the issues ahead of it and the files they expect to change.
 - What to do now: steps 1 to 3 of "One issue" in this skill (read the context, check whether work can start, make a small plan) in its own worktree, then stop and return the plan: steps, files and tests, size, whether it should become several PRs, problems that block it, and the decisions the user must make, each with concrete options and a recommendation.
-- The rules for working in a worktree, heavy checks and their lock (B4), the pitfalls (B7), and that it never deletes a remote branch.
+- The rules for working in a worktree, heavy checks and their lock (B4), the commit message check after every commit and before every push (step 5 of "One issue") and the rule for pushed history (B5), the pitfalls (B7), and that it never deletes a remote branch.
 
 ### B3. Settle the decisions with the user
 
@@ -220,7 +221,7 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 
 - The first issue in the merge order opens its PR as soon as it is done locally (step 6 of "One issue").
 - Every later issue finishes locally first (all commits made, all checks passing), reports "ready, waiting for #<previous>" and waits. Once the issue ahead of it has merged, the coordinator tells it to continue: `git fetch origin`, rebase onto the latest base branch, adapt to the changes already merged, rerun every check (heavy ones through the lock), then open its PR.
-- Once a branch is pushed, keep it in sync with the base branch only by merging (`git merge origin/<base>`); never force-push.
+- Once a branch is pushed, its history is not rewritten: keep it in sync with the base branch only by merging (`git merge origin/<base>`), and add commits instead of changing pushed ones. When CI's `commit-lint` fails on a commit that is already pushed, a new commit cannot fix it: the subagent reports it, and the coordinator asks the user whether to reword the branch and push it with `git push --force-with-lease`, or to move the work to a new branch and PR.
 - An issue split into several PRs stacks the later PRs locally on the earlier one; once the earlier one merges, move the next onto the base branch with `git rebase --onto origin/<base> <old base of the stack> <branch>`.
 
 ### B6. Reviews, merging and wrap-up

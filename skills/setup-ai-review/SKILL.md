@@ -59,10 +59,10 @@ Files in `skipped` already existed in the project: read the original, find what 
 
 ## 6. Verify locally
 
-- `node --check` on `.claude/hooks/format.mjs`, `.github/scripts/risk-classify.mjs`, `.github/scripts/check-commit-message.mjs` and `evals/run-review-evals.mjs`.
+- `node --check` on `.claude/hooks/format.mjs`, `.claude/hooks/enable-git-hooks.mjs`, `.github/scripts/risk-classify.mjs`, `.github/scripts/check-commit-message.mjs` and `evals/run-review-evals.mjs`.
 - Try the format hook on a real file of the project: `echo '{"tool_input":{"file_path":"<absolute path of the file>"}}' | node .claude/hooks/format.mjs`; the exit code should be 0.
 - Try the risk rules on a few paths: `node .github/scripts/risk-classify.mjs --dry-run README.md <a source file> .github/workflows/ci.yml` and confirm the tiers are as expected.
-- Enable the commit message check: `git config core.hooksPath .githooks`, and run `git update-index --chmod=+x .githooks/commit-msg` so clones on macOS and Linux can execute the hook. Try an invalid message: `echo "random change" > "$TMPDIR/msg" && node .github/scripts/check-commit-message.mjs --file "$TMPDIR/msg"` should report an error.
+- Enable the commit message hook for this clone with `node .claude/hooks/enable-git-hooks.mjs`, the script Claude Code runs at the start of every session in this project, so new clones, other machines and cloud sessions get it too; `git config core.hooksPath` should then print `.githooks`. When running it is not permitted, ask the user to run `! git config core.hooksPath .githooks`. Run `git update-index --chmod=+x .githooks/commit-msg` so clones on macOS and Linux can execute the hook. Try an invalid message: `echo "random change" > "$TMPDIR/msg" && node .github/scripts/check-commit-message.mjs --file "$TMPDIR/msg"` should report an error, and `node .github/scripts/check-commit-message.mjs --range origin/<default branch>..HEAD` (what `/open-pr` and /implement run before every push) should pass for the commits of step 7 before they are pushed.
 - Run `npx jscpd .` at the repository root; it should pass.
 - Run every self-check command in CLAUDE.md.
 

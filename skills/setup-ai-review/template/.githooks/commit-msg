@@ -1,3 +1,5 @@
 #!/bin/sh
-# Checks the commit message format (Conventional Commits) on commit. Enable with: git config core.hooksPath .githooks
+# Checks the commit message format (Conventional Commits) on every commit, with the same rules as CI's commit-lint.
+# Runs once the clone's core.hooksPath is .githooks: Claude Code sets it at session start (.claude/hooks/enable-git-hooks.mjs);
+# in any other clone run once: git config core.hooksPath .githooks
 exec node "$(git rev-parse --show-toplevel)/.github/scripts/check-commit-message.mjs" --file "$1"
