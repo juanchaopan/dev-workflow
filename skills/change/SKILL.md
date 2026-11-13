@@ -1,6 +1,6 @@
 ---
 name: change
-description: Triage a new idea, feature or issue. Rates it on two axes — how much the requirements change (bug fix, new feature within existing requirements, changed requirements, changed goals, changed architecture) and how hard it hits the existing code design (fits the current structure, needs local refactoring, needs a set of classes and interfaces redesigned). Then, by level, asks the user follow-up questions, updates requirement and architecture documents, calls /design when screens, fields, data, interfaces or business logic change and has the user confirm each changed screen, writes a code structure redesign for large structural changes, writes a change record and splits issues (large design changes become a series of small PRs: refactor first, feature last), handing them to /implement. Suggests /spike where things are uncertain. Use when the user says "I want to add a feature", "this needs to change", "new requirement", "look at this issue", or gives an issue number.
+description: Triage a new idea, feature or issue. Rates it on two axes — how much the requirements change (bug fix, new feature within existing requirements, changed requirements, changed goals, changed architecture) and how hard it hits the existing code design (fits the current structure, needs local refactoring, needs a set of classes and interfaces redesigned). Then, by level, asks the user follow-up questions, updates requirement and architecture documents, calls /design when screens, fields, data, interfaces or business logic change and has the user confirm each changed screen, writes a code structure redesign for large structural changes, writes a change record and splits issues (large design changes become a short series of PRs: refactor first, feature last), handing them to /implement. Suggests /spike where things are uncertain. Use when the user says "I want to add a feature", "this needs to change", "new requirement", "look at this issue", or gives an issue number.
 ---
 
 # Change triage
@@ -25,7 +25,7 @@ When a new idea comes in, first find out which layer of the project it touches a
 |---|---|---|---|
 | D0 fits | Existing classes, interfaces and modules can take it; it is just more code | Add a query to the existing order service | Develop directly |
 | D1 local refactoring | A few classes or functions must be restructured first, but external interfaces and module boundaries stay | A function keeps growing and must be split before a new branch fits | First a refactor-only issue that keeps behavior, then the feature |
-| D2 redesign | A set of classes, interfaces, module boundaries or data structures must be redesigned | Orders supported one payment method and must now support several, so the payment classes and interfaces must become extensible | Write a code structure redesign first, split into small PRs once the user confirms |
+| D2 redesign | A set of classes, interfaces, module boundaries or data structures must be redesigned | Orders supported one payment method and must now support several, so the payment classes and interfaces must become extensible | Write a code structure redesign first, split into a short series of PRs once the user confirms |
 
 Rate both axes independently and do everything each level asks for. When an idea spans several levels, handle it at the highest one.
 
@@ -87,18 +87,19 @@ Skip this step for purely technical changes the user cannot notice (e.g. perform
 **D2**:
 1. Write `docs/design/refactor/<short-name>.md` from `templates/refactor-design.md`: the current code structure and its problems, the target structure (classes, interfaces, module boundaries, data structures, as Mermaid class or sequence diagrams), interfaces before and after, migration steps, compatibility strategy, test strategy.
 2. Show the key points to the user; when there are several options, let the user choose with AskUserQuestion. Split issues only after confirmation.
-3. Split the migration into a series of small PRs in this order, each mergeable and releasable on its own:
+3. Order the migration in these steps, each mergeable and releasable on its own:
    1. **Characterization tests**: tests for the code about to change that pin down its current behavior.
-   2. **Refactoring**: restructure toward the target design without changing behavior; may take several PRs.
+   2. **Refactoring**: restructure toward the target design without changing behavior.
    3. **Expand**: when an interface must change incompatibly, add the new interface first and keep both.
    4. **Migrate**: move callers to the new interface one by one.
    5. **Contract**: delete the old interface and implementation.
    6. **Feature**: implement the new requirement on the new structure.
-   Steps may be combined, but never put "refactor only" and "add a feature" in the same PR.
+
+   Every extra PR repeats CI, review, merge and rebase, so combine steps whenever the result stays readable as one diff, and tell the user what each split costs. Never put "refactor only" and "add a feature" in the same PR.
 
 ### 5. Split issues
 
-Follow the structure of `templates/issue.md` in the roadmap skill (the roadmap directory next to this skill): acceptance criteria come from the changed design and cite the design element IDs and confirmed screenshots; in a taken-over system, also the old elements replaced and the decisions on old rules. Labels are `type:feature`, `type:bug`, `type:refactor`, `type:chore` and `type:spike`; put each issue in a suitable milestone and state the dependencies between issues.
+Follow the structure of `templates/issue.md` in the roadmap skill (the roadmap directory next to this skill): acceptance criteria come from the changed design and cite the design element IDs and confirmed screenshots; in a taken-over system, also the old elements replaced and the decisions on old rules. Labels are `type:feature`, `type:bug`, `type:refactor`, `type:chore` and `type:spike`; put each issue in a suitable milestone and state the dependencies between issues. Split by the sizes and rules of step 2 of the roadmap skill: one issue is one PR by default.
 
 ### 6. Write a change record
 

@@ -62,9 +62,9 @@ Whenever unsure (any stage):
 | `/architect` | Architecture metrics, choices layer by layer, each stack's detailed decisions (e.g. Maven or Gradle, Oxlint or typescript-eslint), deployment and PR previews, visual verification, distributed design, migration plans with data migration and cutover | Choose technologies; confirm the architecture |
 | `/design` | Screens (type, required, length, validation and error message of every field), data (tables and columns, or file formats), interfaces, permissions, complex logic; every screen drawn as a prototype screenshot and confirmed with you one at a time; for old systems each screen next to its real screenshot, with every old rule and finding kept, changed or dropped by you, and the data migration mapped; checks requirement coverage, the CRUD matrix and the permission matrix | Look at screenshots, comment, confirm each screen; decide on old rules; confirm data and interfaces |
 | `/spike` | Time-boxed spikes: question and criteria, minimal implementation, evidence, conclusion as an ADR; the code is never merged, and stays archived as a tag with its branch kept on GitHub | Try it, decide |
-| `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
+| `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, project commands for database tests and visual checks, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
 | `/setup-ai-review` | CI, AI code review, security review, risk tiers, commit message checks, duplicate code detection, automatic dependency updates, `@claude` | Choose the branching strategy; store the secret |
-| `/roadmap` | Milestones and issues from requirements and design, one small PR per issue, acceptance criteria taken from the design; spikes and the skeleton first; for old systems characterization tests, data migration rehearsals and cutover | Confirm scope and order |
+| `/roadmap` | Milestones and issues from requirements and design, one PR per issue, acceptance criteria taken from the design; spikes and the skeleton first; for old systems characterization tests, data migration rehearsals and cutover | Confirm scope and order |
 | `/implement` | Branch, refactor first when needed, small "test → implement → refactor" commits (tests derived from the design's rules), screens compared with the confirmed screenshots, PR, review handling, automatic merge. `next` lists the issues that can start and offers only batches of issues that do not conflict, the largest first: one in this session, several in parallel with one subagent each | Choose a batch; answer plan questions; read the diff of medium and high risk PRs and add `human-reviewed` |
 | `/change` | Rates a new idea twice — how much the requirements change, how hard it hits the code structure — asks, updates requirements and design, has changed screens confirmed again, splits issues | Confirm the levels; answer; confirm changed screens |
 | `/release` | Computes the version, writes the CHANGELOG, runs the release branch, tags, creates the Release, follows the production deployment | Confirm the version; approve the production deployment |
@@ -95,11 +95,22 @@ An old system's code may have bugs, parts may not run, its architecture may cont
 
 Nothing in the plugin pins a version. When /scaffold creates a project it looks versions up on the spot: runtimes (Node.js, Java, .NET) on their current LTS, Python on its latest release, libraries and tools on their latest release. The standards library prefers tools that do not hold versions back (architecture checks parse with SWC; Node.js linting defaults to Oxlint in type-aware mode), so new majors such as TypeScript 7 are used right away. When a tool you chose does not support a new major yet, /scaffold explains the situation and lets you choose: switch tools, or stay a version behind until the tool catches up (Dependabot then upgrades them together).
 
+## Testing during development
+
+An issue is one PR by default; it is split only when the diff is too large to review in one sitting, because every extra PR repeats CI, review, merge, rebase and the checks.
+
+Problems are found on the machine, before CI:
+
+- **Heavy checks run locally.** End-to-end tests, visual regression tests and tests that need a database or another service run against throwaway containers of the same images and versions CI uses (random password, bound to 127.0.0.1, migrations first, removed afterwards). /scaffold generates the project commands for them and CLAUDE.md lists them under "Heavy checks", each with what it holds.
+- **They run at set points.** While developing, only the heavy tests that cover what the commit changed; the full set once before the PR; for stacked PRs, once on the top of the stack. After a rebase only the tests covering what the rebase changed. CI runs the full suite on every PR.
+- **A failing CI run is reproduced locally first**, under the same conditions, and the fix is pushed once the reproduced failure passes.
+- **Visual baselines are regenerated only for the screens that changed**, and every changed baseline is checked against them before committing.
+
 ## Developing several issues at once
 
 `/implement next` first lists the issues that can start now (dependencies done) with the files each expects to change, and rates every pair: no overlap; a light overlap, where they share a few files but change separate places that a rebase settles; or a conflict, where they change the same code, screens, tables or interfaces, or one needs the other's result. Two issues that conflict never go in the same batch. It splits the issues into rounds without conflicts inside a round: the first round holds as many issues as possible, and among rounds of the same size it takes the one that leaves the rest able to run together next time. The options it offers are only such batches, each naming its issues: the first round, a smaller one when the machine or your review time cannot carry it, and one issue in this session. The rest wait for the next `/implement next`, which plans again against what has merged. `/implement 128 133 134` does the same with the issues you name.
 
-This session coordinates; each issue in the batch gets a background subagent in its own git worktree. The subagents plan first, and you answer all their questions in one place; the merge order is fixed up front so the result equals doing the issues one by one; later PRs rebase onto what merged before them and settle the light overlaps; heavy checks such as end-to-end and Docker visual tests queue behind a lock. Each subagent stops when its PR is green and reviewed, and the coordinator tells you which PRs need your review, wakes the next one after each merge, and summarizes the batch with the round the next `/implement next` would offer.
+This session coordinates; each issue in the batch gets a background subagent in its own git worktree. The subagents plan first, and you answer all their questions in one place; the merge order is fixed up front so the result equals doing the issues one by one; later PRs rebase onto what merged before them and settle the light overlaps; heavy checks run side by side unless they need the same thing (fixed ports, an output directory, a test account), and wait when the machine's free memory or CPU would not carry them. Each subagent stops when its PR is green and reviewed, and the coordinator tells you which PRs need your review, wakes the next one after each merge, and summarizes the batch with the round the next `/implement next` would offer.
 
 ## Branches stay on GitHub
 
@@ -120,7 +131,7 @@ Feature, fix, refactor, release, hotfix and spike branches are never deleted on 
 
 **A new idea**: say `/change I want users to export their orders` in Claude Code. It rates the change, asks, updates the requirements, draws new prototypes for changed screens for you to confirm, splits issues, then `/implement <issue>`. You can also record an issue with the "Feature" template on GitHub or your phone and run `/change #45` back at your computer. For small, clearly described changes, comment `@claude implement this` on the issue and it is done in the cloud.
 
-**An idea that reshapes existing classes and interfaces**: /change rates it D2, writes a redesign in `docs/design/refactor/` for you to confirm, then splits it into "characterization tests → refactor → expand with new interfaces → migrate callers → remove old interfaces → feature", small PRs that can each ship on their own.
+**An idea that reshapes existing classes and interfaces**: /change rates it D2, writes a redesign in `docs/design/refactor/` for you to confirm, then orders it as "characterization tests → refactor → expand with new interfaces → migrate callers → remove old interfaces → feature", combined into as few PRs as stay readable, each of which can ship on its own.
 
 **A complex, uncertain idea**: /kickoff, /architect, /design and /change suggest /spike first. UI spikes give you a URL to open (local, or a PR preview environment) to try yourself before deciding; spike code never enters the main branch, the conclusion goes into an ADR, and the real implementation follows the normal workflow.
 
@@ -150,7 +161,7 @@ Each stack's `stack.md` also lists "decision points" (e.g. build tool, lint tool
 
 ## Visuals and layout
 
-What a screen should look like is defined by design files (when you have them; Claude can read Figma through its MCP server) or by the prototype screenshots confirmed in /design. Colors, font sizes and spacing become design tokens with the same values as the prototypes' `tokens.css`; /implement puts the implemented screen next to the prototype screenshot in the PR; presentational components are checked one by one in Storybook; visual regression tests compare Playwright screenshots, and an unexpected change fails the PR with comparison images. See `skills/scaffold/shared/visual-testing.md`.
+What a screen should look like is defined by design files (when you have them; Claude can read Figma through its MCP server) or by the prototype screenshots confirmed in /design. Colors, font sizes and spacing become design tokens with the same values as the prototypes' `tokens.css`; /implement puts the implemented screen next to the prototype screenshot in the PR; presentational components are checked one by one in Storybook; visual regression tests compare Playwright screenshots, and an unexpected change fails the PR with comparison images. The project gets its own command for the visual checks, which reuses installed dependencies and updates only the baselines of the screens you changed. See `skills/scaffold/shared/visual-testing.md`.
 
 ## Maintaining the plugin
 
@@ -176,6 +187,7 @@ These are in the documents and templates but need real accounts or environments,
 
 - The deployment pipeline (`skills/scaffold/shared/deploy.yml`) and each platform's PR previews.
 - Generating visual regression baselines in Docker (Docker Desktop must be running).
+- Tests that need a database, run against a throwaway container (Docker must be running).
 - The GitHub workflows: AI review, security review, `@claude`, Dependabot, branch rules. They only run in a real repository.
 - Parallel development with `/implement next`, which depends on Claude Code's subagents and worktrees in a real project.
 - /onboard on a real legacy system: capturing screens behind a sign-in, data profiling on a database copy, and the subagent split by area.

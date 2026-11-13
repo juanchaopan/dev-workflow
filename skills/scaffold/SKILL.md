@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: Creates the project from docs/architecture/: generates each component with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); creates the GitHub repository and runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design; followed by /roadmap.
+description: Creates the project from docs/architecture/: generates each component with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen, and project commands that run the tests needing a database or another service, and the visual checks, in throwaway containers; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); creates the GitHub repository and runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design; followed by /roadmap.
 ---
 
 # Creating the project
@@ -87,8 +87,9 @@ For each component, do every step of the "After creating" section of `stack.md`,
 - lint, formatting, and complexity and length limits;
 - the architecture check (dependency-cruiser, ArchUnit, import-linter or ArchUnitNET) and the layered directories `rules.md` prescribes;
 - copying `rules.md` to `.claude/rules/<component>.md`, replacing the `paths` placeholder in its frontmatter with the component directory and filling in placeholders such as component and package names in the body;
-- Storybook and visual regression tests when the decision points chose them, from the "Optional" sections of `stack.md` and `shared/visual-testing.md`;
-- design tokens (with a frontend): create `src/styles/tokens.(s)css`. When there is a `docs/design/screens/tokens.css`, use its variable names and values so the implemented screens match the confirmed prototypes; with design files, take the values from them; otherwise start with a basic set of colors, font sizes and spacing.
+- Storybook and visual regression tests when the decision points chose them, from the "Optional" sections of `stack.md` and `shared/visual-testing.md`, including the project's own visual command that `visual-testing.md` describes;
+- design tokens (with a frontend): create `src/styles/tokens.(s)css`. When there is a `docs/design/screens/tokens.css`, use its variable names and values so the implemented screens match the confirmed prototypes; with design files, take the values from them; otherwise start with a basic set of colors, font sizes and spacing;
+- when the component's tests need a database or another service (cache, message queue and the like), a project command that runs them locally against a throwaway container: the same image and version as CI, a random password, bound to 127.0.0.1 on a free port, the same databases CI creates, migrations first, the container removed afterwards whether the run passed or failed. It does the whole sequence in one command, and CLAUDE.md lists it among the self-check commands and the heavy checks.
 
 Finally run every self-check command of `stack.md` in the component directory; all must pass. When generated code violates the standards (architecture checks and complexity limits included), fix it until it complies; do not relax the rules.
 
@@ -134,7 +135,7 @@ Ask the user whether the repository is public or private (private repositories o
 
 ### 10. Set up the review workflow
 
-Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. Heavy checks (end-to-end and visual regression tests) go into the "Heavy checks" line of CLAUDE.md.
+Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. Heavy checks (end-to-end tests, tests that need a database, visual regression tests) go into the "Heavy checks" line of CLAUDE.md, each with what it holds: fixed ports, output directories, whether it uses containers, roughly how much memory.
 
 ### 11. Report and next step
 

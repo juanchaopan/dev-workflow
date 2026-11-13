@@ -22,7 +22,7 @@ After any change, run the commands below for every component you changed and sho
 
 The whole repository also has duplicate code detection: `npx jscpd .` (at the repository root).
 
-Heavy checks, which use a lot of memory or Docker and run one at a time when several issues are developed in parallel: {{e.g. `npx playwright test` for end-to-end and visual regression tests; "none"}}.
+Heavy checks, which use a lot of memory or a container runtime: {{each command with what it holds — fixed ports, output directories, whether it uses containers, roughly how much memory; "none"}}. Checks that hold nothing in common may run at the same time when the machine can carry them.
 
 After a heavy check, whether it passed or failed, nothing it started keeps running: stop it with {{e.g. `docker compose -f infra/docker-compose.e2e.yml down`; containers run with `docker run --rm` remove themselves}}. Docker Desktop after heavy checks: {{"quit it with `docker desktop stop` when the check started it" or "leave it running"}}.
 

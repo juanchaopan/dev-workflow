@@ -40,7 +40,16 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
    ```
 
 3. The unit test runner must exclude `e2e/`, or it picks up the Playwright tests too (Vitest: add `'e2e/**'` to `test.exclude`).
-4. Baseline screenshots depend on the operating system (file names contain `-win32` or `-linux`), and font rendering differs slightly between machines, so baselines are generated and compared inside Playwright's official Docker image, which keeps local runs and CI consistent. The image version must match the `@playwright/test` version:
+4. Baseline screenshots depend on the operating system (file names contain `-win32` or `-linux`), and font rendering differs slightly between machines, so baselines are generated and compared inside Playwright's official Docker image, which keeps local runs and CI consistent. The image version must match the `@playwright/test` version.
+
+   Give the project its own command for this (an npm script or a script file) and write it into the "Heavy checks" line of CLAUDE.md. The command:
+
+   - reads the image version from the project's locked `@playwright/test` version;
+   - keeps the installed dependencies in a cache volume that later runs reuse, so the lock file decides when they are installed again, not every run;
+   - takes arguments that update the baselines and that limit the run to some tests (`--grep` or file paths);
+   - removes the containers it started, whether the run passed or failed.
+
+   Without such a command, the raw form is:
 
    ```
    docker run --rm --ipc=host -v "<absolute path of the component directory>:/work" -w /work mcr.microsoft.com/playwright:v<version>-noble \
@@ -49,7 +58,7 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
 
    In Git Bash on Windows, prefix the command with `MSYS_NO_PATHCONV=1` and convert the path with `cygpath -w`. Commit the generated `e2e/**-snapshots/*.png`.
 
-   This is a heavy check: it goes into the "Heavy checks" line of the project's CLAUDE.md and leaves nothing running. When `docker info` fails, start Docker first (Docker Desktop: `docker desktop start`). `--rm` removes the container when it exits; anything else the run started (e.g. a `docker compose` stack the tests use) is stopped with `docker compose -f <file> down` afterwards, whether the run passed or failed. When CLAUDE.md says to quit Docker Desktop after heavy checks and the run started it, quit it with `docker desktop stop`.
+   This is a heavy check: it goes into the "Heavy checks" line of the project's CLAUDE.md, with what it holds (fixed ports, output directories, containers, roughly how much memory), and leaves nothing running. When `docker info` fails, start Docker first (Docker Desktop: `docker desktop start`). `--rm` removes the container when it exits; anything else the run started (e.g. a `docker compose` stack the tests use) is stopped with `docker compose -f <file> down` afterwards, whether the run passed or failed. When CLAUDE.md says to quit Docker Desktop after heavy checks and the run started it, quit it with `docker desktop stop`.
 5. CI runs in the same image:
 
    ```yaml
@@ -71,7 +80,7 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
    ```
 
    On failure, download the `visual-diff` artifact: it contains the baseline, the actual image and the diff. Add this job to the `needs` of the `ci` summary job.
-6. When the look changed on purpose, regenerate the baselines (step 4) and commit them with the code. The PR says which pages changed, and reviewers compare old and new screenshots.
+6. When the look changed on purpose, regenerate only the baselines of the screens that changed (limit the update with `--grep` or the test files), and compare the rest without updating them. A failure among the rest is either an unexpected change, to fix, or rendering noise, to leave out. Before committing, check with `git status` that every changed baseline belongs to a changed screen, and `git restore` the others. The PR lists which baselines changed and why, and reviewers compare old and new screenshots.
 
 Visual regression baselines and /design prototype screenshots serve different purposes: the prototype screenshot is "what it should look like", confirmed by the user; the baseline is "what it looks like now", used to catch unexpected changes. When implementing a screen, compare against the prototype screenshot first, and generate the baseline once it is right.
 
