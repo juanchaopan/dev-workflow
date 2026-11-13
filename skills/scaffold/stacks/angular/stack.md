@@ -79,7 +79,7 @@ When the decision points chose Storybook, in the component directory:
 
 ## Optional: visual regression and end-to-end tests
 
-When the decision points chose Playwright, configure it from the scaffold skill's `shared/visual-testing.md`. The start command is `npx ng build && npx http-server dist/<name>/browser -p 4200 -s` (after `npm install -D http-server`), on port 4200.
+When the decision points chose Playwright, configure it from the scaffold skill's `shared/visual-testing.md`. The start command, written as a template string in `playwright.config.ts`, is `npx ng build && npx http-server dist/<name>/browser -p ${port} -s` (after `npm install -D http-server`); the default port is 4200 and `E2E_PORT` overrides it.
 
 ## Self-check commands
 

@@ -27,7 +27,7 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
 
 ## Visual regression tests
 
-1. Install in the component directory: `npm init playwright@latest -- --quiet --browser=chromium --lang=TypeScript --no-examples`. The installer creates a `tests/` directory and `playwright.config.ts`: delete `tests/`, overwrite the config with the scaffold skill's `shared/playwright.config.ts` and fill in the start command and port as its comments say.
+1. Install in the component directory: `npm init playwright@latest -- --quiet --browser=chromium --lang=TypeScript --no-examples`. The installer creates a `tests/` directory and `playwright.config.ts`: delete `tests/`, overwrite the config with the scaffold skill's `shared/playwright.config.ts` and fill in the start command and default port as its comments say. The port stays configurable through `E2E_PORT`, so runs in different worktrees can use different free ports at the same time.
 2. Tests live in `e2e/`, one screenshot assertion per key page:
 
    ```ts
@@ -49,6 +49,8 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
    - takes arguments that update the baselines and that limit the run to some tests (`--grep` or file paths);
    - removes the containers it started, whether the run passed or failed.
 
+   The preview server runs inside the container, so this check publishes no port on the machine and does not conflict with another run on ports.
+
    Without such a command, the raw form is:
 
    ```
@@ -58,7 +60,7 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
 
    In Git Bash on Windows, prefix the command with `MSYS_NO_PATHCONV=1` and convert the path with `cygpath -w`. Commit the generated `e2e/**-snapshots/*.png`.
 
-   This is a heavy check: it goes into the "Heavy checks" line of the project's CLAUDE.md, with what it holds (fixed ports, output directories, containers, roughly how much memory), and leaves nothing running. When `docker info` fails, start Docker first (Docker Desktop: `docker desktop start`). `--rm` removes the container when it exits; anything else the run started (e.g. a `docker compose` stack the tests use) is stopped with `docker compose -f <file> down` afterwards, whether the run passed or failed. When CLAUDE.md says to quit Docker Desktop after heavy checks and the run started it, quit it with `docker desktop stop`.
+   This is a heavy check: it goes into the "Heavy checks" line of the project's CLAUDE.md, with what it holds (output directories, containers, roughly how much memory), and leaves nothing running. When `docker info` fails, start Docker first (Docker Desktop: `docker desktop start`). `--rm` removes the container when it exits; anything else the run started (e.g. a `docker compose` stack the tests use) is stopped with `docker compose -f <file> down` afterwards, whether the run passed or failed. When CLAUDE.md says to quit Docker Desktop after heavy checks and the run started it, quit it with `docker desktop stop`.
 5. CI runs in the same image:
 
    ```yaml

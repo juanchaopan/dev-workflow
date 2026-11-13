@@ -85,7 +85,7 @@ When the decision points chose Storybook, in the component directory:
 
 ## Optional: visual regression and end-to-end tests
 
-When the decision points chose Playwright, configure it from the scaffold skill's `shared/visual-testing.md`. The start command is `npm run build && npx vite preview --port 4173 --strictPort`, on port 4173.
+When the decision points chose Playwright, configure it from the scaffold skill's `shared/visual-testing.md`. The start command, written as a template string in `playwright.config.ts`, is `npm run build && npx vite preview --port ${port} --strictPort`; the default port is 4173 and `E2E_PORT` overrides it.
 
 ## Self-check commands
 
