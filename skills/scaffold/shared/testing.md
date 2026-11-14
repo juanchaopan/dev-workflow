@@ -54,7 +54,7 @@ Examples that differ a lot (not a list to pick from):
 | End-to-end | - | Affected flows, main environment | All, main environment | All, representative environments | As CI; smoke flows after deploying to staging | All environments, real devices or systems |
 | Snapshot | - | Affected outputs | All, main environment | All, each environment with baselines | As CI | - |
 | Delivery | - | When packaging, migrations or permissions changed | Same | Main platform | Deploying to staging is one | All platforms, upgrade from the last release |
-| Non-functional | - | - | When a change may move a target | The fast part (security scan, artifact size) | Scheduled (nightly or weekly) | All, compared with the last release |
+| Non-functional | - | - | When a change may move a target | The fast part (security scan, artifact size), blocking only as "Checks that change with the outside world" says | Scheduled (nightly or weekly) | All, compared with the last release |
 
 "While coding" is the repeated run inside one small step: watch mode or only the tests just changed, results in seconds.
 
@@ -73,6 +73,14 @@ In a stack of PRs, the before-the-PR column runs once, on the top. After a rebas
 9. What this machine cannot run goes to CI or remote devices, and the report says "not run locally" instead of passed.
 10. Give the before-commit and before-PR stages a time target. When one is exceeded, select by change, shard, cache or move a check to a later stage; do not drop it.
 
+## Checks that change with the outside world
+
+Some checks give a different answer tomorrow without any change of yours: dependency vulnerability scans (a new advisory is published), link checks, contract tests against someone else's service, anything compared with a moving external reference. Run on every PR, they turn unrelated PRs red and cannot be fixed by the change, which breaks the rule that a CI failure is reproduced and fixed by the change.
+
+- A PR is blocked only for what it can act on: a finding that is new compared with the base branch, or one of high or critical severity in what ships (runtime dependencies, not development tools; the production build, not test fixtures). Everything else goes to a scheduled run that opens an issue.
+- When a PR fails on something the change did not cause, the report says so. The fix goes into its own PR, or into an issue, and is not mixed into the change.
+- The scheduled run (nightly or weekly) covers the whole result, including what the PR check lets through, and opens or updates one issue per finding.
+
 ## Pull request size
 
 One issue is one PR. Split only when a reviewer cannot read the diff in one sitting, along lines that merge on their own and leave the product working (refactoring first, the feature last). Roadmaps do not cut work into many small issues: each PR pays for a full CI run, a review and a merge wait. Review fixes stay in the same PR and rerun only the affected checks.
@@ -84,5 +92,5 @@ When the project uses a kind, the scaffold skill sets up, besides the tests them
 - a project command that prepares and cleans up its own throwaway environment, in one step, whether the run passed or failed;
 - ports and paths that are configurable (an environment variable with a default), never fixed in the code;
 - the way to run only what a change affects (step 2 above);
-- a CI job (the scheduled workflow for non-functional tests), with an environment matrix where the stage table asks for one;
+- a CI job (the scheduled workflow for non-functional tests and for the checks that change with the outside world), with an environment matrix where the stage table asks for one;
 - an entry in the Tests section of CLAUDE.md.

@@ -91,7 +91,7 @@ How each kind of the scaffold skill's `shared/testing.md` is done on this stack.
 | End-to-end | Build the real artifact, start it against a throwaway database on a free port and call the public API over HTTP like a client, key flows only |
 | Snapshot | Generated documents, reports or error bodies compared with approved files (`toMatchFileSnapshot`) |
 | Delivery | Build the container image, start it against a database migrated from the last release's schema, check the health endpoint; migrations follow expand, migrate, contract |
-| Non-functional | `npm audit` as the fast security scan; load tests with k6 or autocannon against a production-like environment for the targets in the requirements |
+| Non-functional | The dependency scan `npm audit --omit=dev --audit-level=high` (what ships, high or critical only) blocks a PR; the full `npm audit` runs on a schedule (see "Checks that change with the outside world" in `testing.md`). Load tests with k6 or autocannon against a production-like environment for the targets in the requirements |
 
 Each heavy kind gets a CI job of its own, after the component's job, that prepares its own throwaway environment (a service container or the project command).
 
