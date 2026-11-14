@@ -28,7 +28,34 @@ Type commands such as `/kickoff` or `/implement` in Claude Code; when another pl
    - From the marketplace: `/plugin marketplace update dev-workflow`, or turn on auto-update for the marketplace in `/plugin` so it updates by itself.
 3. **Check the version**: `claude plugin list` shows the version of dev-workflow; it should match `version` in `.claude-plugin/plugin.json` on GitHub.
 4. **Start a new session**: an open Claude Code session keeps what it loaded at startup, so exit it and start `claude` again. Work already running in an old session, such as parallel issues in `/implement next`, finishes with the rules it started with; the new version applies from the next command in a new session.
-5. **Bring projects set up earlier up to date** when the change touches what was installed into them: updating the plugin never changes a project's own files (CLAUDE.md, REVIEW.md, the GitHub workflows, `/open-pr`, hooks) or its GitHub settings. Run `/setup-ai-review` in the project again: it adds files the project lacks, shows how each existing file differs from the new template and merges it once you agree, and redoes GitHub settings only with your approval. Files /scaffold generated (test configuration, project commands) are not in the template: ask Claude to compare them with `skills/scaffold/` and bring them over.
+5. **Bring projects set up earlier up to date**: updating the plugin never changes a project's own files (CLAUDE.md, REVIEW.md, the GitHub workflows, `/open-pr`, hooks, lint and test configuration, project commands) or its GitHub settings, so a project created earlier falls behind. "Bringing an existing project up to date" below makes the agent do it with one prompt.
+
+## Bringing an existing project up to date
+
+The goal: after the update, the project matches what the installed plugin would create for a new project today, except for what is specific to the project (its code, its documents' content, its own choices). It works for any earlier version, because the agent compares the project with the plugin as it is now instead of replaying a list of changes.
+
+In a new Claude Code session in the project (after "Updating the plugin" steps 2 to 4), give the agent this prompt:
+
+```
+Bring this project up to date with the installed dev-workflow plugin so that it matches what the plugin would create for a new project today: follow the section "Bringing an existing project up to date" in the plugin's README.md (`claude plugin list` shows where the plugin is). Work on a branch, show me the plan before changing anything, and tell me what you skipped and why.
+```
+
+What the agent does, in order:
+
+1. **Learn the project and the plugin.** The plugin version (`claude plugin list`) and, for hints on what changed, the plugin's commit history since the project was set up. The project's components and their stacks (the "How to recognize it" section of each `skills/scaffold/stacks/*/stack.md`), its branching strategy and the kinds of tests it uses (CLAUDE.md), whether it has `docs/`.
+2. **Compare, group by group, and write the plan** as a table: item, what the plugin has, what the project has (missing, differs, up to date), proposed action, risk. Nothing changes before the user confirms the table.
+
+   | Group | Compared with | How it is brought up to date |
+   |---|---|---|
+   | Review workflow: CLAUDE.md, AGENTS.md, REVIEW.md, CI and other workflows, hooks, scripts, risk rules, PR template, `/open-pr`, dependency updates, `.jscpd.json` | `skills/setup-ai-review/template/` | `/setup-ai-review` again: adds what is missing, shows how existing files differ and merges once the user agrees. Project-specific content (the component table, REVIEW.md's judgments, risk paths) stays; sections and lines the template gained are added |
+   | Code standards of each component: `.claude/rules/`, lint, formatting, architecture check configuration, scripts, self-check commands, format hook rule, CI steps | `skills/scaffold/stacks/<stack>/` (`rules.md`, `files/`, `stack.md`) and `skills/scaffold/shared/` | `/scaffold` in its "add standards to an existing project" mode. Violations of rules the project did not have before go into a baseline, as in step 8 of `/onboard`; a rule is never relaxed and a check never switched off to make the project pass |
+   | Tests: the Tests section of CLAUDE.md, a project command per heavy kind, configurable ports, the way to run only what a change affects, a CI job per heavy kind, visual command | `skills/scaffold/shared/testing.md`, "Tests by kind" in each `stack.md`, step 4 of `skills/scaffold/SKILL.md` | The seven questions of `testing.md` answered for each component with the user; missing commands and jobs added, existing ones kept |
+   | Documents: `docs/architecture/overview.md`, ADRs, `docs/README.md`, the roadmap | The templates of `/architect`, `/kickoff` and `/roadmap` | Structure only: sections the template gained are added and marked inferred until the user confirms; existing content is never rewritten |
+   | GitHub settings: labels, branch rules, repository options, secrets | Step 8 of `skills/setup-ai-review/SKILL.md` | Differences are listed; nothing changes without the user's approval |
+
+3. **Apply the confirmed plan** on a `chore/` branch, one commit per group, so a reviewer can read them separately. CI, lint, architecture check and risk rule files are high-risk paths: they go in their own commits and the PR says why. A file that differs because the project chose differently is asked about, never overwritten. Dependency versions are left to Dependabot.
+4. **Check.** Run every self-check command and each heavy command once, confirm nothing they started is still running, run `node .github/scripts/check-commit-message.mjs --range origin/<base>..HEAD` after each commit, then `/open-pr`.
+5. **Report**: what was brought up to date, what was skipped and why, what the update found that the project must decide (e.g. violations baselined, a kind of test the project lacks and an issue to set it up).
 
 ## Workflow
 
@@ -107,6 +134,8 @@ Nothing in the plugin pins a version. When /scaffold creates a project it looks 
 
 **Thorough without being slow**, by doing nothing twice rather than testing less: each behavior tested at the lowest level that can catch it; only the tests a change affects run while developing; all heavy failures are collected and fixed together; dependencies, builds and images are cached and test environments restored from snapshots; checks that share nothing run in parallel; environments widen stage by stage; baselines are updated only for intended changes; flaky tests are fixed as bugs, not rerun; what the machine cannot run is left to CI and reported as "not run locally".
 
+**Checks whose answer changes with the outside world** (dependency scans, link checks, contract tests against someone else's service) block a PR only for what the change can act on, a new finding or a high or critical one in what ships; the rest runs on a schedule and opens an issue.
+
 **Heavy checks run against throwaway environments of the same images and versions CI uses** (random password, bound to 127.0.0.1, migrations first, removed afterwards), and leave nothing running. /scaffold generates the project commands for them. Their ports are configurable: the end-to-end port comes from an environment variable (`E2E_PORT`) and the database container takes a free port, so the same check can run in several worktrees at once; a port that cannot be changed stays a lock.
 
 **An issue is one PR by default.** It is split only when the diff is too large to review in one sitting, because every extra PR repeats CI, review, merge, rebase and the checks.
@@ -131,6 +160,7 @@ Feature, fix, refactor, release, hotfix and spike branches are never deleted on 
 6. **Medium and high risk PRs**: read the diff yourself and add the `human-reviewed` label. Low risk merges automatically.
 7. **Releases**: confirm the version, add `human-reviewed` to the release PR, approve the production deployment.
 8. **When the AI is unsure**: where business rules, architecture or design leave something open, the AI stops and asks instead of deciding.
+9. **Updating a project**: confirm the plan the agent shows before it changes anything.
 
 ## Common scenarios
 
@@ -141,6 +171,8 @@ Feature, fix, refactor, release, hotfix and spike branches are never deleted on 
 **A complex, uncertain idea**: /kickoff, /architect, /design and /change suggest /spike first. UI spikes give you a URL to open (local, or a PR preview environment) to try yourself before deciding; spike code never enters the main branch, the conclusion goes into an ADR, and the real implementation follows the normal workflow.
 
 **Taking over an old project to modernize or rewrite it**: see "Taking over an old system" above. /onboard gathers the evidence and you choose the direction; /kickoff (existing code entry) settles the goals and what to keep; /architect designs the target and the migration steps that ship one at a time (e.g. strangler fig), with data migration and cutover; /design redesigns every screen, table and interface from the evidence with your decisions on every old rule; /roadmap splits the migration into issues.
+
+**A project created with an older version of the plugin**: update the plugin, then give the agent the prompt in "Bringing an existing project up to date".
 
 ## Where the code standards come from
 
@@ -184,7 +216,7 @@ Once pushed to GitHub, `.github/workflows/self-test.yml` runs every stack every 
 
 Each project's own Dependabot checks its dependencies weekly.
 
-After changing the plugin, commit with Conventional Commits, bump the version in `.claude-plugin/plugin.json` following semantic versioning, and push; installed copies then update as in "Updating the plugin".
+After changing the plugin, commit with Conventional Commits, bump the version in `.claude-plugin/plugin.json` following semantic versioning, and push; installed copies then update as in "Updating the plugin". Anything the plugin creates in a project (files from `template/`, `stacks/` and `shared/`) is brought to existing projects by "Bringing an existing project up to date", which compares against these sources, so a new project file needs no separate upgrade note.
 
 ## Not verified automatically
 
@@ -196,3 +228,4 @@ These are in the documents and templates but need real accounts or environments,
 - The GitHub workflows: AI review, security review, `@claude`, Dependabot, branch rules. They only run in a real repository.
 - Parallel development with `/implement next`, which depends on Claude Code's subagents and worktrees in a real project.
 - /onboard on a real legacy system: capturing screens behind a sign-in, data profiling on a database copy, and the subagent split by area.
+- Bringing an existing project up to date: the prompt works from the comparison tables above; try it on a copy of a real project first.
