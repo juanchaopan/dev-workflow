@@ -50,28 +50,36 @@ Examples that differ a lot (not a list to pick from):
 | Static | Changed files | All | All | All | As CI | - |
 | Unit | Related | All | All | All | As CI | - |
 | Component | Related | All | All | All | As CI | - |
-| Integration | Related, when fast | Related | All | All, own job | As CI | - |
-| End-to-end | - | Affected flows, main environment | All, main environment | All, representative environments | As CI; smoke flows after deploying to staging | All environments, real devices or systems |
-| Snapshot | - | Affected outputs | All, main environment | All, each environment with baselines | As CI | - |
+| Integration | Related, when fast | Related | The project's choice (below) | All, own job | As CI | - |
+| End-to-end | - | Affected flows, main environment | The project's choice (below) | All, representative environments | As CI; smoke flows after deploying to staging | All environments, real devices or systems |
+| Snapshot | - | Affected outputs | The project's choice (below) | All, each environment with baselines | As CI | - |
 | Delivery | - | When packaging, migrations or permissions changed | Same | Main platform | Deploying to staging is one | All platforms, upgrade from the last release |
 | Non-functional | - | - | When a change may move a target | The fast part (security scan, artifact size), blocking only as "Checks that change with the outside world" says | Scheduled (nightly or weekly) | All, compared with the last release |
 
 "While coding" is the repeated run inside one small step: watch mode or only the tests just changed, results in seconds.
 
-In a stack of PRs, the before-the-PR column runs once, on the top. After a rebase, rerun only what the rebase touched; a rebase that settled no conflict and only moved the base forward is left to CI. When CI fails, reproduce it locally with the same command before pushing a fix.
+**The project's choice for heavy kinds before the PR.** Each project picks one, writes it in the "Before the PR" column of its Tests table, and the stage table and /implement follow it:
+
+- **All**: every heavy kind in full on the main environment, once, before the PR opens. The PR arrives green with few CI surprises, at the price of the slowest and most memory-hungry local step. It suits machines with room to spare.
+- **Related**: only the heavy tests that cover the whole branch's change. CI runs the full set. The local step is short; failures outside the related tests show up in CI. It suits small machines, where a full local run competes with Docker for memory and takes longer than CI would.
+
+Either way a failing CI run is reproduced locally with the same command before a fix is pushed.
+
+In a stack of PRs, the before-the-PR column runs once, on the top. After a rebase, run the light checks once on the head of the branch and the heavy tests the rebase touched; a rebase that settled no conflict and only moved the base forward leaves the heavy ones to CI. Commits in between are not checked one by one when the project squashes on merge (only the final tree reaches the base branch); when the project keeps every commit, the commits where a conflict was settled are checked too, since they reach the base branch as they are.
 
 ## Thorough without being slow
 
 1. Test at the lowest level. Field rules and boundaries are unit tests; end-to-end covers key flows (the main path and the most important failure), not every input; snapshots cover key screens and states.
 2. Select by change. The project states how a change maps to tests (by directory, by dependency, or the test tool's affected-tests option). When unsure, run more.
-3. Run once, fix together. Before the PR, run every heavy check, collect all failures and fix them together; then rerun only what failed or was affected. CI runs everything again.
+3. Run once, fix together. Before the PR, run the heavy checks the project chose, collect all failures and fix them together; then rerun only what failed or was affected. CI runs everything again.
 4. Prepare once, reuse. Cache dependencies, builds, images, emulator and VM snapshots. Restore throwaway environments from snapshots. Reset test data by transaction rollback or template copy. Share one build across heavy checks.
-5. Run in parallel whenever possible. Shard within a kind. Run different checks side by side when they share no resource (ports, directories, devices, displays, hardware) and the machine has the CPU and memory; make those resources configurable instead of forcing checks to run one at a time.
+5. Run in parallel when the machine can carry it. Shard within a kind. Run different checks side by side when they share no resource (ports, directories, devices, displays, hardware) and the machine has the CPU and memory; make those resources configurable instead of forcing checks to run one at a time. Several agents on one machine start heavy checks one at a time, each looking at the free memory only after the one before has taken its share, or all of them find it enough and run it out.
 6. Widen environments by stage: one main environment while developing, a representative few in CI (lowest and highest supported versions, smallest and largest screens), all of them and real devices before release.
 7. Update baselines only for intended changes, never the whole set.
 8. Treat flaky tests as bugs. One rerun after a failure only tells whether it is flaky; a flaky test gets an issue and a fix, not routine reruns.
 9. What this machine cannot run goes to CI or remote devices, and the report says "not run locally" instead of passed.
 10. Give the before-commit and before-PR stages a time target. When one is exceeded, select by change, shard, cache or move a check to a later stage; do not drop it.
+11. Keep the output small. A check's output goes through a filter that leaves the failures and the last lines; a watch command prints one verdict line; a report states what passed, what failed and its key line, never the log.
 
 ## Checks that change with the outside world
 
@@ -83,7 +91,7 @@ Some checks give a different answer tomorrow without any change of yours: depend
 
 ## Pull request size
 
-One issue is one PR. Split only when a reviewer cannot read the diff in one sitting, along lines that merge on their own and leave the product working (refactoring first, the feature last). Roadmaps do not cut work into many small issues: each PR pays for a full CI run, a review and a merge wait. Review fixes stay in the same PR and rerun only the affected checks.
+One issue is one PR. Split only when a reviewer cannot read the diff in one sitting, along lines that merge on their own and leave the product working (refactoring first, the feature last), and tell the user first what it costs: every extra PR repeats a full CI run, a review, a merge wait and a rebase. Roadmaps do not cut work into many small issues. Review fixes stay in the same PR and rerun only the affected checks.
 
 ## What each kind needs from the project
 

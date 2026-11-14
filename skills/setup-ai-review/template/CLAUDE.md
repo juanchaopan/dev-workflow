@@ -14,7 +14,7 @@ Project documents (docs/), review comments and issue text are written in {{langu
 
 ## Self-check commands
 
-After any change, run the commands below for every component you changed and show their real output in your reply. Keep fixing until everything passes instead of just saying "done". Commands run in the component directory; "—" means none.
+After any change, run the commands below for every component you changed and report each one's result in your reply: pass, or the failing lines and the last lines of its output (filter long output instead of printing all of it). Keep fixing until everything passes instead of just saying "done". Commands run in the component directory; "—" means none.
 
 | Component | Format | Lint and architecture | Type check | Tests | Build |
 |---|---|---|---|---|---|
@@ -28,7 +28,7 @@ The kinds follow the scaffold skill's `shared/testing.md`: static checks, unit, 
 
 | Kind | Command | Environment and what it holds | Before each commit | Before the PR | CI job |
 |---|---|---|---|---|---|
-| {{kind}} | `{{command}}` | {{the throwaway environment it prepares and removes; a port that cannot be changed, or the variable that sets it (e.g. `E2E_PORT`); output directories; roughly how much memory}} | {{what runs: e.g. "affected flows"}} | {{what runs: e.g. "all"}} | {{job name}} |
+| {{kind}} | `{{command}}` | {{the throwaway environment it prepares and removes; a port that cannot be changed, or the variable that sets it (e.g. `E2E_PORT`); output directories; roughly how much memory}} | {{what runs: e.g. "affected flows"}} | {{`all` (in full, CI runs it again) or `related` (only what covers the change, CI runs the full set)}} | {{job name}} |
 
 - Kinds not used: {{each kind with one line on why, e.g. "delivery: a library with no installer"; "none"}}.
 - A change maps to the tests it affects like this: {{by directory, by dependency, or the test tool's affected-tests option}}. When unsure, run more.
@@ -65,8 +65,8 @@ The kinds follow the scaffold skill's `shared/testing.md`: static checks, unit, 
 - Commit messages follow Conventional Commits: `<type>(<scope>): <description> (#<issue>)`, first line at most 100 characters, e.g. `feat(auth): support e-mail sign-in (#12)`.
 - After every commit and before every push, run `node .github/scripts/check-commit-message.mjs --range origin/<target branch>..HEAD` and reword what it reports while the commits are still local. CI's `commit-lint` checks every commit of the PR with the same rules, and a commit already pushed cannot be fixed by adding another one.
 - `.githooks/commit-msg` also checks each message as it is committed, once the clone's `core.hooksPath` is `.githooks`. Claude Code sets it at session start (`.claude/settings.json`); in other clones run `git config core.hooksPath .githooks` once after cloning.
-- One commit does one thing, every commit passes the self-check commands on its own, and nothing unrelated is mixed in.
-- Merge method: {{e.g. merge commit, keeping every small commit}}. PRs have auto-merge enabled and GitHub merges them once every check passes.
+- One commit does one thing and every commit passes the self-check commands when it is made. After a rebase the checks run once on the head of the branch; {{when the merge method squashes: "commits in between are not checked one by one, since only the final tree reaches the base branch" | when it keeps every commit: "the commits where a conflict was settled are checked too"}}.
+- Merge method: {{"squash merge, one commit per PR" or "merge commit, keeping every small commit"}}. PRs have auto-merge enabled and GitHub merges them once every check passes.
 
 ## Environments
 
@@ -77,7 +77,7 @@ The kinds follow the scaffold skill's `shared/testing.md`: static checks, unit, 
 
 - Never commit directly to protected branches; every change merges through a PR.
 - Open PRs with `/open-pr`: it runs the self-check commands, a local simplification pass, code-review and security-review first, then fills in the PR template.
-- One issue is one PR. Split it only when a reviewer cannot read the diff in one sitting.
+- One issue is one PR. Split it only when a reviewer cannot read the diff in one sitting, and tell the user the cost first: every extra PR repeats a full CI run, a review and a rebase.
 - Make new features switchable where possible (a flag or setting), so they can be turned off without rolling back code.
 - When a change touches paths under `[high]` in `.github/risk-rules.txt`, give the reason in the Risk section of the PR.
 - Behavior users can see — screens, fields, validation, messages, interfaces, data structures, business rules — follows `docs/design/`, and screens follow the user-confirmed screenshots. To change such behavior, change the design with /change first, then the code.
