@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: Creates the project from docs/architecture/: generates each component with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen, and project commands that run the tests needing a database or another service, and the visual checks, in throwaway containers on configurable ports; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); creates the GitHub repository and runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design; followed by /roadmap.
+description: Creates the project from docs/architecture/: generates each component with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen, and for every kind of test the architecture chose (unit, component, integration, end-to-end, snapshot, delivery, non-functional) the project command that prepares and removes its own throwaway environment, configurable ports and paths, a way to run only the tests a change affects and a CI job; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); creates the GitHub repository and runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design; followed by /roadmap.
 ---
 
 # Creating the project
@@ -8,12 +8,13 @@ description: Creates the project from docs/architecture/: generates each compone
 This skill's directory (the Base directory shown when the skill loads) contains:
 
 - `stacks/<stack>/`: the standards library, one directory per stack.
-  - `stack.md`: how to recognize it, required tools, decision points, versions, how to create it, which standards and checks to install afterwards, self-check commands, format hook rules, CI steps, where the version number lives, references.
+  - `stack.md`: how to recognize it, required tools, decision points, versions, how to create it, which standards and checks to install afterwards, self-check commands, how each kind of test is done on the stack, format hook rules, CI steps, where the version number lives, references.
   - `rules.md`: code standards for AI, including layering rules, copied to the project's `.claude/rules/`.
   - `files/`: lint, formatting and architecture check configuration, copied to the component directory.
 - `shared/`: what several stacks share.
   - `versions.mjs`: looks versions up: the current LTS of a runtime; the highest version of an npm package that a given set of tools supports.
   - `arch-check.mjs`: wrapper around dependency-cruiser (used by Angular, React and Node).
+  - `testing.md`: the kinds of tests, how a project chooses them, what runs at each stage, how to stay thorough without being slow, and the size of PRs. Every skill that talks about tests refers to it.
   - `visual-testing.md`, `playwright.config.ts`: design tokens, Storybook, visual regression tests.
   - `deployment.md`, `deploy.yml`: environments, deployment platforms, PR previews and the deployment pipeline.
 - `common/`: files every project root needs (`.editorconfig`, `.gitattributes`, `.gitignore`, the feature request issue template).
@@ -50,7 +51,7 @@ Record the choice and the reasons in the component's technical details ADR. Neve
 
 ### 0. Read the design
 
-Read `docs/architecture/overview.md` and `docs/adr/` and list every component: name, directory, stack, the decision points recorded in the ADRs (build tool, lint tool, data access, component layering, Storybook and visual regression tests, and so on) and the deployment. Without architecture documents, tell the user to run /architect first. When an ADR leaves a decision point open, ask the user with the recommended option from the `stack.md` decision table. When a component's stack is not in the library, tell the user it can still be created, but a set of standards must be added (write one modeled on a directory in `stacks/`, at least lint, formatting and an architecture check).
+Read `docs/architecture/overview.md` and `docs/adr/` and list every component: name, directory, stack, the decision points recorded in the ADRs (build tool, lint tool, data access, component layering, Storybook and visual regression tests, and so on), the kinds of tests the architecture chose for it and the deployment. Without architecture documents, tell the user to run /architect first. When an ADR leaves a decision point open, ask the user with the recommended option from the `stack.md` decision table; when it does not say which kinds of tests the project uses, ask the seven questions of `shared/testing.md` ("Choosing kinds"). When a component's stack is not in the library, tell the user it can still be created, but a set of standards must be added (write one modeled on a directory in `stacks/`, at least lint, formatting and an architecture check).
 
 Then read `docs/design/README.md`: `docs/design/screens/tokens.css`, used by the screen prototypes, is the source of the frontend design tokens. When a new project has no `docs/design/` yet, remind the user to run /design before /roadmap splits issues; they may still create the project first.
 
@@ -88,11 +89,17 @@ For each component, do every step of the "After creating" section of `stack.md`,
 - the architecture check (dependency-cruiser, ArchUnit, import-linter or ArchUnitNET) and the layered directories `rules.md` prescribes;
 - copying `rules.md` to `.claude/rules/<component>.md`, replacing the `paths` placeholder in its frontmatter with the component directory and filling in placeholders such as component and package names in the body;
 - Storybook and visual regression tests when the decision points chose them, from the "Optional" sections of `stack.md` and `shared/visual-testing.md`, including the project's own visual command that `visual-testing.md` describes;
-- design tokens (with a frontend): create `src/styles/tokens.(s)css`. When there is a `docs/design/screens/tokens.css`, use its variable names and values so the implemented screens match the confirmed prototypes; with design files, take the values from them; otherwise start with a basic set of colors, font sizes and spacing;
-- when the component's tests need a database or another service (cache, message queue and the like), a project command that runs them locally against a throwaway container: the same image and version as CI, a random password, bound to 127.0.0.1 on a free port, the same databases CI creates, migrations first, the container removed afterwards whether the run passed or failed. It does the whole sequence in one command, and CLAUDE.md lists it among the self-check commands and the heavy checks;
-- configurable ports: every port a heavy check needs comes from an environment variable with a default, never a number fixed in the code. End-to-end and preview servers read it in the test configuration (`E2E_PORT` in `shared/playwright.config.ts`); the database test command picks a free port itself and passes it to the tests the same way. A server or test that can only use a fixed port is the exception: CLAUDE.md names it as holding that port.
+- design tokens (with a frontend): create `src/styles/tokens.(s)css`. When there is a `docs/design/screens/tokens.css`, use its variable names and values so the implemented screens match the confirmed prototypes; with design files, take the values from them; otherwise start with a basic set of colors, font sizes and spacing.
 
-Finally run every self-check command of `stack.md` in the component directory; all must pass. When generated code violates the standards (architecture checks and complexity limits included), fix it until it complies; do not relax the rules.
+**Tests, kind by kind.** For every kind of test the architecture chose for the component (`shared/testing.md`), set up how it runs, following the "Tests by kind" section of the stack's `stack.md`, and give it:
+
+- a first working test that fails when the code is wrong, so the setup is proven (unit, component and the like start with the smoke test `stack.md` describes);
+- for each heavy kind (integration, end-to-end, snapshot, delivery, non-functional), one project command (an npm script, a Makefile target or a script file) that does the whole sequence in one go: prepare its own throwaway environment, run, and remove what it started whether the run passed or failed. A kind that needs a database or another service uses the same image and version as CI, a random password, 127.0.0.1 on a free port, the same databases CI creates, and migrations first. Browser tests that need the database run through it too;
+- configurable ports and paths: every port or directory a check needs comes from an environment variable with a default, never a value fixed in the code. End-to-end and preview servers read it in the test configuration (`E2E_PORT` in `shared/playwright.config.ts`); the database command picks a free port itself and passes it to the tests the same way. A server or test that can only use a fixed port is the exception: CLAUDE.md names it as holding that port;
+- the way to run only what a change affects: the test tool's own option when it has one, otherwise a mapping from directories to test files, written in the project and named in CLAUDE.md;
+- the CI job of the kind, from the stack's "CI steps" and `testing.md` ("What each kind needs from the project"), with the environment matrix of the stage table where it asks for one; a scheduled workflow for non-functional tests.
+
+Finally run every self-check command of `stack.md` in the component directory, and each heavy command once; all must pass, and `docker ps` shows nothing they started. When generated code violates the standards (architecture checks and complexity limits included), fix it until it complies; do not relax the rules.
 
 ### 5. Common root files
 
@@ -117,6 +124,7 @@ Following the deployment chosen in the architecture and `shared/deployment.md`:
 - Platforms that need a workflow: write `.github/workflows/deploy.yml` from `shared/deploy.yml` with the integration branch (develop for Git Flow, main for GitHub Flow), the component list and the platform's deployment steps.
 - Platforms with their own Git integration (e.g. static hosting): no workflow; list the settings the user makes on the platform's website (connect the repository, component directory, build command, which branch deploys to which environment, PR previews).
 - List what the user must do: create the platform account, create `staging` and `production` environments on GitHub, set Required reviewers on `production`, store the platform token as an environment secret.
+- With the delivery kind: deploying to staging is one delivery test, so the pipeline runs the project's smoke flows (end-to-end, key flows only) against staging after the deployment.
 
 ### 8. Commit
 
@@ -125,6 +133,7 @@ Split into several Conventional Commits, each doing one thing, e.g.:
 - `chore: initialize the repository structure`
 - `feat(<component>): generate the <stack> skeleton with <generator>` (one per component)
 - `build(<component>): add code standards, architecture checks and lint configuration` (one per component)
+- `test(<component>): add the <kind> test setup and its project command` (one per heavy kind)
 - `build(infra): add the local docker compose environment`
 - `ci: add the deployment pipeline`
 
@@ -136,8 +145,8 @@ Ask the user whether the repository is public or private (private repositories o
 
 ### 10. Set up the review workflow
 
-Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. Heavy checks (end-to-end tests, tests that need a database, visual regression tests) go into the "Heavy checks" line of CLAUDE.md, each with what it holds: the fixed ports it needs (or the environment variable that sets them), output directories, whether it uses containers, roughly how much memory.
+Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. The kinds of tests the project uses go into the Tests section of CLAUDE.md: each heavy kind with its command, the throwaway environment it prepares and removes, what it holds (the fixed ports it needs or the environment variable that sets them, output directories, whether it uses containers, roughly how much memory), what runs before each commit and before the PR, and its CI job; every kind not used with one line on why; how a change maps to the tests it affects; and the time targets for the stages before a commit and before the PR.
 
 ### 11. Report and next step
 
-Report: the components created, the versions used (runtimes, frameworks, TypeScript, and so on), any version trade-offs and the user's choices, the standards and checks each component got, the decision point results, the self-check results, how to start it locally, the deployment pipeline and the platform settings the user still has to make, and the repository URL. Tell the user to run /roadmap next to split requirements and design into issues; if /design has not been done yet, run /design first.
+Report: the components created, the versions used (runtimes, frameworks, TypeScript, and so on), any version trade-offs and the user's choices, the standards and checks each component got, the kinds of tests set up with their commands, the decision point results, the self-check results, how to start it locally, the deployment pipeline and the platform settings the user still has to make, and the repository URL. Tell the user to run /roadmap next to split requirements and design into issues; if /design has not been done yet, run /design first.

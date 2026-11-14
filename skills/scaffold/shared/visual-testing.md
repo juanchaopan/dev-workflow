@@ -8,6 +8,8 @@ Set these up when a frontend component's decision points in /architect chose "co
 | Storybook | What each presentational component looks like for each input, checked one by one without running the whole application |
 | Visual regression tests (Playwright screenshot comparison) | Whether the look of pages and components changed unexpectedly; if so the PR fails with comparison images |
 
+Visual regression tests are the snapshot kind of `testing.md`: a heavy check that runs at the stages its table gives (affected screens before each commit, all of them before the PR, then CI).
+
 ## Design source
 
 What a screen should look like is defined by one of:
@@ -42,7 +44,7 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
 3. The unit test runner must exclude `e2e/`, or it picks up the Playwright tests too (Vitest: add `'e2e/**'` to `test.exclude`).
 4. Baseline screenshots depend on the operating system (file names contain `-win32` or `-linux`), and font rendering differs slightly between machines, so baselines are generated and compared inside Playwright's official Docker image, which keeps local runs and CI consistent. The image version must match the `@playwright/test` version.
 
-   Give the project its own command for this (an npm script or a script file) and write it into the "Heavy checks" line of CLAUDE.md. The command:
+   Give the project its own command for this (an npm script or a script file) and write it into the Tests section of CLAUDE.md. The command:
 
    - reads the image version from the project's locked `@playwright/test` version;
    - keeps the installed dependencies in a cache volume that later runs reuse, so the lock file decides when they are installed again, not every run;
@@ -60,7 +62,7 @@ The install commands and the fixes each stack needs are in the "Optional: Storyb
 
    In Git Bash on Windows, prefix the command with `MSYS_NO_PATHCONV=1` and convert the path with `cygpath -w`. Commit the generated `e2e/**-snapshots/*.png`.
 
-   This is a heavy check: it goes into the "Heavy checks" line of the project's CLAUDE.md, with what it holds (output directories, containers, roughly how much memory), and leaves nothing running. When `docker info` fails, start Docker first (Docker Desktop: `docker desktop start`). `--rm` removes the container when it exits; anything else the run started (e.g. a `docker compose` stack the tests use) is stopped with `docker compose -f <file> down` afterwards, whether the run passed or failed. When CLAUDE.md says to quit Docker Desktop after heavy checks and the run started it, quit it with `docker desktop stop`.
+   This is a heavy check: it goes into the Tests table of the project's CLAUDE.md, with what it holds (output directories, containers, roughly how much memory), and leaves nothing running. When `docker info` fails, start Docker first (Docker Desktop: `docker desktop start`). `--rm` removes the container when it exits; anything else the run started (e.g. a `docker compose` stack the tests use) is stopped with `docker compose -f <file> down` afterwards, whether the run passed or failed. When CLAUDE.md says to quit Docker Desktop after heavy checks and the run started it, quit it with `docker desktop stop`.
 5. CI runs in the same image:
 
    ```yaml

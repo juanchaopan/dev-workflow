@@ -53,6 +53,22 @@ In the component directory:
 |---|---|---|---|---|
 | `uv run ruff format .` | `uv run ruff check . && uv run lint-imports` | `uv run mypy src` | `uv run pytest` | `uv build` |
 
+## Tests by kind
+
+How each kind of the scaffold skill's `shared/testing.md` is done on this stack. The project sets up the kinds /architect chose; unit tests run through the self-check command, the others each get a project command and a CI job. Mark the heavy ones (for example `@pytest.mark.integration`) and keep them out of the default `uv run pytest` run, so the self-check stays light.
+
+| Kind | How |
+|---|---|
+| Unit | pytest under `tests/`: services and domain logic, with repositories, clocks and network faked. Related only: `uv run pytest <changed test files>` or `-k <name>` |
+| Component | None unless the component renders a UI (then the framework's own test client or a headless browser renders one view in each state) |
+| Integration | The data access code against the real database (and cache or queue) in a throwaway container at the production version: random password, 127.0.0.1, a free port passed to the tests through the configuration variable, migrations first, container removed afterwards. Testcontainers for Python can start it from the tests; otherwise the project command does it |
+| End-to-end | Run the real entry point: the command line through `subprocess` (arguments, output, exit code), or the web service started against a throwaway database and called over HTTP, key flows only |
+| Snapshot | Generated output (text, JSON, reports) compared with approved files, e.g. with syrupy |
+| Delivery | `uv build`, install the wheel in a clean environment and run the entry point; for services, the container image started against a database migrated from the last release's schema |
+| Non-functional | `uv run pip-audit` as the fast security scan; load tests with locust or k6 against a production-like environment for the targets in the requirements |
+
+Each heavy kind gets a CI job of its own, after the component's job, that prepares its own throwaway environment (a service container or the project command).
+
 ## Format hook rule
 
 ```json

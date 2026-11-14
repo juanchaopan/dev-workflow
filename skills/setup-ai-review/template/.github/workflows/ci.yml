@@ -3,7 +3,7 @@ name: ci
 # Required automatic checks: lint, architecture checks, type checks, tests and build of each component, plus duplicate code
 # detection for the whole repository.
 # Branch rules require the summary job named "ci" before merging: it runs after every other job and fails when any of them fails.
-# The commands match "Self-check commands" in CLAUDE.md, so what passes locally passes in CI.
+# The commands match "Self-check commands" and "Tests" in CLAUDE.md, so what passes locally passes in CI.
 
 on:
   pull_request:
@@ -30,6 +30,11 @@ jobs:
       - run: npx --yes jscpd@5 .
 
   # ---- Project-specific: one job per component, from the "CI steps" of its stack.md ----
+  # Besides the static checks, unit and component tests, each heavy kind the project uses (integration, end-to-end,
+  # snapshot, delivery; see the scaffold skill's shared/testing.md) gets a job of its own that prepares its own
+  # throwaway environment, with a matrix over the environments the stage table asks for. Non-functional tests run in a
+  # separate scheduled workflow, with only their fast part (security scan, artifact size) here. Every job goes into
+  # the `needs` of the `ci` job below.
   app:
     name: app
     runs-on: ubuntu-latest

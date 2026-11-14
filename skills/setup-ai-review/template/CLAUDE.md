@@ -22,9 +22,20 @@ After any change, run the commands below for every component you changed and sho
 
 The whole repository also has duplicate code detection: `npx jscpd .` (at the repository root).
 
-Heavy checks, which use a lot of memory or a container runtime: {{each command with what it holds — a port that cannot be changed, or the variable that sets the port (e.g. `E2E_PORT`), output directories, whether it uses containers, roughly how much memory; "none"}}. Checks that hold nothing in common may run at the same time when the machine can carry them.
+## Tests
 
-After a heavy check, whether it passed or failed, nothing it started keeps running: stop it with {{e.g. `docker compose -f infra/docker-compose.e2e.yml down`; containers run with `docker run --rm` remove themselves}}. Docker Desktop after heavy checks: {{"quit it with `docker desktop stop` when the check started it" or "leave it running"}}.
+The kinds follow the scaffold skill's `shared/testing.md`: static checks, unit, component, integration, end-to-end, snapshot, delivery and non-functional tests. Static checks, unit and component tests are the light ones and run through the self-check commands above. The heavy kinds this project uses:
+
+| Kind | Command | Environment and what it holds | Before each commit | Before the PR | CI job |
+|---|---|---|---|---|---|
+| {{kind}} | `{{command}}` | {{the throwaway environment it prepares and removes; a port that cannot be changed, or the variable that sets it (e.g. `E2E_PORT`); output directories; roughly how much memory}} | {{what runs: e.g. "affected flows"}} | {{what runs: e.g. "all"}} | {{job name}} |
+
+- Kinds not used: {{each kind with one line on why, e.g. "delivery: a library with no installer"; "none"}}.
+- A change maps to the tests it affects like this: {{by directory, by dependency, or the test tool's affected-tests option}}. When unsure, run more.
+- Time targets: before each commit {{e.g. 3 minutes}}, before the PR {{e.g. 15 minutes}}. When one is exceeded, select by change, shard, cache or move a check to a later stage; do not drop it.
+- Checks that hold nothing in common may run at the same time when the machine can carry them.
+- After a heavy check, whether it passed or failed, nothing it started keeps running: stop it with {{e.g. `docker compose -f infra/docker-compose.e2e.yml down`; containers run with `docker run --rm` remove themselves}}. Docker Desktop after heavy checks: {{"quit it with `docker desktop stop` when the check started it" or "leave it running"}}.
+- A check this machine cannot run is left to CI, and the PR says "not run locally" and why.
 
 ## Code standards
 
@@ -66,6 +77,7 @@ After a heavy check, whether it passed or failed, nothing it started keeps runni
 
 - Never commit directly to protected branches; every change merges through a PR.
 - Open PRs with `/open-pr`: it runs the self-check commands, a local simplification pass, code-review and security-review first, then fills in the PR template.
+- One issue is one PR. Split it only when a reviewer cannot read the diff in one sitting.
 - Make new features switchable where possible (a flag or setting), so they can be turned off without rolling back code.
 - When a change touches paths under `[high]` in `.github/risk-rules.txt`, give the reason in the Risk section of the PR.
 - Behavior users can see — screens, fields, validation, messages, interfaces, data structures, business rules — follows `docs/design/`, and screens follow the user-confirmed screenshots. To change such behavior, change the design with /change first, then the code.

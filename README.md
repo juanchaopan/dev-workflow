@@ -58,23 +58,23 @@ Whenever unsure (any stage):
 | Skill | What it does | What you do |
 |---|---|---|
 | `/kickoff` | From an idea, existing code, a document or a problem: rounds of multiple-choice questions on goals, the feature list, business rules and scale, finds logical holes, writes the requirements. For old systems: what to keep, change or drop, whether screens and style are redone, findings that change requirements | Answer; confirm the requirements |
-| `/onboard` | Takes over an existing project without trusting it: inventory, whether it builds and runs, current architecture and its contradictions, features in use, the full current design (real screenshots, fields as enforced on screen, server and database, actual data, interfaces and their callers, business rules buried in code), findings (suspected bugs, contradictions, dirty data), quality baseline; standards set up with a baseline when the old code stays | Say which features are still used; choose maintain, extend, modernize or rewrite |
-| `/architect` | Architecture metrics, choices layer by layer, each stack's detailed decisions (e.g. Maven or Gradle, Oxlint or typescript-eslint), deployment and PR previews, visual verification, distributed design, migration plans with data migration and cutover | Choose technologies; confirm the architecture |
+| `/onboard` | Takes over an existing project without trusting it: inventory, whether it builds and runs, which kinds of tests it has and lacks, current architecture and its contradictions, features in use, the full current design (real screenshots, fields as enforced on screen, server and database, actual data, interfaces and their callers, business rules buried in code), findings (suspected bugs, contradictions, dirty data), quality baseline; standards set up with a baseline when the old code stays | Say which features are still used; choose maintain, extend, modernize or rewrite |
+| `/architect` | Architecture metrics, choices layer by layer, each stack's detailed decisions (e.g. Maven or Gradle, Oxlint or typescript-eslint), which kinds of tests the project uses and where they run, deployment and PR previews, visual verification, distributed design, migration plans with data migration and cutover | Choose technologies; confirm the architecture |
 | `/design` | Screens (type, required, length, validation and error message of every field), data (tables and columns, or file formats), interfaces, permissions, complex logic; every screen drawn as a prototype screenshot and confirmed with you one at a time; for old systems each screen next to its real screenshot, with every old rule and finding kept, changed or dropped by you, and the data migration mapped; checks requirement coverage, the CRUD matrix and the permission matrix | Look at screenshots, comment, confirm each screen; decide on old rules; confirm data and interfaces |
 | `/spike` | Time-boxed spikes: question and criteria, minimal implementation, evidence, conclusion as an ADR; the code is never merged, and stays archived as a tag with its branch kept on GitHub | Try it, decide |
-| `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, project commands for database tests and visual checks on configurable ports, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
+| `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, sets up every kind of test the architecture chose with its own project command, configurable ports, a way to run only what a change affects and a CI job, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
 | `/setup-ai-review` | CI, AI code review, security review, risk tiers, commit message checks, duplicate code detection, automatic dependency updates, `@claude` | Choose the branching strategy; store the secret |
 | `/roadmap` | Milestones and issues from requirements and design, one PR per issue, acceptance criteria taken from the design; spikes and the skeleton first; for old systems characterization tests, data migration rehearsals and cutover | Confirm scope and order |
 | `/implement` | Branch, refactor first when needed, small "test → implement → refactor" commits (tests derived from the design's rules), screens compared with the confirmed screenshots, PR, review handling, automatic merge. `next` lists the issues that can start and offers only batches of issues that do not conflict, the largest first: one in this session, several in parallel with one subagent each | Choose a batch; answer plan questions; read the diff of medium and high risk PRs and add `human-reviewed` |
 | `/change` | Rates a new idea twice — how much the requirements change, how hard it hits the code structure — asks, updates requirements and design, has changed screens confirmed again, splits issues | Confirm the levels; answer; confirm changed screens |
-| `/release` | Computes the version, writes the CHANGELOG, runs the release branch, tags, creates the Release, follows the production deployment | Confirm the version; approve the production deployment |
+| `/release` | Computes the version, writes the CHANGELOG, runs the tests reserved for before a release, runs the release branch, tags, creates the Release, follows the production deployment | Confirm the version; approve the production deployment |
 
 ## How far each step goes
 
 | Stage | What gets settled | Skill |
 |---|---|---|
 | Requirements | What the system does, for whom, the feature list, business rules, scale and scope | /kickoff |
-| Architecture | Which technologies, which components, who owns which data, how it is deployed | /architect |
+| Architecture | Which technologies, which components, who owns which data, how it is deployed, which kinds of tests and where they run | /architect |
 | Design (basic and detailed) | What each screen looks like; type, required, length, validation and error message of every field; every column of every table (or the format of files and configuration without a database); parameters and errors of every interface; permissions; state transitions, decision tables, calculations | /design |
 | Code internals | How classes and functions are split | /implement, within the standards and architecture checks, not written in advance |
 
@@ -95,17 +95,21 @@ An old system's code may have bugs, parts may not run, its architecture may cont
 
 Nothing in the plugin pins a version. When /scaffold creates a project it looks versions up on the spot: runtimes (Node.js, Java, .NET) on their current LTS, Python on its latest release, libraries and tools on their latest release. The standards library prefers tools that do not hold versions back (architecture checks parse with SWC; Node.js linting defaults to Oxlint in type-aware mode), so new majors such as TypeScript 7 are used right away. When a tool you chose does not support a new major yet, /scaffold explains the situation and lets you choose: switch tools, or stay a version behind until the tool catches up (Dependabot then upgrades them together).
 
-## Testing during development
+## Testing
 
-An issue is one PR by default; it is split only when the diff is too large to review in one sitting, because every extra PR repeats CI, review, merge, rebase and the checks.
+`skills/scaffold/shared/testing.md` is the one place that defines tests; every skill refers to it and none of them names tests of its own.
 
-Problems are found on the machine, before CI:
+**Kinds.** Tests are grouped by what they check, not by what they use (a database, a browser, an emulator, a device is a test's environment, not a kind): static checks, unit, component, integration, end-to-end, snapshot (visual regression is one), delivery (install, upgrade from the last release) and non-functional (performance, resources, security, accessibility, compatibility). Nothing in it is specific to the web: a mobile app, a desktop program, a command line tool, a library, a game or a spreadsheet picks from the same list.
 
-- **Heavy checks run locally.** End-to-end tests, visual regression tests and tests that need a database or another service run against throwaway containers of the same images and versions CI uses (random password, bound to 127.0.0.1, migrations first, removed afterwards). /scaffold generates the project commands for them and CLAUDE.md lists them under "Heavy checks", each with what it holds.
-- **They run at set points.** While developing, only the heavy tests that cover what the commit changed; the full set once before the PR; for stacked PRs, once on the top of the stack. After a rebase only the tests covering what the rebase changed. CI runs the full suite on every PR.
-- **Ports are configurable.** The end-to-end port comes from an environment variable (`E2E_PORT`) and the database container takes a free port, so the same check can run in several worktrees at once. A port that cannot be changed stays a lock.
-- **A failing CI run is reproduced locally first**, under the same conditions, and the fix is pushed once the reproduced failure passes.
-- **Visual baselines are regenerated only for the screens that changed**, and every changed baseline is checked against them before committing.
+**Each project chooses.** /architect answers seven questions with you (own logic? a UI? anything outside the process? multi-step user flows? output assertions cannot describe? installed, upgraded or deployed? targets for performance and the like?). Each "yes" is a kind the project uses; each "no" is recorded with one line on why, so a review can tell a gap from a choice. The result is the Tests section of the project's CLAUDE.md: per heavy kind its command, the throwaway environment it prepares and removes, what it holds, what runs before each commit and before the PR, and its CI job.
+
+**Stages.** The stage table says what runs when: while coding only the related tests (seconds); before each commit everything light plus the heavy tests covering the change; before the PR every heavy kind once, in full; in CI the full set, with a few representative environments; after a merge the scheduled and smoke checks; before a release every environment combination, real devices, the upgrade from the last release and the non-functional comparison. A rebase reruns only what it touched, and CI failures are reproduced locally before the fix is pushed.
+
+**Thorough without being slow**, by doing nothing twice rather than testing less: each behavior tested at the lowest level that can catch it; only the tests a change affects run while developing; all heavy failures are collected and fixed together; dependencies, builds and images are cached and test environments restored from snapshots; checks that share nothing run in parallel; environments widen stage by stage; baselines are updated only for intended changes; flaky tests are fixed as bugs, not rerun; what the machine cannot run is left to CI and reported as "not run locally".
+
+**Heavy checks run against throwaway environments of the same images and versions CI uses** (random password, bound to 127.0.0.1, migrations first, removed afterwards), and leave nothing running. /scaffold generates the project commands for them. Their ports are configurable: the end-to-end port comes from an environment variable (`E2E_PORT`) and the database container takes a free port, so the same check can run in several worktrees at once; a port that cannot be changed stays a lock.
+
+**An issue is one PR by default.** It is split only when the diff is too large to review in one sitting, because every extra PR repeats CI, review, merge, rebase and the checks.
 
 ## Developing several issues at once
 
@@ -148,7 +152,7 @@ Feature, fix, refactor, release, hotfix and spike branches are never deleted on 
 | Architecture checks | Layering rules: frontend pages (containers) apart from presentational components, which never call APIs; backend controller → service → repository; a domain layer free of frameworks; features that do not reference each other; no circular dependencies. dependency-cruiser for Angular, React and Node.js, ArchUnit for Spring Boot, import-linter for Python, ArchUnitNET for .NET | Self-check commands and CI; violations fail |
 | Judgment rules | `rules.md`: what tools cannot check, distilled from official style guides, the Google style guides, the Alibaba Java Coding Guidelines, Microsoft's coding conventions and common layering practice | Installed into the project's `.claude/rules/`, read by Claude when it changes matching directories, and used by the AI reviewer |
 
-Each stack's `stack.md` also lists "decision points" (e.g. build tool, lint tool, state management, data access) that /architect asks you instead of hard-coding them, and a "Versions" section on how versions are looked up. To add a stack, write a set modeled on any directory — `stack.md`, `rules.md`, `files/` — plus a `tests/stacks/<stack>.sh` smoke test.
+Each stack's `stack.md` also lists "decision points" (e.g. build tool, lint tool, state management, data access) that /architect asks you instead of hard-coding them, a "Tests by kind" section saying how each kind of test is done on that stack, and a "Versions" section on how versions are looked up. To add a stack, write a set modeled on any directory — `stack.md`, `rules.md`, `files/` — plus a `tests/stacks/<stack>.sh` smoke test.
 
 ## Keeping code from turning into patchwork
 
@@ -188,7 +192,7 @@ These are in the documents and templates but need real accounts or environments,
 
 - The deployment pipeline (`skills/scaffold/shared/deploy.yml`) and each platform's PR previews.
 - Generating visual regression baselines in Docker (Docker Desktop must be running).
-- Tests that need a database, run against a throwaway container (Docker must be running).
+- Heavy test kinds that need a container, an emulator or a device (integration, end-to-end, delivery), run against throwaway environments (Docker must be running).
 - The GitHub workflows: AI review, security review, `@claude`, Dependabot, branch rules. They only run in a real repository.
 - Parallel development with `/implement next`, which depends on Claude Code's subagents and worktrees in a real project.
 - /onboard on a real legacy system: capturing screens behind a sign-in, data profiling on a database copy, and the subagent split by area.

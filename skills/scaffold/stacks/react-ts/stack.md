@@ -95,6 +95,22 @@ When the decision points chose Playwright, configure it from the scaffold skill'
 
 With Storybook, `npm test` also runs every story in a browser, and the build column adds `npm run build-storybook`.
 
+## Tests by kind
+
+How each kind of the scaffold skill's `shared/testing.md` is done on this stack. The project sets up the kinds /architect chose; unit and component tests run through the self-check command, the others each get a project command and a CI job.
+
+| Kind | How |
+|---|---|
+| Unit | Vitest in the `unit` project: hooks, utilities and data-access code, with network calls faked. Related only: `npx vitest related <changed files> --run` |
+| Component | Testing Library renders one component or page with its props and faked data-access, finds elements the way users see them and acts like the user. With Storybook, its story tests in a browser cover each state |
+| Integration | Usually none in the frontend: its calls to the backend are covered by the backend's integration tests and the end-to-end flows |
+| End-to-end | Playwright in `e2e/` against the built application on `E2E_PORT`, key flows only (`shared/visual-testing.md`). Related only: `npx playwright test --only-changed` or `--grep` |
+| Snapshot | Playwright `toHaveScreenshot` in Playwright's Docker image through the project's visual command; baselines only for the screens that changed |
+| Delivery | The build output is static files: deploying to staging is the test, followed by a smoke flow against the staging URL |
+| Non-functional | Bundle size checked on the build output; accessibility with `@axe-core/playwright` inside the end-to-end tests; page speed with Lighthouse when the requirements give a target |
+
+Each heavy kind gets a CI job of its own, after the component's job, that prepares its own throwaway environment.
+
 ## Format hook rule
 
 `lint` is the template's linter: `npx oxlint {file}` for oxlint, `npx eslint {file}` for ESLint.

@@ -79,6 +79,22 @@ NestJS projects: install `dependency-cruiser` and `@swc/core`, copy `.dependency
 
 The architecture check fails when it analyzes no modules (e.g. `@swc/core` is not installed) instead of quietly passing.
 
+## Tests by kind
+
+How each kind of the scaffold skill's `shared/testing.md` is done on this stack. The project sets up the kinds /architect chose; unit tests run through the self-check command, the others each get a project command (`npm run test:<kind>`) and a CI job.
+
+| Kind | How |
+|---|---|
+| Unit | Vitest: services, domain logic and validation, with repositories and clocks faked. Fastify's `app.inject()` calls routes in the process without a socket. Related only: `npx vitest related <changed files> --run` |
+| Component | None: the component has no UI |
+| Integration | The data access code against the real database (and cache or queue) the architecture chose, in a throwaway container at the production version: random password, 127.0.0.1, a free port passed to the tests through the configuration variable, migrations first, container removed afterwards. Testcontainers for Node.js can start it from the tests; otherwise the project command does it |
+| End-to-end | Build the real artifact, start it against a throwaway database on a free port and call the public API over HTTP like a client, key flows only |
+| Snapshot | Generated documents, reports or error bodies compared with approved files (`toMatchFileSnapshot`) |
+| Delivery | Build the container image, start it against a database migrated from the last release's schema, check the health endpoint; migrations follow expand, migrate, contract |
+| Non-functional | `npm audit` as the fast security scan; load tests with k6 or autocannon against a production-like environment for the targets in the requirements |
+
+Each heavy kind gets a CI job of its own, after the component's job, that prepares its own throwaway environment (a service container or the project command).
+
 ## Format hook rule
 
 Set `lint` for the chosen lint tool: `npx oxlint --type-aware {file}` for Oxlint, `npx eslint {file}` for typescript-eslint.

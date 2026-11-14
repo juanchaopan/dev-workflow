@@ -5,7 +5,7 @@ description: Splits the requirements in docs/product/, the architecture in docs/
 
 # Planning
 
-Turn requirements and design into issues that can each be developed, reviewed and merged on their own. One issue maps to one PR. Every extra issue repeats CI, review, merge, rebase and the checks, so issues are not cut smaller than a behavior the user can notice. Issue content comes from the design — which screen, which interfaces, which rules — so nobody has to guess during development.
+Turn requirements and design into issues that can each be developed, reviewed and merged on their own. One issue maps to one PR. Every extra issue repeats CI, review, merge, rebase and the checks, so issues are not cut smaller than a behavior the user can notice (the rule is "Pull request size" in the scaffold skill's `shared/testing.md`). Issue content comes from the design — which screen, which interfaces, which rules — so nobody has to guess during development.
 
 ## Issue types
 
@@ -33,7 +33,7 @@ Check the design is complete:
 
 New project:
 
-- **M0 walking skeleton**: the thinnest end-to-end path through every layer (e.g. click a button on a page → call a backend endpoint → write to the database → show the result), running locally with several instances in docker compose, CI green, deploying automatically to staging, with a preview URL for every PR (per the deployment chosen in the architecture). The point is to surface integration and deployment problems early.
+- **M0 walking skeleton**: the thinnest end-to-end path through every layer (e.g. click a button on a page → call a backend endpoint → write to the database → show the result), running locally with several instances in docker compose, CI green, deploying automatically to staging, with a preview URL for every PR (per the deployment chosen in the architecture). The point is to surface integration and deployment problems early. It also proves each kind of test the architecture chose, with one real test of each kind running locally and in CI.
 - **M1 MVP**: every first-version requirement in `docs/product/vision.md`.
 - **M2 and later**: "later" requirements, grouped.
 
@@ -55,7 +55,8 @@ ADRs with the status "Proposed" and open questions marked for verification each 
 - Acceptance criteria come from the design: every validation rule in the field definitions, the success and failure of every action, every error of the interfaces, every row of the decision tables. When there are many, reference them ("all rules of fields 1 to 8 in the SCR-xxx field definitions") and list the most important few separately. For an existing system, every kept old rule's worked example and every changed rule's new result is a criterion.
 - Migration steps of code structure redesigns (`docs/design/refactor/`) follow their order: characterization tests, refactoring, expand, migrate, contract, feature. A refactoring issue's acceptance criterion is "behavior unchanged". Steps that stay readable as one diff share an issue; "refactor only" and "add a feature" never do.
 - Data migration is split per entity group: migration script, rehearsal on a copy with a comparison report, handling of each dirty-data case; old interfaces with outside callers get their own issues for the compatibility decision (adapter, versioned endpoint, or the coordinated change).
-- Write each issue from `templates/issue.md`: type, goal, requirements and design elements (REQ, SCR, ENT, API, JOB, LGC IDs; screens with the path of the confirmed screenshot; for an existing system, the old elements replaced), acceptance criteria, components, the issues it depends on, size, estimated risk tier (against `.github/risk-rules.txt`), test points. List the files it is expected to touch: /implement uses that to plan parallel work.
+- Write each issue from `templates/issue.md`: type, goal, requirements and design elements (REQ, SCR, ENT, API, JOB, LGC IDs; screens with the path of the confirmed screenshot; for an existing system, the old elements replaced), acceptance criteria, components, the issues it depends on, size, estimated risk tier (against `.github/risk-rules.txt`), test points (each at the lowest kind of test that can catch it, as in `testing.md`: field rules are unit tests, only key flows are end-to-end). List the files it is expected to touch: /implement uses that to plan parallel work.
+- Tests are not issues of their own: each issue brings its tests. Only setting up a kind of test that the project lacks, or a delivery or non-functional test that spans features, is a `type:chore` issue.
 
 ### 3. Order and confirm
 

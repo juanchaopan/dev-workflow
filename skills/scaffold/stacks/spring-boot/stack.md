@@ -73,6 +73,22 @@ When downloading dependencies fails with an error about an unreachable private r
 
 Maven's `verify` and Gradle's `check` both run the format check, Checkstyle, PMD and every test (`ArchitectureTest` included).
 
+## Tests by kind
+
+How each kind of the scaffold skill's `shared/testing.md` is done on this stack. The project sets up the kinds /architect chose. Tests that need a container (integration, end-to-end, delivery) are heavy: keep them apart from the unit tests (classes named `*IT` run by Failsafe in Maven, a separate test task in Gradle) so `verify` and `check` stay light, and let a project command run them.
+
+| Kind | How |
+|---|---|
+| Unit | JUnit 5 with Mockito: services and domain logic, repositories faked; `ArchitectureTest` runs with them. Related only: `./mvnw test -Dtest=<class>` or `./gradlew test --tests <class>` |
+| Component | None unless the component renders server-side views (then `@WebMvcTest` with HTML assertions renders one view in each state) |
+| Integration | Repositories, migrations and messaging against Testcontainers of the production image and version (`@ServiceConnection` wires the connection in recent Spring Boot), Flyway migrations first, container removed afterwards |
+| End-to-end | `@SpringBootTest(webEnvironment = RANDOM_PORT)` or the built jar started on a free port against a Testcontainers database, key flows called over HTTP like a client |
+| Snapshot | Generated documents, JSON or reports compared with approved files, e.g. with ApprovalTests |
+| Delivery | Build the image (`./mvnw spring-boot:build-image`), start it against a database migrated from the last release's schema, check the health endpoint; rollback is the previous image |
+| Non-functional | OWASP dependency-check as the fast security scan; load tests with k6 or Gatling against a production-like environment for the targets in the requirements |
+
+Each heavy kind gets a CI job of its own, after the component's job, that prepares its own throwaway environment (Docker is available on the runner).
+
 ## Format hook rule
 
 None. Starting Maven or Gradle takes several seconds, which is too slow to run on every changed file. Formatting is part of the self-check commands and runs before committing.

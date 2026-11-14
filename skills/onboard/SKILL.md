@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: Take over an existing project by gathering evidence of what it really does, without trusting it: inventory, whether it builds and runs, current architecture and its contradictions, features in use, and the full current design — every screen (real screenshots when it runs), fields as enforced on screen, server and database, tables with profiling of the actual data, interfaces and their callers, jobs and the business rules buried in code — each marked observed, inferred or conflicting, with suspected bugs and contradictions listed as findings. Measures the quality baseline, asks where the project goes (maintain, extend, modernize, rewrite) and, when the old code stays, sets up standards and the review workflow with a baseline. /kickoff and /design later decide what to keep, change or drop. Use for "take over this project", "look at this old project", "this repository has no documentation", "modernize or rewrite this system"; /kickoff and /change call it first on undocumented code.
+description: Take over an existing project by gathering evidence of what it really does, without trusting it: inventory, whether it builds and runs, which kinds of tests it has and which are missing, current architecture and its contradictions, features in use, and the full current design — every screen (real screenshots when it runs), fields as enforced on screen, server and database, tables with profiling of the actual data, interfaces and their callers, jobs and the business rules buried in code — each marked observed, inferred or conflicting, with suspected bugs and contradictions listed as findings. Measures the quality baseline, asks where the project goes (maintain, extend, modernize, rewrite) and, when the old code stays, sets up standards and the review workflow with a baseline. /kickoff and /design later decide what to keep, change or drop. Use for "take over this project", "look at this old project", "this repository has no documentation", "modernize or rewrite this system"; /kickoff and /change call it first on undocumented code.
 ---
 
 # Taking over an existing project
@@ -31,6 +31,7 @@ When `docs/design/as-is/README.md` already exists, read its "Areas" table: conti
 - **Components**: find every unit that can be built or deployed on its own (every `package.json`, `pom.xml`, `build.gradle(.kts)`, `pyproject.toml`, `*.csproj`, `go.mod`, `Dockerfile` and so on). Identify each component's stack with the "How to recognize it" section of the scaffold skill's `stacks/*/stack.md`.
 - **Versions and dependencies**: versions of languages, frameworks and main dependencies; which are at or near end of life (`https://endoflife.date/api/<product>.json`, or `node <scaffold skill directory>/shared/versions.mjs lts <product>` for the current LTS); known vulnerabilities (`npm audit`, `./mvnw dependency-check`, `pip-audit`, `dotnet list package --vulnerable` and so on, by stack).
 - **Does it build, test and run**: find the build, test and start commands (README, scripts, compose files, CI) and run each. Start it locally with a local or copied database; ask the user for missing configuration values (never invent credentials). Record what passes, what fails and why. When it does not run, say so plainly, record a "Does not run" finding and continue from the code: everything later is then "Inferred from code".
+- **Tests by kind**: for each component, which kinds of the scaffold skill's `shared/testing.md` the project already has (unit, component, integration, end-to-end, snapshot, delivery, non-functional), how many tests of each, whether each runs locally and in CI, and which kinds the seven questions of that file say it needs but lacks. A missing kind is a finding, not something to add now.
 - **Engineering setup**: CI/CD configuration, deployment (Dockerfiles, compose files, infrastructure as code), environment configuration, and whether secrets or passwords are committed to the repository (if so, tell the user immediately; it is a security issue).
 - **Data and integrations**: database type, migration scripts, schema or model definitions; which external systems it calls and which call it.
 - **History**: `git log` for the project's age and recent activity; the most frequently changed files of the last year (`git log --since="1 year ago" --name-only --format="" | sort | uniq -c | sort -rn | head -30`) — often where the most problems are.
@@ -42,7 +43,7 @@ Then split the system into **areas** (modules or business domains, e.g. orders, 
 
 - Map components and their dependencies, data stores and external integrations. For frontend and Node.js components, dependency-cruiser can generate a dependency graph.
 - Look at the actual layering: organized by layer or by feature, cross-layer calls, presentation mixed with business logic, the same concern solved several ways.
-- Write `docs/architecture/overview.md` from the architect skill's `templates/overview.md`, with "Current state (documented by /onboard)" under the title and a "Contradictions" section for what does not hold together (e.g. two ways of reaching the database, a "stateless" service keeping sessions in memory). Historical decisions you can see become ADRs with the status "Accepted (inferred from existing code)". /architect designs the target from scratch; it does not inherit these contradictions.
+- Write `docs/architecture/overview.md` from the architect skill's `templates/overview.md`, with "Current state (documented by /onboard)" under the title and a "Contradictions" section for what does not hold together (e.g. two ways of reaching the database, a "stateless" service keeping sessions in memory). Fill its "Testing" section with the kinds found in step 1. Historical decisions you can see become ADRs with the status "Accepted (inferred from existing code)". /architect designs the target from scratch; it does not inherit these contradictions.
 
 ### 3. Existing features
 
@@ -70,12 +71,12 @@ The user does not confirm the old design element by element; it may be wrong and
 
 Measure the current state and write it to `docs/architecture/tech-debt.md` (from this skill's `templates/tech-debt.md`):
 
-- Build and tests: do they pass, number of tests, coverage (when there is a tool).
+- Build and tests: do they pass, number of tests by kind (step 1), coverage (when there is a tool).
 - Duplication: run `npx jscpd .` at the repository root (with the `.jscpd.json` from the setup-ai-review skill's template) and record the duplication rate.
 - Complexity and lint: run lint with the standards library's configuration for each component's stack, record the number of violations and the most complex functions.
 - Architecture violations: run the standards library's architecture check configuration (when it matches the directory structure) and record the number of violations.
 
-Then list the tech debt: for each item, what it is, what it affects, how risky it is, how much work the fix is and the recommended handling. "Does not run" and security findings come first.
+Then list the tech debt: for each item, what it is, what it affects, how risky it is, how much work the fix is and the recommended handling. "Does not run" and security findings come first; missing kinds of tests (step 1) are listed with what they would protect.
 
 ### 6. Ask where the project goes next
 
@@ -106,9 +107,9 @@ Only when the old code keeps being developed (maintain, extend, modernize).
    | Lint complexity and length limits | Relax the limits per file in the lint configuration for files that exceed them today, and record them in tech-debt.md |
    | jscpd | Set `threshold` in `.jscpd.json` to the current duplication rate (rounded up) and lower it over time |
 
-3. Run `setup-ai-review` with the Skill tool to set up the review workflow.
+3. Run `setup-ai-review` with the Skill tool to set up the review workflow. The Tests section of CLAUDE.md lists the kinds the project has today, with the commands that already exist; kinds it lacks are listed with "missing" and their reason, and /roadmap schedules setting them up.
 4. Recommend to the user: before touching high-risk or frequently changed code, add characterization tests that pin down today's behavior exactly as it is, even where it looks wrong (findings included), so later changes show what they change. Fixing a finding is then a deliberate change with its own test.
 
 ### 9. Report
 
-Explain: the components; whether it builds and runs; the key points and contradictions of the current architecture; the existing features found and confirmed; the current design documented (screens with and without real screenshots, entities, interfaces and jobs, business rules) and the areas not reached; the findings by kind with the most important ones; the baseline numbers; the 3 to 5 most important tech debt items; the checks set up; and the next step for the chosen direction.
+Explain: the components; whether it builds and runs; the kinds of tests it has and lacks; the key points and contradictions of the current architecture; the existing features found and confirmed; the current design documented (screens with and without real screenshots, entities, interfaces and jobs, business rules) and the areas not reached; the findings by kind with the most important ones; the baseline numbers; the 3 to 5 most important tech debt items; the checks set up; and the next step for the chosen direction.

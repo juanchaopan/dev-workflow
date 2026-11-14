@@ -78,6 +78,16 @@ Local development: `infra/docker-compose.yml` starts every component and depende
 
 Schema changes: {{e.g. Flyway migration scripts, add before drop, no downtime}}
 
+## Testing
+
+Kinds follow `shared/testing.md` of the scaffold skill; each kind not used says why.
+
+| Kind | Used | Component | Environment it runs in | Environments in CI | Environments before release |
+|---|---|---|---|---|---|
+| {{unit, component, integration, end-to-end, snapshot, delivery, non-functional}} | {{yes, or no and why}} | {{component}} | {{e.g. a PostgreSQL container, a headless browser, an emulator}} | {{a representative few, e.g. lowest and highest supported version}} | {{all supported combinations, real devices}} |
+
+Non-functional targets: {{only those in the requirements, e.g. a page loads in under 2 seconds at 200 concurrent users; "none"}}.
+
 ## Cross-cutting concerns
 
 | Concern | Approach |

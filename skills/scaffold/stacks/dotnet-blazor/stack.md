@@ -57,6 +57,22 @@ In the component directory:
 |---|---|---|---|---|
 | `dotnet format` | `dotnet format --verify-no-changes` | part of the build | `dotnet test` | `dotnet build -warnaserror` |
 
+## Tests by kind
+
+How each kind of the scaffold skill's `shared/testing.md` is done on this stack. The project sets up the kinds /architect chose. Tests that need a container or a browser (integration, end-to-end, snapshot, delivery) are heavy: tag them with a trait or category and keep them out of the default `dotnet test` run, so the self-check stays light, and let a project command run them.
+
+| Kind | How |
+|---|---|
+| Unit | xUnit: services and domain logic, with data access and clocks faked; the architecture tests run with them. Related only: `dotnet test --filter "FullyQualifiedName~<name>"` |
+| Component | bUnit renders one Razor component with its parameters and faked services, finds markup and clicks like the user |
+| Integration | EF Core and other adapters against Testcontainers for .NET of the production image and version, with the migrations applied first, container removed afterwards; `WebApplicationFactory` hosts the application in the test process |
+| End-to-end | Playwright for .NET against the running application on a free port and a throwaway database, key flows only |
+| Snapshot | Playwright screenshots for screens (`shared/visual-testing.md` describes the pinned image); Verify for generated documents, JSON and reports |
+| Delivery | `dotnet publish` and the container image, started against a database migrated from the last release's schema, health endpoint checked |
+| Non-functional | `dotnet list package --vulnerable` as the fast security scan; BenchmarkDotNet for code-level performance and k6 or NBomber for load against a production-like environment, for the targets in the requirements |
+
+Each heavy kind gets a CI job of its own, after the component's job, that prepares its own throwaway environment (Docker is available on the runner).
+
 ## Format hook rule
 
 ```json
