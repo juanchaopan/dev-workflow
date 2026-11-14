@@ -1,13 +1,13 @@
 ---
 name: implement
-description: Develops GitHub issues from branch to merge and beyond, one PR per issue: reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next picks the issues that can start (blocked ones left out, conflicts rated, rounds planned), then asks once whether to develop them in parallel (one background subagent per issue in its own worktree, mechanical follow-up work on cheaper short-lived agents) or one after another, and who adds the human-reviewed label on medium and high risk PRs: the user (default) or, for that run only, the agent after an independent full-diff review. Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
+description: Develops GitHub issues from branch to merge and beyond, one PR per issue: reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next picks the issues that can start (blocked ones left out, conflicts rated, rounds planned), then asks once whether to develop them in parallel (one background subagent per issue in its own worktree, mechanical follow-up work on cheaper short-lived agents) or one after another (every plan made and every question asked up front, then developed one by one), and who adds the human-reviewed label on medium and high risk PRs: the user (default) or, for that run only, the agent after an independent full-diff review. Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
 ---
 
 # Developing issues
 
 | Call | What happens |
 |---|---|
-| `/implement next` | Picks the issues that can start now and plans them (N1–N3), asks once how to run them and who adds the `human-reviewed` label (N4), then develops them in parallel ("Several issues in parallel") or one after another ("One issue", repeated) |
+| `/implement next` | Picks the issues that can start now and plans them (N1–N3), asks once how to run them and who adds the `human-reviewed` label (N4), then develops them in parallel ("Several issues in parallel") or one after another (N5) |
 | `/implement <number>` | Develops that issue in this session ("One issue") |
 | `/implement <number> <number> ...` | Takes the given issues as the candidates and goes on as `/implement next` does |
 
@@ -70,7 +70,7 @@ Candidates are few, so compare whole batches. The later rounds are a forecast: t
    - The first round in parallel, e.g. "Parallel, 3 at once: #12, #15, #20", recommended unless the machine cannot carry it.
    - Another first round of the same size, when rule 2 rates it as good.
    - The smaller batch from N3, recommended when the first round is more than the machine carries.
-   - "One after another: #12, then #15, then #20" in the order of the rounds plan: each issue starts only when the one before is done (merged, CI and staging green).
+   - "One after another: #12, then #15, then #20" in the order of the rounds plan: every plan is made and every question asked up front, then each issue is developed only when the one before is done (merged, CI and staging green).
 
    The user can type any other set; when it holds a conflicting pair for a parallel run, name the pair and what the later issue would have to redo, and go on only once the user confirms. Question 1 is not asked, and the reason is said, when exactly one candidate is left (it is developed as in "One issue"), when every pair conflicts (only serial makes sense), or when the request already named the way ("three at a time" takes a batch of that size by the rules of N3, or the largest there is, saying so; "one by one" is serial).
 
@@ -83,10 +83,17 @@ Candidates are few, so compare whole batches. The later rounds are a forecast: t
 ### N5. Go on
 
 - **Parallel**: B1 of "Several issues in parallel".
-- **Serial**: develop the issues one by one as in "One issue", in this session, in the planned order. The next issue starts only when step 10 of the previous one is reported. When an issue is blocked, taken out or fails in a way the user must decide, stop and tell the user; do not skip it silently. The issues are not re-planned between them: each starts from the base branch as it is by then.
 - **One issue**: as in "One issue".
+- **Serial**: the user is asked once, at the start, and then not again until the end of the run.
+  1. **Plans first.** Steps 1 to 3 of "One issue" are done for every issue in the planned order before any code is written, so no branch is created and nothing is committed yet. Start one plan-only agent per issue, all at once (`run_in_background: true`, read-only, no worktree), with a brief as in B2: the issue, its place in the order, the files the issues ahead of it expect to change, steps 1 to 3 only, and to return the plan in a few lines (steps, files and tests, size, problems that block it, decisions the user must make, each with options and a recommendation) and end. They end by themselves and are never woken again; the plans stay in this session. With one or two issues, this session may make the plans itself.
+  2. **Ask once.** As in B3: one table of the plans, then every decision point (step 2's questions, and for size M or more than 500 changed lines the plan itself) with AskUserQuestion, grouped by issue, each question naming its issue, at most 4 per round, as many rounds as needed. An answer that changes behavior users can see goes through the design skill first (only the affected elements), and the new acceptance criteria are recorded as a comment on the issue before its development starts. An issue whose plan finds it blocked is taken out here, and the user is told.
+  3. **Develop one by one**, in the planned order, each from step 4 to step 10 of "One issue" in this session, with the answers already given and the plan as the plan of step 3. The next issue starts only when step 10 of the previous one is reported.
+  4. **Before each issue after the first**: `git fetch origin`, then compare what has merged since the plans were made with this issue's plan (the files it names, the interfaces and decisions it relies on). When the earlier issues changed nothing the plan rests on, start. Small corrections, such as a renamed file or a shifted line, are made without asking. Only when an earlier issue changed a premise of the plan (the design, an interface, a decision the user made), stop, say what changed and why it matters, and ask the user with the options. A question the plan could not have foreseen (step 5's rule on gaps in the design) also goes to the user, with the reason.
+  5. When an issue is blocked, fails in a way the user must decide, or is taken out, stop and tell the user; do not skip it silently.
 
 ## One issue
+
+In a serial run, steps 2 and 3 were done up front (N5); the issue starts at step 4.
 
 ### 0. Pick the issue
 
