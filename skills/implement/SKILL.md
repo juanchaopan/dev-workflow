@@ -1,14 +1,14 @@
 ---
 name: implement
-description: Develops GitHub issues from branch to merge and beyond, one PR per issue: reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next lists the issues that can start, rates which conflict and offers only conflict-free batches: one is developed in this session, several in parallel (this session coordinates, one background subagent per issue in its own worktree, mechanical follow-up work goes to cheaper short-lived agents). Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
+description: Develops GitHub issues from branch to merge and beyond, one PR per issue: reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next picks the issues that can start (blocked ones left out, conflicts rated, rounds planned), then asks once whether to develop them in parallel (one background subagent per issue in its own worktree, mechanical follow-up work on cheaper short-lived agents) or one after another, and who adds the human-reviewed label on medium and high risk PRs: the user (default) or, for that run only, the agent after an independent full-diff review. Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
 ---
 
 # Developing issues
 
 | Call | What happens |
 |---|---|
-| `/implement next` | Lists the issues that can start now, finds which of them conflict and offers batches of issues that do not ("Choosing what to develop"). One is developed in this session ("One issue"); more are developed in parallel ("Several issues in parallel"); the rest wait for the next `/implement next` |
-| `/implement <number>` | Develops that issue in this session |
+| `/implement next` | Picks the issues that can start now and plans them (N1–N3), asks once how to run them and who adds the `human-reviewed` label (N4), then develops them in parallel ("Several issues in parallel") or one after another ("One issue", repeated) |
+| `/implement <number>` | Develops that issue in this session ("One issue") |
 | `/implement <number> <number> ...` | Takes the given issues as the candidates and goes on as `/implement next` does |
 
 Talk to the user in their language.
@@ -29,7 +29,7 @@ Tokens and time go to what an agent reads and to every time it is woken. These r
 
 ## Choosing what to develop
 
-Issues developed side by side pay off only when they do not get in each other's way, so a batch never holds two issues that conflict, and the user is offered only such batches.
+Issues developed side by side pay off only when they do not get in each other's way, so a parallel batch never holds two issues that conflict. The same plan orders a serial run.
 
 ### N1. The candidates
 
@@ -46,7 +46,7 @@ Read each candidate's "Components and files" and design elements, and estimate w
 - **Light**: they share a few files but change separate places in them (each adds its own route, menu entry, line in a shared list, or migration), so the later one rebases onto the earlier and settles the overlap mechanically.
 - **Conflict**: they change the same functions, components, screens, tables or interfaces, or one needs the other's result (its data, interface or design), so the later one would largely redo its work.
 
-None and light pairs can be developed side by side. A conflicting pair never goes in the same batch.
+None and light pairs can be developed side by side. A conflicting pair never goes in the same parallel batch.
 
 ### N3. Plan the rounds
 
@@ -56,27 +56,35 @@ A batch is a set of candidates without a conflicting pair. Split all candidates 
 2. **What it leaves behind**: among first rounds of that size, the one that leaves the rest splittable into the fewest rounds, each as large as possible. Example: A conflicts with C, B conflicts with C and D. The largest batches are A+B, A+D and C+D. A+D leaves B and C, which conflict, so two more rounds; A+B leaves C+D, one more round. Take A+B (or C+D).
 3. **Then**: issues the others build on, then fewer light overlaps inside the batch, then the lowest numbers.
 
-Candidates are few, so compare whole batches. The later rounds are a forecast: the next `/implement next` plans again against the code merged by then.
+Candidates are few, so compare whole batches. The later rounds are a forecast: the next `/implement next` plans again against the code merged by then. The order of a serial run is this plan read out: the first round in the order of rule 3, then the second round, and so on.
 
-**What the machine carries**: each subagent installs dependencies in its own worktree and runs its own checks. Look at the CPU cores and free memory and estimate how many subagents fit. When the first round holds more, also prepare a smaller batch taken from it by the same rules. Review load counts too: every medium and high risk PR waits for the user to read it.
+**What the machine carries** (parallel only): each subagent installs dependencies in its own worktree and runs its own checks. Look at the CPU cores and free memory and estimate how many subagents fit. When the first round holds more, also prepare a smaller batch taken from it by the same rules. Review load counts too: every medium and high risk PR waits for the user to read it, unless the user chooses the automatic label below.
 
 ### N4. Ask
 
 1. Show the candidates in a table: issue, title, size, expected files, conflicts, light overlaps. Below it, the rounds plan, the issues left out in N1 and why, and the CPU cores and free memory when easy to see.
-2. No candidate left: say what blocks them and stop. Exactly one left: develop it as in "One issue".
-3. Every pair conflicts: say so and develop the first issue of the rounds plan as in "One issue"; the user can name another.
-4. Otherwise ask with AskUserQuestion, offering only batches without a conflicting pair, each naming its issues:
-   - The first round in parallel, e.g. "3 in parallel: #12, #15, #20", recommended unless the machine cannot carry it.
+2. When no candidate is left, say what blocks them and stop.
+3. Ask everything in one AskUserQuestion call, so the user answers once:
+
+   **How to run** (question 1). Every option names its issues; parallel options hold only batches without a conflicting pair:
+   - The first round in parallel, e.g. "Parallel, 3 at once: #12, #15, #20", recommended unless the machine cannot carry it.
    - Another first round of the same size, when rule 2 rates it as good.
    - The smaller batch from N3, recommended when the first round is more than the machine carries.
-   - "1 in this session: #<the first issue of the first round>".
+   - "One after another: #12, then #15, then #20" in the order of the rounds plan: each issue starts only when the one before is done (merged, CI and staging green).
 
-   The user can type any other set. When it holds a conflicting pair, name the pair and what the later issue would have to redo, and go on only once the user confirms.
-5. When the request already gave the number (e.g. "three at a time"), do not ask: take a batch of that size by the rules of N3, or the largest there is, saying so.
+   The user can type any other set; when it holds a conflicting pair for a parallel run, name the pair and what the later issue would have to redo, and go on only once the user confirms. Question 1 is not asked, and the reason is said, when exactly one candidate is left (it is developed as in "One issue"), when every pair conflicts (only serial makes sense), or when the request already named the way ("three at a time" takes a batch of that size by the rules of N3, or the largest there is, saying so; "one by one" is serial).
+
+   **Who adds the `human-reviewed` label** (question 2, asked in every run unless the request said): medium and high risk PRs merge only after the label is on.
+   - "I add it after reading the diff" (recommended): the default, as in step 8.
+   - "The agent adds it after an independent review of the whole diff, for this run only": the gates of step 8 apply. It replaces the user's own reading of those PRs, so say so in the option.
+
+4. The answer to question 2 holds for this run only: it is not stored, not written to CLAUDE.md and not assumed in the next run. `/implement <number>` has no question and always uses the default unless the user says otherwise in the request.
 
 ### N5. Go on
 
-One issue: "One issue". More than one: B1 of "Several issues in parallel".
+- **Parallel**: B1 of "Several issues in parallel".
+- **Serial**: develop the issues one by one as in "One issue", in this session, in the planned order. The next issue starts only when step 10 of the previous one is reported. When an issue is blocked, taken out or fails in a way the user must decide, stop and tell the user; do not skip it silently. The issues are not re-planned between them: each starts from the base branch as it is by then.
+- **One issue**: as in "One issue".
 
 ## One issue
 
@@ -196,7 +204,9 @@ Run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs th
 ### 8. Merge
 
 - Low risk: merges automatically once every check passes and every thread is handled.
-- Medium and high risk: give the user the PR link and risk tier and ask them to read the whole diff and add the `human-reviewed` label once satisfied; it merges automatically after that. Handle changes they ask for as in step 7 (a new commit removes the label and the user confirms again).
+- Medium and high risk: the PR waits for the `human-reviewed` label and merges automatically once it is on. The label is added by the user, or by the agent in the one case below.
+  - **The user adds it** (the default): give them the PR link and risk tier and ask them to read the whole diff and add the label once satisfied. Handle changes they ask for as in step 7 (a new commit removes the label and the user confirms again).
+  - **The agent adds it**, only when the user chose it in N4 for this run: the session itself, never the agent that wrote the code, adds the label once both gates hold. (1) An independent review: a new agent on the session's model, given only the PR number, the issue, the design elements it cites and the standards, reads the whole diff (`gh pr diff <PR>`) and answers "may label" or "must change first", with its reasons. On "must change first" the findings are fixed as in step 7 and a new agent reviews the new diff. (2) The PR's own review is handled: every check green, every [Important] and [Security] thread fixed and resolved. A thread the author thinks should stay unfixed remains with the user, who then adds the label themselves. Then `gh pr edit <PR> --add-label human-reviewed`, and a PR comment with the verdict and its reasons. A new commit removes the label, and both gates run again. This authorization ends with the run; nothing carries it to the next.
 - With PR preview environments, give the user the preview URL.
 
 Watch the PR until it merges, at every risk tier, with one background command that checks slowly and prints only the end state, for at most an hour: `for i in $(seq 30); do [ "$(gh pr view <PR> --json state -q .state)" != OPEN ] && break; sleep 120; done; gh pr view <PR> --json state,mergeCommit`. When the PR is still open after the checks pass and the label is on, read why (`gh pr checks <PR>`, unresolved threads, `gh pr view <PR> --json mergeStateStatus`) and handle it or tell the user. Merge it yourself only when the user asks, and then without deleting the branch.
@@ -211,7 +221,7 @@ Watch the PR until it merges, at every risk tier, with one background command th
 
 ### 10. Report
 
-Which issue was done, the PR link, what changed, which refactorings were made, which review comments were handled, whether the implementation differs from the prototypes, which heavy checks ran locally and which were left to CI, the result of CI on the base branch and of staging, and anything the user should know. Ask whether to continue with `/implement next`.
+Which issue was done, the PR link, what changed, which refactorings were made, which review comments were handled, whether the implementation differs from the prototypes, which heavy checks ran locally and which were left to CI, who added the `human-reviewed` label (and the independent review's verdict when the agent did), the result of CI on the base branch and of staging, and anything the user should know. In a serial run, say which issue comes next and go on to it; otherwise ask whether to continue with `/implement next`.
 
 ## Several issues in parallel
 
@@ -280,8 +290,9 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 
 ### B6. Reviews, merging and wrap-up
 
-- **Watching**: the coordinator waits for each PR's checks with the one-command wait of step 7.1 and watches each PR until it merges with the command of step 8, so a label the user adds is followed through to the merge. It tells the user which PRs need their review (medium and high risk) and in which order. No agent polls.
-- **Review comments and CI failures** (step 7): the coordinator reads the verdict and the unresolved threads itself. For something to fix it starts one new agent per PR with a short brief (the PR, branch, worktree, the threads or the filtered failure log, what is decided) on the session's model, which fixes everything of the round together, reproduces CI failures locally first, pushes, replies in and resolves the threads as step 7 says, and returns one line. A [Nit] to reject, or a thread that needs the user, the coordinator handles itself. No agent merges or labels anything.
+- **Watching**: the coordinator waits for each PR's checks with the one-command wait of step 7.1 and watches each PR until it merges with the command of step 8, so a label added by the user is followed through to the merge. No agent polls.
+- **The label on medium and high risk PRs** (step 8): when the user adds it, the coordinator tells the user which PRs need their review and in which order. When the user chose the agent in N4, the coordinator runs both gates of step 8 itself for each such PR: it starts the independent review agent, and adds the label itself. No subagent that wrote code adds a label or merges anything.
+- **Review comments and CI failures** (step 7): the coordinator reads the verdict and the unresolved threads itself. For something to fix it starts one new agent per PR with a short brief (the PR, branch, worktree, the threads or the filtered failure log, what is decided) on the session's model, which fixes everything of the round together, reproduces CI failures locally first, pushes, replies in and resolves the threads as step 7 says, and returns one line. A [Nit] to reject, or a thread that needs the user, the coordinator handles itself.
 - After each merge the coordinator does steps 9.2 to 9.5 itself: the issue closed, CI on the base branch for the merge commit, staging. It starts the next issue's mechanical agent in the order right away, so the rebase and local checks overlap with that CI; when CI or staging fails for the merge, it tells the user, and the next agent does not open its PR until the user has decided. A merge frees a slot but starts nothing outside the batch.
 - **Removing a worktree**, once its issue is done (merged, CI and staging green) or taken out of the batch:
   1. Check nothing would be lost: `git -C <worktree> status --porcelain` prints nothing, and `git -C <worktree> log --oneline @{u}..HEAD` prints nothing (never pushed: `... origin/<base>..HEAD`). Otherwise keep it and ask the user whether to push or drop.
@@ -289,7 +300,7 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
   3. `git worktree remove <worktree>`, then `git branch -D <branch>` (step 1 showed nothing is only local). The branch stays on the remote.
   4. When Windows cannot delete it because a path is too long: `Remove-Item -LiteralPath '\\?\<absolute path of the worktree>' -Recurse -Force` in PowerShell, then `git worktree prune`.
 - The batch ends when every issue in it is done or taken out. Before the summary, confirm with `git worktree list` that only the main repository is left, that no lock or `runtime-users` file is left in `$(git rev-parse --git-common-dir)/dev-workflow-locks`, and that `docker ps` shows nothing the batch started.
-- Summarize the batch: issues done with their PRs and the results of CI on the base branch and staging, issues taken out and why, candidates not in the batch, open follow-ups, and the next round the rounds plan forecasts now that this batch has merged.
+- Summarize the batch: issues done with their PRs and the results of CI on the base branch and staging, who added the label on each medium and high risk PR, issues taken out and why, candidates not in the batch, open follow-ups, and the next round the rounds plan forecasts now that this batch has merged.
 
 ### B7. Exceptions and pitfalls
 
