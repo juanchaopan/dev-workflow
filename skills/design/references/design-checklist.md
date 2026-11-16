@@ -1,12 +1,14 @@
 # Design completeness checklist
 
-Step 6 of /design checks against this list. For each problem say where it is, why it is a problem and how to fix it.
+Step 6 of /design checks the scope of the design against this list. For each problem say where it is, why it is a problem and how to fix it.
 
 ## Coverage
 
-- Every "Active" requirement in scope maps to at least one design element.
+- Every "Active" requirement of the scope maps to at least one design element.
 - Every design element traces back to a requirement. One that does not either reveals a missing requirement (add it) or extra work (remove it).
 - Every acceptance criterion has a matching behavior in some screen action, interface or logic item.
+- Every element of another module is one line in the index with status "Later stage"; none is designed here.
+- Every screen the issue changes has been confirmed again.
 
 ## Screens
 
@@ -55,7 +57,7 @@ Step 6 of /design checks against this list. For each problem say where it is, wh
 
 ## Current system (existing systems only)
 
-Against `docs/design/as-is/`:
+Against `docs/design/as-is/`, for the areas in scope:
 
 - Every old element in the areas in scope is "Used by" a design element or "Dropped" with a reason.
 - Every old field rule and business rule (CUR-RUL) touching the scope has a decision (keep, change, drop) in the "From the current system" section of a design element; none is carried over silently.

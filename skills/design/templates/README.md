@@ -1,29 +1,34 @@
 # Design index
 
-{{One sentence: which requirements this design covers, e.g. "every requirement of the first version (MVP)" or "the redesign of the orders and billing areas of the current system".}}
+- Last changed: {{kickoff / architect / design / #issue number (YYYY-MM-DD)}}
 
-This index is also the progress tracker: /design updates a status as each element moves on, and when interrupted, running /design again continues with the first unconfirmed element.
+{{One sentence: the stage or issue this design covers, e.g. "the foundation module of the first stage" or "issue #12: order discounts".}}
+
+Elements of this scope are designed in detail. Elements of other modules are listed with one line each and designed when their stage comes. Confirmed elements outside the scope are read-only references.
 
 Statuses:
 
 - Not started, In progress: still being designed.
-- Confirmed (YYYY-MM-DD): confirmed by the user, element by element.
-- AI draft, awaiting confirmation: finished by AI but not yet reviewed; the user must confirm it before development.
-- Deprecated: the ID is kept and no longer used.
+- AI draft, awaiting confirmation: written by AI but not yet reviewed; the user must confirm it before development.
+- Confirmed: confirmed by the user.
+- Later stage: an element of another module, designed when its stage comes.
 
-For an existing system, "Based on" names the elements of the current system (`as-is/`, CUR-xxx) each element was redesigned from; "None" for something new.
+For an existing system, "Based on" names the elements of the current system (`as-is/`, CUR-xxx) each element was designed from; "None" for something without a current counterpart.
 
 ## Design elements
 
-| ID | Name | File | Requirements | Based on | Status |
-|---|---|---|---|---|---|
-| SCR-{{001}} | {{Order list}} | `screens/SCR-{{001}}-{{order-list}}.md` | {{REQ-001}} | {{CUR-SCR-001 / None}} | {{Confirmed (YYYY-MM-DD)}} |
-| ENT-{{001}} | {{Order}} | `data.md` | {{REQ-001, REQ-002}} | {{CUR-ENT-001}} | {{Not started}} |
-| API-{{001}} | {{List orders}} | `interfaces.md` | {{REQ-001}} | {{CUR-API-001}} | {{Not started}} |
-| JOB-{{001}} | {{}} | `interfaces.md` | {{}} | {{}} | {{Not started}} |
-| LGC-{{001}} | {{Order status}} | `logic/LGC-{{001}}-{{order-status}}.md` | {{REQ-003}} | {{CUR-RUL-003}} | {{Not started}} |
+| ID | Name | File | Requirements | Based on | Status | Last changed |
+|---|---|---|---|---|---|---|
+| SCR-{{001}} | {{Order list}} | `screens/SCR-{{001}}-{{order-list}}.md` | {{REQ-001}} | {{CUR-SCR-001 / None}} | {{Confirmed}} | {{design (YYYY-MM-DD)}} |
+| ENT-{{001}} | {{Order}} | `data.md` | {{REQ-001, REQ-002}} | {{CUR-ENT-001}} | {{Not started}} | {{}} |
+| API-{{001}} | {{List orders}} | `interfaces.md` | {{REQ-001}} | {{CUR-API-001}} | {{Not started}} | {{}} |
+| JOB-{{001}} | {{}} | `interfaces.md` | {{}} | {{}} | {{Not started}} | {{}} |
+| LGC-{{001}} | {{Order status}} | `logic/LGC-{{001}}-{{order-status}}.md` | {{REQ-003}} | {{CUR-RUL-003}} | {{Not started}} | {{}} |
+| SCR-{{010}} | {{Customer report}} | — | {{REQ-020}} | — | {{Later stage: reporting}} | — |
 
 ## Screen flow
+
+Screens of this scope. Screens of other modules are added when their stage comes.
 
 ```mermaid
 flowchart LR
@@ -76,6 +81,6 @@ Only for an existing system. Counts for the scope of this design; the details ar
 | Findings resolved / still open | {{e.g. 22 / 0}} |
 | Old columns holding data mapped / archived / dropped | {{e.g. 140 / 6 / 3}} |
 
-## Completeness check results
+## Completeness check
 
-{{Date of the check; problems found and how they were resolved. "None" when there were none.}}
+{{Date of the last check; the problems still open, or "None".}}

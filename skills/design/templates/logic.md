@@ -1,6 +1,7 @@
 # LGC-{{001}} {{name}}
 
-- Status: {{AI draft, awaiting confirmation / Confirmed (YYYY-MM-DD)}}
+- Status: {{AI draft, awaiting confirmation / Confirmed}}
+- Last changed: {{kickoff / design / #issue number (YYYY-MM-DD)}}
 - Requirements: {{REQ-xxx}}
 - Used by: {{SCR-xxx, API-xxx, JOB-xxx}}
 

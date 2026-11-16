@@ -1,6 +1,7 @@
 # Data definitions
 
-- Status: {{AI draft, awaiting confirmation / Confirmed (YYYY-MM-DD)}}
+- Status: {{AI draft, awaiting confirmation / Confirmed}}
+- Last changed: {{kickoff / design / #issue number (YYYY-MM-DD)}}
 - Storage: {{as chosen in the ADRs, e.g. PostgreSQL; "None" without a database, then only the "Files, configuration and messages" section}}
 
 ## Entity relationships
@@ -45,7 +46,7 @@ Only for an entity whose data comes from the current system (CUR-ENT-xxx in `as-
 
 | Old table.column | New column | Conversion | Dirty data and its handling |
 |---|---|---|---|
-| {{orders.status}} | {{status}} | {{0 → 'draft', 1 → 'submitted', 2 → 'paid', 3 → 'cancelled'}} | {{412 rows with 9: become 'cancelled' (FND-004, confirmed YYYY-MM-DD)}} |
+| {{orders.status}} | {{status}} | {{0 → 'draft', 1 → 'submitted', 2 → 'paid', 3 → 'cancelled'}} | {{412 rows with 9: become 'cancelled' (FND-004)}} |
 | {{orders.customer_name}} | {{customer_name}} | {{trimmed}} | {{3% empty: filled from the customer record}} |
 | {{orders.legacy_flag}} | {{none}} | {{archived to the export file}} | {{}} |
 

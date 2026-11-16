@@ -60,23 +60,24 @@ What the agent does, in order:
 ## Workflow
 
 ```
-New project:
-  /kickoff ──► /architect ──► /design ──► /scaffold ──► /roadmap ──► /implement next ──► /release
-  requirements  stack and       screens,      project and    issues        develop → PR →    release
-                architecture    data and      standards                    review → merge
-                                interfaces    + /setup-ai-review
+First stage of a project:
+  /kickoff ──► /architect ──► /design ──► /scaffold ──► /roadmap ──► /implement ──► /release
+  requirements  stack and       screens,      project and    milestones    one issue at a time   release
+                architecture    data and      standards      and issues    or several in parallel
+                                interfaces    + review
                                 confirmed one
                                 by one
 
+Every later change:
+  /change ──► issues, each with its start step (kickoff, architect, design, scaffold or implement)
+          ──► /implement, one issue at a time or in parallel ──► /release
+
 Existing project:
   /onboard ──► gathers evidence of what the old system does (not trusted), baseline, you choose a direction
-     ├── maintain:   /change ──► /design redesigns each touched element from the evidence ──► /implement
+     ├── maintain:   /change ──► issues with their start steps (design redesigns each touched element from the evidence) ──► /implement
      ├── extend:     /kickoff ──► /design ──► /roadmap ──► /implement
      ├── modernize:  /kickoff ──► /architect (target + migration) ──► /design (everything in scope) ──► /roadmap ──► /implement
      └── rewrite:    /kickoff ──► /architect ──► /design (everything) ──► /scaffold ──► /roadmap (incl. data migration, cutover)
-
-Every new idea or issue afterwards:
-  /change ──► by requirement level (L0–L4) and design impact (D0–D2) ──► changes to screens, data or interfaces go through /design ──► issues ──► /implement
 
 Whenever unsure (any stage):
   /spike ──► time-boxed verification ──► evidence for you ──► you decide ──► ADR ──► real implementation
@@ -84,16 +85,16 @@ Whenever unsure (any stage):
 
 | Skill | What it does | What you do |
 |---|---|---|
-| `/kickoff` | From an idea, existing code, a document or a problem: rounds of multiple-choice questions on goals, the feature list, business rules and scale, finds logical holes, writes the requirements. For old systems: what to keep, change or drop, whether screens and style are redone, findings that change requirements | Answer; confirm the requirements |
+| `/kickoff` | From an idea, existing code, a document or a problem: asks which stage is built (the whole product, one foundation module, several modules, or research only), then rounds of multiple-choice questions on goals, the complete feature list, business rules and scale, finds logical holes, writes the requirements. For old systems: what to keep, change or drop, whether screens and style are redone, findings that change requirements | Choose the stage; answer; confirm the requirements |
 | `/onboard` | Takes over an existing project without trusting it: inventory, whether it builds and runs, which kinds of tests it has and lacks, current architecture and its contradictions, features in use, the full current design (real screenshots, fields as enforced on screen, server and database, actual data, interfaces and their callers, business rules buried in code), findings (suspected bugs, contradictions, dirty data), quality baseline; standards set up with a baseline when the old code stays | Say which features are still used; choose maintain, extend, modernize or rewrite |
 | `/architect` | Architecture metrics, choices layer by layer, each stack's detailed decisions (e.g. Maven or Gradle, Oxlint or typescript-eslint), which kinds of tests the project uses and where they run, deployment and PR previews, visual verification, distributed design, migration plans with data migration and cutover | Choose technologies; confirm the architecture |
 | `/design` | Screens (type, required, length, validation and error message of every field), data (tables and columns, or file formats), interfaces, permissions, complex logic; every screen drawn as a prototype screenshot and confirmed with you one at a time; for old systems each screen next to its real screenshot, with every old rule and finding kept, changed or dropped by you, and the data migration mapped; checks requirement coverage, the CRUD matrix and the permission matrix | Look at screenshots, comment, confirm each screen; decide on old rules; confirm data and interfaces |
-| `/spike` | Time-boxed spikes: question and criteria, minimal implementation, evidence, conclusion as an ADR; the code is never merged, and stays archived as a tag with its branch kept on GitHub | Try it, decide |
+| `/spike` | Time-boxed spikes: question and criteria, minimal implementation, evidence, conclusion as an ADR. All spike code lives on its `spike/<name>` branch; only the conclusion and the evidence are merged to main. The branch stays on GitHub with an archive tag | Try it, decide |
 | `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, sets up every kind of test the architecture chose with its own project command, configurable ports, a way to run only what a change affects and a CI job, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
 | `/setup-ai-review` | CI, AI code review, security review, risk tiers, commit message checks, duplicate code detection, automatic dependency updates, `@claude` | Choose the branching strategy and the merge method; choose whether heavy checks run in full before the PR or only the related ones; store the secret |
 | `/roadmap` | Milestones and issues from requirements and design, one PR per issue, acceptance criteria taken from the design; spikes and the skeleton first; for old systems characterization tests, data migration rehearsals and cutover | Confirm scope and order |
 | `/implement` | Branch, refactor first when needed, small "test → implement → refactor" commits (tests derived from the design's rules), screens compared with the confirmed screenshots, PR, review handling, automatic merge. `next` picks the issues that can start, rates which conflict and plans them, then asks once how to run them (in parallel with one subagent each, only batches that do not conflict; or one after another, with every plan made and every question asked up front) and who adds `human-reviewed` | Choose how to run and who adds the label; answer plan questions; read the diff of medium and high risk PRs and add `human-reviewed`, unless you chose the agent for that run |
-| `/change` | Rates a new idea twice — how much the requirements change, how hard it hits the code structure — asks, updates requirements and design, has changed screens confirmed again, splits issues | Confirm the levels; answer; confirm changed screens |
+| `/change` | Triage of an idea, feature or issue. Rates it twice: how much the requirements change, and how hard it hits the code structure. For every affected piece of work it decides the start step (kickoff, architect, design, scaffold, or implement directly), creates one or several issues with dependencies, and confirms the plan before creating them. Updates requirements, architecture and design in place, and has changed screens confirmed again | Confirm the levels, the start step of each issue and the issue list; answer; confirm changed screens |
 | `/release` | Computes the version, writes the CHANGELOG, runs the tests reserved for before a release, runs the release branch, tags, creates the Release, follows the production deployment | Confirm the version; approve the production deployment |
 
 ## How far each step goes
@@ -169,9 +170,9 @@ Feature, fix, refactor, release, hotfix and spike branches are never deleted on 
 
 ## Common scenarios
 
-**A new idea**: say `/change I want users to export their orders` in Claude Code. It rates the change, asks, updates the requirements, draws new prototypes for changed screens for you to confirm, splits issues, then `/implement <issue>`. You can also record an issue with the "Feature" template on GitHub or your phone and run `/change #45` back at your computer. For small, clearly described changes, comment `@claude implement this` on the issue and it is done in the cloud.
+**An idea**: say `/change I want users to export their orders` in Claude Code. It rates the change, asks, updates the requirements, draws prototypes for the changed screens for you to confirm, and creates the issues, each with its start step and its dependencies, then you run `/implement <issue>`. You can also record an issue with the "Feature" template on GitHub or your phone and run `/change #45` back at your computer. For small, clearly described changes, comment `@claude implement this` on the issue and it is done in the cloud.
 
-**An idea that reshapes existing classes and interfaces**: /change rates it D2, writes a redesign in `docs/design/refactor/` for you to confirm, then orders it as "characterization tests → refactor → expand with new interfaces → migrate callers → remove old interfaces → feature", combined into as few PRs as stay readable, each of which can ship on its own.
+**An idea that reshapes existing classes and interfaces**: /change rates it D2 and writes the structure redesign in `docs/design/refactor/` for you to confirm, then creates the issues in dependency order: "characterization tests → refactor → expand with new interfaces → migrate callers → remove old interfaces" as the refactor issue, and the feature issue after it. Each PR can ship on its own; the refactor issue is split into as few PRs as stay readable.
 
 **A complex, uncertain idea**: /kickoff, /architect, /design and /change suggest /spike first. UI spikes give you a URL to open (local, or a PR preview environment) to try yourself before deciding; spike code never enters the main branch, the conclusion goes into an ADR, and the real implementation follows the normal workflow.
 

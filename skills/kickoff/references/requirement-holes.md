@@ -46,11 +46,12 @@ Check against these questions after each round of questions and before writing d
 - Are there deployment restrictions: a specific country, offline, a specific cloud?
 - Are there compliance requirements: personal data protection, security certification, GDPR, industry regulation?
 
-## Scope
+## Scope and stages
 
 - Can the MVP be cut further? Ask for each item: "Is the first version still usable without it?"
 - Does the out-of-scope list name the things people would assume are included?
 - Is something "for later" actually shaping today's design? For example multi-tenancy or a public API later: not built now, but the architecture must leave room.
+- Does every requirement have a module and a stage? Does the stage scope from the first question match the requirements: no module of this stage depends on a feature planned for a later stage, unless that feature is moved into this stage.
 
 ## Consistency
 

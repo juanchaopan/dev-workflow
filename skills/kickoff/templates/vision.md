@@ -14,13 +14,20 @@
 
 - {{measurable indicator, e.g. 50 weekly active users within 3 months of launch}}
 
+## Stage scope
+
+- Stage: {{Stage 1: whole product / Stage 1: foundation module {{name}} / Stage 1: modules {{names}} / Stage 1: research only}}
+- Modules built in this stage: {{module names, or none for research only}}
+- Modules planned for later stages: {{module names; each later stage is set by a /change issue}}
+- Questions for /spike: {{for research only; otherwise none}}
+
 ## Scope
 
-### First version (MVP)
+### This stage
 
 - {{feature, with REQ IDs}}
 
-### Later
+### Later stages
 
 - {{feature}}: {{why later; if it affects today's design, what must be left room for}}
 

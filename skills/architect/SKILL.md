@@ -1,6 +1,6 @@
 ---
 name: architect
-description: Technology choices and architecture design from the requirements in docs/product/. Turns requirements into architecture metrics (scale, performance, availability, consistency, cost, maintenance capacity), compares candidate technologies layer by layer for the user to choose, settles each chosen stack's decision points (e.g. build tool, lint tool, data access, state management), chooses which kinds of tests the project uses (unit, component, integration, end-to-end, snapshot, delivery, non-functional) and the environments they run in, and designs layers, components, deployment, environments and PR previews, data ownership, failure handling and visual verification, including distributed designs. Suggests /spike where uncertain, checks for architectural holes, and writes docs/architecture/overview.md and docs/adr/. For modernization and rewrites, designs the target from the requirements rather than patching the current architecture, plus migration steps that ship one at a time, data migration and cutover. Use after /kickoff, or when /change finds the architecture must change. Followed by /design.
+description: Technology choices and architecture design from the requirements in docs/product/. Turns requirements into architecture metrics (scale, performance, availability, consistency, cost, maintenance capacity), compares candidate technologies layer by layer for the user to choose, settles each chosen stack's decision points (e.g. build tool, lint tool, data access, state management), chooses which kinds of tests the project uses (unit, component, integration, end-to-end, snapshot, delivery, non-functional) and the environments they run in, and designs layers, components, deployment, environments and PR previews, data ownership, failure handling and visual verification, including distributed designs. Suggests /spike where uncertain, checks for architectural holes, and writes docs/architecture/overview.md and docs/adr/. For modernization and rewrites, designs the target from the requirements rather than patching the current architecture, plus migration steps that ship one at a time, data migration and cutover. Use after /kickoff for the first stage, or from a /change issue whose start step is architect. Followed by /design.
 ---
 
 # Technology choices and architecture
@@ -19,15 +19,27 @@ The architecture settles which technologies, which components, who owns which da
 
 ## Three uses
 
-- **New architecture**: from step 0 to the end.
-- **Architecture change** (called by /change): read the existing `docs/architecture/overview.md` and `docs/adr/` and redo only the affected parts. New decisions get new ADRs; the old ones they replace get the status "Superseded by ADR-xxxx".
+- **First stage** (after /kickoff): the architecture of the stage's scope in full, and the overall shape of the whole product, from step 0 to the end.
+- **Issue with the start step architect** (called by /change): writes only the decisions the issue changes; see "Issue mode" below.
 - **Modernization or rewrite** (existing system; /onboard gathered the evidence, /kickoff the goals): design the target architecture first (steps 1 to 7), then step 8, "Migration plan". The current architecture is evidence, not a starting point to patch: the target follows from the requirements and metrics, and the contradictions /onboard listed are not carried into it. The current system still sets hard constraints: the data it holds (volume and what profiling found), the interfaces other systems call, and what must keep running during the transition.
+
+## Stage scope
+
+A stage builds only part of the product. The architecture covers the components that stage needs in full: their layers, interfaces, data ownership, stacks, deployment, environments and test kinds. For the rest of the product it records the overall shape the later stages must fit into: the layers, the planned components with their responsibility and data ownership, the deployment target and the test kinds. Components of later stages are not detailed yet; each later stage designs its own components when it comes.
+
+## Issue mode (start step architect)
+
+- Read the issue's changes, `docs/architecture/overview.md`, `docs/adr/` and the parts of `docs/product/` and `docs/design/` the issue touches.
+- Decide only what is new or changed. An ADR that still holds is not re-decided and is left as it is.
+- A new decision gets a new ADR in `docs/adr/`. An ADR that the new decision replaces is deleted; the new ADR's Context says in one line which decision it replaces. History stays in git. A "Rejected" ADR is the current decision not to use an approach, so it stays in `docs/adr/` and is not deleted.
+- Update `overview.md` in place, only in the sections the change touches.
+- Set the "Last changed" line of every changed document and ADR to this issue.
 
 ## Steps
 
 ### 0. Read the requirements
 
-Read `docs/README.md` and everything under `docs/product/`; for modernization, rewrites and architecture changes also `docs/architecture/` (including its "Contradictions" section and `tech-debt.md`), `docs/adr/`, `docs/design/` and the index of `docs/design/as-is/README.md` (interfaces with outside callers, data volumes, findings). Without requirement documents, tell the user to run /kickoff first. When the requirements lack information the architecture needs (especially numbers for scale and constraints), ask first.
+Read `docs/README.md` and everything under `docs/product/`; for modernization, rewrites and issues that change the architecture also `docs/architecture/` (including its "Contradictions" section and `tech-debt.md`), `docs/adr/`, `docs/design/` and the index of `docs/design/as-is/README.md` (interfaces with outside callers, data volumes, findings). Without requirement documents, tell the user to run /kickoff first. When the requirements lack information the architecture needs (especially numbers for scale and constraints), ask first.
 
 ### 1. Architecture metrics
 
@@ -72,21 +84,21 @@ Record the results in an ADR: one "<component> technical details" ADR per compon
 
 1. **Deployment and environments**: with the user, choose the platform from `scaffold/shared/deployment.md`, the environments (local, PR preview, staging, production), who approves production deployments and how to roll back.
 2. **Visual verification** (with a frontend): design source, design tokens or not, Storybook for components or not, visual regression tests or not. There are two design sources: when the user has design files (e.g. Figma), they are the reference; otherwise /design draws an HTML prototype of every screen and the user confirms the screenshots one by one, and the confirmed screenshots are the reference. For an existing system, /design shows each old screen's real screenshot next to its new prototype. See `scaffold/shared/visual-testing.md`; the decision points are in the frontend stack's stack.md. For projects that care about pixel-level results, recommend design tokens, Storybook and visual regression tests.
-3. **Tests**: read `scaffold/shared/testing.md` and answer its seven questions for each component with the user, from the requirements and the design so far (own logic, UI, anything outside the process, multi-step user flows, output that assertions cannot describe, install, upgrade or deployment, targets for performance and the like). Each kind answered yes is used; each answered no gets one line on why. Then settle, per kind used: the environment it runs in (throwaway container, emulator, virtual machine, real device), the few environments CI covers and the full set before a release, and the targets of the non-functional tests, taken from the requirements; no target in the requirements, no test. Ask when the answer changes cost, e.g. real devices or a paid third-party sandbox. Heavy kinds the user declines are recorded as a risk, not dropped silently.
+3. **Tests**: read `scaffold/shared/testing.md` and answer its seven questions for each component in scope, with the user, from the requirements and the design so far (own logic, UI, anything outside the process, multi-step user flows, output that assertions cannot describe, install, upgrade or deployment, targets for performance and the like). Each kind answered yes is used; each answered no gets one line on why. Then settle, per kind used: the environment it runs in (throwaway container, emulator, virtual machine, real device), the few environments CI covers and the full set before a release, and the targets of the non-functional tests, taken from the requirements; no target in the requirements, no test. Ask when the answer changes cost, e.g. real devices or a paid third-party sandbox. Heavy kinds the user declines are recorded as a risk, not dropped silently.
 
 ### 7. Design
 
 Design and document, in order:
 
 - **Layers**: each layer's responsibility and allowed dependency directions. Each component follows the layering convention in its stack's `rules.md` (e.g. pages and presentational components on the frontend, controller → service → repository on the backend); the architecture checks enforce these rules. When a component needs different layering, write an ADR and say how the architecture check rules change.
-- **Components**: each component's responsibility, the form of its external interface (e.g. REST, command line, library), the data it owns, its dependencies, its stack and its code directory (in a monorepo usually `apps/<component>`, shared code in `libs/`). The parameters and errors of each interface are settled in /design.
+- **Components**: each component's responsibility, the form of its external interface (e.g. REST, command line, library), the data it owns, its dependencies, its stack and its code directory (in a monorepo usually `apps/<component>`, shared code in `libs/`). Components of the stage are described in full; the components of later stages appear with one line each. The parameters and errors of each interface are settled in /design.
 - **Interaction**: synchronous or asynchronous between components; sequence diagrams for the 2 or 3 most important scenarios.
 - **Deployment**: instances of each component per environment; stateful or stateless; scaling; load balancing; health checks; how docker compose runs the whole system locally.
 - **Data**: which component owns each kind of data (one owner per kind); where it is stored; how consistency is kept; how schema changes are migrated; backup and restore. The columns and constraints of each table are settled in /design.
 - **Testing**: the kinds, environments and targets of step 6.3.
 - **Cross-cutting concerns**: authentication and authorization, configuration and secrets, logs, metrics and tracing, error handling, rate limiting, idempotency, API versioning, feature flags.
 - **Failure scenarios**: when each component or external dependency is down or slow, what the user sees, how the system responds and how it recovers.
-- **Evolution**: extension points not built now but left room for.
+- **Evolution**: extension points not built yet but left room for.
 
 ### 8. Migration plan (modernization, rewrites and architecture changes)
 
@@ -116,16 +128,20 @@ Check the whole design against `references/architecture-checklist.md` and list t
 Write in the project's document language: the `Language` line in the project's CLAUDE.md when there is one, otherwise the language the user talks to you in.
 
 - `docs/architecture/overview.md`: from `templates/overview.md`, with Mermaid diagrams (context, containers, deployment, key sequences). For modernization and rewrites, keep the "Current state" and "Contradictions" sections and add "Target" and "Migration steps".
-- `docs/adr/NNNN-<short-title>.md`: one per significant decision, from `templates/adr.md`. At least: architecture style, the main technology choice of each layer, each component's technical details (step 5), the kinds of tests and their environments (step 6.3), the data consistency approach, deployment and environments, visual verification (with a frontend), migration strategy and data migration (for modernization and rewrites).
+- `docs/adr/NNNN-<short-title>.md`: one per significant decision, from `templates/adr.md`. At least: architecture style, the main technology choice of each layer, each component's technical details (step 5), the kinds of tests and their environments (step 6.3), the data consistency approach, deployment and environments, visual verification (with a frontend), migration strategy and data migration (for modernization and rewrites). Rejected approaches are recorded with the status "Rejected". In issue mode only the new or changed decisions get ADRs.
+- Every document and ADR carries its "Last changed" line: `#<issue number> (<YYYY-MM-DD>)` inside an issue, or `architect (<YYYY-MM-DD>)` when no issue exists yet.
 - New questions not yet settled go into `docs/product/open-questions.md`; mark those that need /spike.
 
 ### 11. Confirm and commit
 
-Summarize the key points and decisions for the user and ask what should change. After changes, commit with `docs(architecture): <content>`. Commit directly when the repository has no branch protection yet; otherwise create a `docs/` branch and use /open-pr.
+Summarize the key points and decisions for the user and ask what should change. After changes, commit the documents with `docs(architecture): <content>` or the matching `docs(adr): <content>`:
+
+- Inside an issue, the documents are committed on the issue branch together with the implementation (see implement), in the order the issue plans its steps.
+- Outside an issue (the first stage), they are committed on a `docs/` branch and merged with /open-pr.
 
 ### 12. Next step
 
 - ADRs with the status "Proposed" waiting for verification: run /spike first.
-- New project: run /design to confirm every screen, field, data structure and interface, then /scaffold to create the project.
+- First stage of a new project: run /design to confirm every screen, field, data structure and interface of the stage, then /scaffold to create the project.
 - Modernization and rewrites: run /design to redesign every element in scope from the evidence (the user decides on every old rule and finding), then /scaffold for new components or a new system, then /roadmap to split the migration steps into issues.
-- Architecture changes: when screens, data or interfaces change, run /design first; then back to /change to split issues.
+- Issue with the start step architect: the next step the issue plans. That is /design when screens, fields, data, interfaces or logic change, /scaffold when a new component, deployment target or test kind must be set up, and otherwise the implementation.

@@ -43,7 +43,7 @@ Then split the system into **areas** (modules or business domains, e.g. orders, 
 
 - Map components and their dependencies, data stores and external integrations. For frontend and Node.js components, dependency-cruiser can generate a dependency graph.
 - Look at the actual layering: organized by layer or by feature, cross-layer calls, presentation mixed with business logic, the same concern solved several ways.
-- Write `docs/architecture/overview.md` from the architect skill's `templates/overview.md`, with "Current state (documented by /onboard)" under the title and a "Contradictions" section for what does not hold together (e.g. two ways of reaching the database, a "stateless" service keeping sessions in memory). Fill its "Testing" section with the kinds found in step 1. Historical decisions you can see become ADRs with the status "Accepted (inferred from existing code)". /architect designs the target from scratch; it does not inherit these contradictions.
+- Write `docs/architecture/overview.md` from the architect skill's `templates/overview.md`, with "Current state (documented by /onboard)" under the title and a "Contradictions" section for what does not hold together (e.g. two ways of reaching the database, a "stateless" service keeping sessions in memory). Fill its "Testing" section with the kinds found in step 1. Decisions visible in the code become ADRs with the status "Accepted (inferred from existing code)". /architect designs the target from scratch; it does not inherit these contradictions.
 
 ### 3. Existing features
 
@@ -62,7 +62,7 @@ Document everything the old system does at design level in `docs/design/as-is/`,
    - **Interfaces**: `interfaces.md` from the design skill's `templates/interfaces.md`, adding "Callers" and "Trust" to each interface and job. Find who calls each external interface (access logs, gateway configuration, other repositories, the user): callers outside this system constrain how it may change.
    - **Business rules**: `rules.md` from `templates/as-is/rules.md`: validation, calculations with a worked example, state transitions, permissions (and whether the server enforces them or only the screen hides a button), scheduled behavior, hard-coded special cases. Each with its code location.
    - **Findings**: append to the "Findings" table in the index: suspected bugs, contradictions, dead code, dirty data, hidden behavior, security problems (tell the user about security problems right away). Describe the evidence; do not decide.
-3. **Save the area**: set its status to "Documented (YYYY-MM-DD)", note what could not be reached and why, commit (`docs(as-is): document <area>`), and tell the user the area's counts and its most important findings in a few lines, and that the conversation can be compacted now.
+3. **Save the area**: set its status to "Documented (YYYY-MM-DD)", note what could not be reached and why, commit (`docs(design): document <area>`), and tell the user the area's counts and its most important findings in a few lines, and that the conversation can be compacted now.
 4. **Large systems**: hand each area to a subagent with the Agent tool. Give it this step, the templates, the area's code paths and the next free ID numbers per prefix; it writes the area's files and returns only counts and its findings list. Run areas one after another, or in parallel with disjoint ID ranges; the main conversation updates the index and commits.
 
 The user does not confirm the old design element by element; it may be wrong and much of it may be redone. Ask only what only the user knows and what changes the documentation, e.g. "Is the refund approval screen still used?" or "Is the status code 9 in the data a known case?", at most 4 per round. The decisions on findings come later: in /kickoff when they change requirements, in /design when they concern one element.
@@ -89,7 +89,7 @@ Summarize the evidence in a few lines (what runs, the counts of step 4, the numb
 
 ### 7. Write the documents and commit
 
-Write `docs/README.md` (the kickoff skill's `templates/docs-README.md`) and the documents of steps 2, 3 and 5; step 4's documents are already committed. Summarize the key points for the user and commit after confirmation with `docs: document the current state`. When the repository already has branch protection, put every commit of this skill on one `docs/` branch and merge it with /open-pr at the end.
+Write `docs/README.md` (the kickoff skill's `templates/docs-README.md`) and the documents of steps 2, 3 and 5; step 4's documents are already committed. Summarize the key points for the user and commit after confirmation with `docs: document the current state`. Put every commit of this skill on one `docs/` branch and merge it with /open-pr at the end.
 
 ### 8. Set up standards and workflow (with a baseline)
 

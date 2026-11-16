@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Develops GitHub issues from branch to merge and beyond, one PR per issue: reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next picks the issues that can start (blocked ones left out, conflicts rated, rounds planned), then asks once whether to develop them in parallel (one background subagent per issue in its own worktree, mechanical follow-up work on cheaper short-lived agents) or one after another (every plan made and every question asked up front, then developed one by one), and who adds the human-reviewed label on medium and high risk PRs: the user (default) or, for that run only, the agent after an independent full-diff review. Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
+description: Develops GitHub issues from branch to merge and beyond, one PR per issue: runs the document steps the issue plans (kickoff, architect, design, scaffold) on its branch, reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next picks the issues that can start (blocked ones left out, conflicts rated, rounds planned), then asks once whether to develop them in parallel (one background subagent per issue in its own worktree, mechanical follow-up work on cheaper short-lived agents) or one after another (every plan made and every question asked up front, then developed one by one), and who adds the human-reviewed label on medium and high risk PRs: the user (default) or, for that run only, the agent after an independent full-diff review. Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
 ---
 
 # Developing issues
@@ -16,6 +16,8 @@ Talk to the user in their language.
 An issue is done when its PR has merged, CI on the base branch has passed for the merge commit, and staging runs that commit (when the project has staging). Merging alone is not done.
 
 Branches are never deleted on the remote: once work is merged, only the local branch (and, in parallel work, the worktree) is removed. Never run `git push origin --delete`, `gh pr merge --delete-branch` or anything else that removes a remote branch.
+
+Documents reach main only through the issue's PR, together with the code. Issue work never gets a separate docs branch or a docs-only PR.
 
 ## Spending little
 
@@ -36,9 +38,9 @@ Issues developed side by side pay off only when they do not get in each other's 
 - `/implement next`: the open issues of the earliest unfinished milestone whose dependencies are all closed (`gh issue list --milestone "<milestone>" --state open --json number,title,body,labels`). Without milestones, the open issues by number.
 - `/implement <number> <number> ...`: the given issues; check their dependencies the same way.
 
-Leave out, and note why for each: issues still blocked by open issues (including other candidates), `type:spike` issues (for /spike), issues that need a real environment or manual steps (hardware, production credentials, third-party accounts), and issues whose screens are "AI draft, awaiting confirmation" until the user confirms them (offer to do that first).
+Leave out, and note why for each: issues still blocked by open issues (including other candidates), `type:spike` issues (for /spike), and issues that need a real environment or manual steps (hardware, production credentials, third-party accounts). An issue whose document steps still need the user's answers is a candidate; those steps run first on its branch (step 4).
 
-Read each candidate's "Components and files" and design elements, and estimate which files each one will change.
+Read each candidate's start step, planned steps, expected files and design element IDs, and estimate which files each one will change.
 
 ### N2. Rate every pair
 
@@ -85,8 +87,8 @@ Candidates are few, so compare whole batches. The later rounds are a forecast: t
 - **Parallel**: B1 of "Several issues in parallel".
 - **One issue**: as in "One issue".
 - **Serial**: the user is asked once, at the start, and then not again until the end of the run.
-  1. **Plans first.** Steps 1 to 3 of "One issue" are done for every issue in the planned order before any code is written, so no branch is created and nothing is committed yet. Start one plan-only agent per issue, all at once (`run_in_background: true`, read-only, no worktree), with a brief as in B2: the issue, its place in the order, the files the issues ahead of it expect to change, steps 1 to 3 only, and to return the plan in a few lines (steps, files and tests, size, problems that block it, decisions the user must make, each with options and a recommendation) and end. They end by themselves and are never woken again; the plans stay in this session. With one or two issues, this session may make the plans itself.
-  2. **Ask once.** As in B3: one table of the plans, then every decision point (step 2's questions, and for size M or more than 500 changed lines the plan itself) with AskUserQuestion, grouped by issue, each question naming its issue, at most 4 per round, as many rounds as needed. An answer that changes behavior users can see goes through the design skill first (only the affected elements), and the new acceptance criteria are recorded as a comment on the issue before its development starts. An issue whose plan finds it blocked is taken out here, and the user is told.
+  1. **Plans first.** Steps 1 to 3 of "One issue" are done for every issue in the planned order before any code is written, so no branch is created and nothing is committed yet. Start one plan-only agent per issue, all at once (`run_in_background: true`, read-only, no worktree), with a brief as in B2: the issue, its place in the order, the files the issues ahead of it expect to change, steps 1 to 3 only, and to return the plan in a few lines (document steps, code steps, files and tests, size, problems that block it, decisions the user must make, each with options and a recommendation) and end. They end by themselves and are never woken again; the plans stay in this session. With one or two issues, this session may make the plans itself.
+  2. **Ask once.** As in B3: one table of the plans, then every decision point (step 2's questions, and for size M or more than 500 changed lines the plan itself) with AskUserQuestion, grouped by issue, each question naming its issue, at most 4 per round, as many rounds as needed. An answer that changes behavior users can see goes through the design skill first (only the affected elements), and the new acceptance criteria are recorded as a comment on the issue before its development starts. An issue whose plan finds it blocked is taken out here, and the user is told. Questions that only the document steps can raise are asked when those steps reach them (step 4), as the skill asks them.
   3. **Develop one by one**, in the planned order, each from step 4 to step 10 of "One issue" in this session, with the answers already given and the plan as the plan of step 3. The next issue starts only when step 10 of the previous one is reported.
   4. **Before each issue after the first**: `git fetch origin`, then compare what has merged since the plans were made with this issue's plan (the files it names, the interfaces and decisions it relies on). When the earlier issues changed nothing the plan rests on, start. Small corrections, such as a renamed file or a shifted line, are made without asking. Only when an earlier issue changed a premise of the plan (the design, an interface, a decision the user made), stop, say what changed and why it matters, and ask the user with the options. A question the plan could not have foreseen (step 5's rule on gaps in the design) also goes to the user, with the reason.
   5. When an issue is blocked, fails in a way the user must decide, or is taken out, stop and tell the user; do not skip it silently.
@@ -97,7 +99,7 @@ In a serial run, steps 2 and 3 were done up front (N5); the issue starts at step
 
 ### 0. Pick the issue
 
-`gh issue view <number> --comments`. `type:spike` issues go to /spike.
+`gh issue view <number> --comments`. `type:spike` issues go to /spike. The issue body gives the start step (the earliest skill step the work goes through, set by /change) and the planned steps in order, from that start step down to implementation.
 
 ### 1. Read the context
 
@@ -108,26 +110,35 @@ Then read the design elements the issue cites: the common rules in `docs/design/
 ### 2. Check whether work can start
 
 - Acceptance criteria unclear, contradictory or disagreeing with the documents: stop and ask the user with AskUserQuestion. When the question concerns requirements or the design itself, suggest /change first.
-- A cited screen is still "AI draft, awaiting confirmation": have the user confirm it first (as in step 2 of the design skill).
-- Screens, fields, interfaces or data the feature needs are missing from the design: stop and suggest completing the design with /change. Do not decide them while coding.
+- Screens, fields, interfaces or data the feature needs are missing from the design, and the issue's planned steps have no design step for them: stop and suggest /change to set the issue's start step to design (or earlier). Do not decide them while coding.
 - Issues it depends on are not done: tell the user.
 - The new logic does not fit the current structure (a set of classes and interfaces would need redesigning, and neither the issue nor the design plans for it): stop and suggest /change to assess the design impact. Do not redesign while coding.
 
 ### 3. A small plan
 
-List the steps: which files each changes and which tests it adds, at the lowest level that can catch the behavior (a field rule is a unit test, only a key flow is end-to-end). When the structure must be adjusted locally first (e.g. a function split), make that the first step, committed on its own. Size S starts right away; for size M, or more than 500 changed lines expected, show the plan to the user first.
+List the steps, in order: the document steps and scaffold steps the issue plans (they run first, in step 4), then the code steps, each with the files it changes and the tests it adds, at the lowest level that can catch the behavior (a field rule is a unit test, only a key flow is end-to-end). When the structure must be adjusted locally first (e.g. a function split), make that the first code step, committed on its own. Size S starts right away; for size M, or more than 500 changed lines expected, show the plan to the user first.
 
-One issue is one PR. Every extra PR costs a full CI run (often 15 minutes or more), a review, a merge wait and another rebase, so splitting is the exception: only when the diff would be too large to review in one sitting, into as few PRs as possible (two or three), along lines a reviewer would read separately (a behavior-preserving refactor, the server side, the screens), not by size. Tell the user what the split costs and let them decide.
+One issue is one PR, documents included. Every extra PR costs a full CI run (often 15 minutes or more), a review, a merge wait and another rebase, so splitting is the exception: only when the diff would be too large to review in one sitting, or when a D2 change needs its refactoring merged first (the change's plan says so), into as few PRs as possible (two or three), along lines a reviewer would read separately (a behavior-preserving refactor, the server side, the screens), not by size. Tell the user what the split costs and let them decide.
 
-### 4. Create the branch
+### 4. Create the branch, then run the document steps
 
-Read "Branches and commits" in CLAUDE.md. Base branch: main for GitHub Flow; for Git Flow, develop for feature, fix and refactor, main for hotfix. `git fetch origin`, switch to the base branch, `git pull --ff-only`, create the branch by the naming rules (e.g. `feature/12-email-login`, `fix/31-empty-list`, `refactor/40-payment-strategy`).
+Read "Branches and commits" in CLAUDE.md. Base branch: main for GitHub Flow; for Git Flow, develop for feature, fix and refactor, main for hotfix. `git fetch origin`, switch to the base branch, `git pull --ff-only`, create the branch by the naming rules (e.g. `feature/12-email-login`, `fix/31-empty-list`, `refactor/40-payment-strategy`). The branch holds the document changes and the code changes of the issue.
 
 `git config core.hooksPath` should print `.githooks` (the project's SessionStart hook sets it). When it does not, tell the user the local commit message hook is off and suggest `! git config core.hooksPath .githooks`. Work goes on either way: step 5 checks every message itself.
 
+**Document steps.** Run the document steps of the plan on this branch, in the planned order, before any code step:
+
+- **kickoff, architect, design**: invoke the matching skill (`dev-workflow:kickoff`, `dev-workflow:architect`, `dev-workflow:design`) with the Skill tool. Tell it the step it must start from (the issue's start step or the first document step still planned), the elements this issue covers, and that its result goes on this issue's branch. Each skill confirms with the user where it says so (design confirms each changed screen, one at a time).
+- **scaffold**: invoke `dev-workflow:scaffold` with the Skill tool in its add-to-existing mode, for the components, test kinds and deployment targets the plan names. Its commits follow step 5.
+- **Commit each document change** as `docs(product|architecture|design|adr): <what> (#<number>)`, with the commit message check of step 5.
+- **Consistency**: once the document steps are done, check that every document that refers to an affected element (requirements, architecture overview, ADRs, design index and element files, roadmap, README) agrees with the change; fix what does not, in one more document commit.
+- **Gate**: the code steps start only when every document step is done and confirmed on the branch. The branch stays open until then.
+
 ### 5. Implement in small steps
 
-**Preparatory refactoring** (first, when step 3 listed it): structure only, no behavior change. The same tests pass before and after; when the code has no tests, first add tests that pin down its current behavior. Commit as `refactor(<scope>): <what was restructured> (#<number>)`. A `type:refactor` issue is entirely this, with no behavior change at all.
+Document commits come first. The code steps then follow the planned order.
+
+**Preparatory refactoring** (first among the code steps, when step 3 listed it): structure only, no behavior change. The same tests pass before and after; when the code has no tests, first add tests that pin down its current behavior. Commit as `refactor(<scope>): <what was restructured> (#<number>)`. A `type:refactor` issue is entirely this, with no behavior change at all.
 
 **Features and fixes**, for each step:
 
@@ -139,7 +150,7 @@ Read "Branches and commits" in CLAUDE.md. Base branch: main for GitHub Flow; for
 
 Rules:
 
-- Every commit passes the self-check when it is made; never commit a broken intermediate state. Later rebases do not repeat this commit by commit (see "After a rebase").
+- Every commit passes the self-check when it is made; never commit a broken intermediate state. A document commit is made once the consistency check of step 4 is done. Later rebases do not repeat this commit by commit (see "After a rebase").
 - Refactoring and feature changes go in separate commits, so reviewers can see which alter behavior.
 - No changes unrelated to the issue; record problems you happen to find as new issues.
 - When the architecture check fails, change the structure of the code, not the rules.
@@ -178,7 +189,7 @@ Each heavy check:
 
 ### 6. Open the PR
 
-Run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs the self-check, simplification and local review, writes the PR from the template with `Closes #<number>` in the body, and enables auto-merge. The PR description says which heavy kinds ran locally, which did not and why.
+Run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs the self-check, simplification and local review, writes the PR from the template with `Closes #<number>` in the body, and enables auto-merge. The PR description lists the document changes with the code changes, says which heavy kinds ran locally, which did not and why.
 
 ### 7. Handle review comments
 
@@ -228,7 +239,7 @@ Watch the PR until it merges, at every risk tier, with one background command th
 
 ### 10. Report
 
-Which issue was done, the PR link, what changed, which refactorings were made, which review comments were handled, whether the implementation differs from the prototypes, which heavy checks ran locally and which were left to CI, who added the `human-reviewed` label (and the independent review's verdict when the agent did), the result of CI on the base branch and of staging, and anything the user should know. In a serial run, say which issue comes next and go on to it; otherwise ask whether to continue with `/implement next`.
+Which issue was done, the PR link, what changed (documents and code), which refactorings were made, which review comments were handled, whether the implementation differs from the prototypes, which heavy checks ran locally and which were left to CI, who added the `human-reviewed` label (and the independent review's verdict when the agent did), the result of CI on the base branch and of staging, and anything the user should know. In a serial run, say which issue comes next and go on to it; otherwise ask whether to continue with `/implement next`.
 
 ## Several issues in parallel
 
@@ -247,7 +258,7 @@ Say plainly that the candidates not in the batch are not started in this run.
 Merge order: issues that others build on or whose result they need go first; among light overlaps, the smaller one first, so the larger rebases onto it once. Show the user two tables and confirm them:
 
 - **This batch**: order, issue, size, expected files, light overlaps with earlier issues.
-- **Not in this batch**: issue and why: conflicts with which issue of this batch (a later round), beyond what the machine carries, blocked by which issue, `type:spike`, needs manual steps, screens awaiting confirmation.
+- **Not in this batch**: issue and why: conflicts with which issue of this batch (a later round), beyond what the machine carries, blocked by which issue, `type:spike`, needs manual steps.
 
 When the user asks to add an issue to a running batch, rate it against the unmerged issues of the batch as in N2. When it conflicts with one, it waits for the next `/implement next`. Otherwise it goes at the end of the merge order and goes through B2 and B3 before developing; it starts once a subagent of this batch has finished, unless the user raises the number running at once.
 
@@ -257,13 +268,15 @@ One background subagent per issue (`isolation: "worktree"`, `run_in_background: 
 
 - The issue number and title, and that it works for the coordinator, never asks the user, and returns everything for the user to the coordinator.
 - Its place in the merge order, the issues ahead of it and the files they expect to change.
-- Now: steps 1 to 3 of "One issue" in its own worktree, then stop and return the plan in a few lines: steps, files and tests, size, whether it needs splitting (only when the diff is too large to review in one sitting), problems that block it, and the decisions the user must make, each with concrete options and a recommendation.
+- Steps 1 to 3 of "One issue" in its own worktree, then stop and return the plan in a few lines: document steps, code steps, files and tests, size, whether it needs splitting (only when the diff is too large to review in one sitting, or a D2 change needs its refactoring first), problems that block it, and the decisions the user must make, each with concrete options and a recommendation. Document steps are planned here, not run.
 - After the answers: develop through step 6 (the PR opened when it is first in the merge order, otherwise everything done and checked locally), return a short report and end.
 - "Spending little", B4, the commit message check after every commit and before every push, the rule for pushed history (B5), the pitfalls (B7), and that it never deletes a remote branch.
 
 ### B3. Settle the decisions with the user
 
 Collect the plans, summarize them in one table, then ask every decision point with AskUserQuestion, grouped by issue (each question names its issue; at most 4 per round, as many rounds as needed). Send each subagent all its answers in one SendMessage and tell it to start developing; this is the one wake-up of a subagent whose context is still small.
+
+Questions that the document steps raise during development come back the same way: the subagent returns each one, the coordinator asks it as above, and the answer goes to the subagent in one SendMessage.
 
 When the plans show two issues of the batch changing the same code after all, tell the user and recommend taking the later one in the merge order out of the batch.
 

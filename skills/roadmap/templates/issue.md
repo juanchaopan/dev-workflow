@@ -2,6 +2,16 @@
 
 {{Feature / Bug / Refactoring / Chore / Spike}}
 
+## Start step
+
+{{kickoff / architect / design / scaffold / implement}}
+
+## Planned steps
+
+1. {{skill (kickoff / architect / design / scaffold / implement)}}: {{what this step produces and what the user must confirm before the next step}}
+2. {{skill}}: {{what it produces and what the user must confirm}}
+3. implement: tests, code and PR, after the steps above are confirmed
+
 ## Goal
 
 {{What the user can do once it is done, in a sentence or two. Refactoring: "restructure into what, and why"; spike: "the question to answer"; data migration: "which data moves where".}}

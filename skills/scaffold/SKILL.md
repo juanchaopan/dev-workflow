@@ -1,6 +1,6 @@
 ---
 name: scaffold
-description: Creates the project from docs/architecture/: generates each component with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen, and for every kind of test the architecture chose (unit, component, integration, end-to-end, snapshot, delivery, non-functional) the project command that prepares and removes its own throwaway environment, configurable ports and paths, a way to run only the tests a change affects and a CI job; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); creates the GitHub repository and runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design; followed by /roadmap.
+description: Creates the project from docs/architecture/ and the design of the stage's scope: generates each component the stage uses with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen, and for every kind of test the architecture chose (unit, component, integration, end-to-end, snapshot, delivery, non-functional) the project command that prepares and removes its own throwaway environment, configurable ports and paths, a way to run only the tests a change affects and a CI job; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); in the first stage creates the GitHub repository and pushes the spike branches and tags kept local; runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline, or add a component or test kind for a later stage without recreating the repository. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design for the first stage; /change calls it for a later stage that needs a component, deployment target or test kind; followed by /roadmap.
 ---
 
 # Creating the project
@@ -21,14 +21,16 @@ This skill's directory (the Base directory shown when the skill loads) contains:
 
 ## Two uses
 
-- **New project**: steps 0 to 11. This includes the new system of a rewrite, which /onboard documented the old one for.
-- **Add standards to an existing project** (asked by the user, or called by /onboard): steps 0, 4, 5 and 10. Recognize stacks with the "How to recognize it" section of each `stack.md`. Do not overwrite existing configuration files: compare them, tell the user how you plan to merge, and change them after approval. When the directory structure does not match the library's layering conventions, do not move code around on a large scale; install the tools and rules first and record existing violations as a baseline as in step 8 of the onboard skill. Changes go through a branch and /open-pr.
+- **First stage of a project**: steps 0 to 11. The stage's scope comes from `docs/product/` (the stage's scope written by /kickoff). This use creates the repository once, and the components, standards, tests, compose file, deployment pipeline and review workflow that the stage's scope needs. Components that the architecture lists but the stage does not use are not created; the report names them and the stage that creates them.
+- **Add to an existing project**, in one of two modes:
+  - **Add standards with a baseline** (asked by the user, or called by /onboard): steps 0, 4, 5 and 10. Recognize stacks with the "How to recognize it" section of each `stack.md`. Do not overwrite existing configuration files: compare them, tell the user how you plan to merge, and change them after approval. When the directory structure does not match the library's layering conventions, do not move code around on a large scale; install the tools and rules first and record existing violations as a baseline as in step 8 of the onboard skill. Changes go through a branch and /open-pr.
+  - **Add a component or a test kind for a later stage** (called by /change): steps 0, 2, 3, 4, 6, 7, 8, 10 and 11, only for the component or the test kind the change names. The repository, the common root files, the CI basics and the GitHub repository already exist: do not recreate them (skip steps 5 and 9). The compose file, the deployment workflow and CI get an entry for the added part only. Changes go through the issue's branch as in /implement.
 
 Talk to the user in their language. Project documents follow the project's document language (the `Language` line in its CLAUDE.md, otherwise the user's language).
 
 ## Versions: looked up, never hard-coded; the user decides trade-offs
 
-A new project should use the latest versions of the day it is created, and this library cannot know what those are, so no version number is written into its documents or configuration; everything is looked up on the spot:
+A project is created on the latest versions of the day it is created. This library cannot know what those are, so no version number is written into its documents or configuration; everything is looked up on the spot:
 
 | What | How |
 |---|---|
@@ -49,11 +51,11 @@ Record the choice and the reasons in the component's technical details ADR. Neve
 
 ## Steps
 
-### 0. Read the design
+### 0. Read the architecture and the design of the scope
 
-Read `docs/architecture/overview.md` and `docs/adr/` and list every component: name, directory, stack, the decision points recorded in the ADRs (build tool, lint tool, data access, component layering, Storybook and visual regression tests, and so on), the kinds of tests the architecture chose for it and the deployment. Without architecture documents, tell the user to run /architect first. When an ADR leaves a decision point open, ask the user with the recommended option from the `stack.md` decision table; when it does not say which kinds of tests the project uses, ask the seven questions of `shared/testing.md` ("Choosing kinds"). When a component's stack is not in the library, tell the user it can still be created, but a set of standards must be added (write one modeled on a directory in `stacks/`, at least lint, formatting and an architecture check).
+Read the stage's scope in `docs/product/` (the vision or roadmap document names what this stage builds and what is left for later). Read `docs/architecture/overview.md` and `docs/adr/`, and list every component the stage uses: name, directory, stack, the decision points recorded in the ADRs (build tool, lint tool, data access, component layering, Storybook and visual regression tests, and so on), the kinds of tests the architecture chose for it and the deployment. Components the architecture lists that the scope does not use are noted for the report and left for later stages. In the add mode for a later stage, the component or test kind the change names replaces the stage scope, and the ADRs that decide it are read in full. Without architecture documents, tell the user to run /architect first. When an ADR leaves a decision point open, ask the user with the recommended option from the `stack.md` decision table; when it does not say which kinds of tests the project uses, ask the seven questions of `shared/testing.md` ("Choosing kinds"). When a component's stack is not in the library, tell the user it can still be created, but a set of standards must be added (write one modeled on a directory in `stacks/`, at least lint, formatting and an architecture check).
 
-Then read `docs/design/README.md`: `docs/design/screens/tokens.css`, used by the screen prototypes, is the source of the frontend design tokens. When a new project has no `docs/design/` yet, remind the user to run /design before /roadmap splits issues; they may still create the project first.
+Then read the design of the scope: `docs/design/README.md` and the element files of the modules in the scope. `docs/design/screens/tokens.css`, used by the screen prototypes, is the source of the frontend design tokens. Designs of modules outside the scope are not read here. When the scope has no design yet, remind the user to run /design for the scope before /roadmap splits issues; they may still create the project first.
 
 ### 1. Confirm the directory structure
 
@@ -69,7 +71,7 @@ Default structure for a monorepo with several components:
 └── .github/            CI, review, deployment, templates
 ```
 
-With a single component it can live at the repository root. Show the user the tree and create it after confirmation.
+With a single component it can live at the repository root. Only the components the scope uses get a directory. If the directory is not yet a git repository, initialize one with `main` as the default branch. Show the user the tree and create it after confirmation.
 
 ### 2. Check tools and versions
 
@@ -121,7 +123,7 @@ Check it with `docker compose -f infra/docker-compose.yml config`. Ask the user 
 
 Following the deployment chosen in the architecture and `shared/deployment.md`:
 
-- Platforms that need a workflow: write `.github/workflows/deploy.yml` from `shared/deploy.yml` with the integration branch (develop for Git Flow, main for GitHub Flow), the component list and the platform's deployment steps.
+- Platforms that need a workflow: write `.github/workflows/deploy.yml` from `shared/deploy.yml` with the integration branch (develop for Git Flow, main for GitHub Flow), the component list and the platform's deployment steps. In the add mode, only the added component's entry is added to the existing workflow.
 - Platforms with their own Git integration (e.g. static hosting): no workflow; list the settings the user makes on the platform's website (connect the repository, component directory, build command, which branch deploys to which environment, PR previews).
 - List what the user must do: create the platform account, create `staging` and `production` environments on GitHub, set Required reviewers on `production`, store the platform token as an environment secret.
 - With the delivery kind: deploying to staging is one delivery test, so the pipeline runs the project's smoke flows (end-to-end, key flows only) against staging after the deployment.
@@ -137,16 +139,20 @@ Split into several Conventional Commits, each doing one thing, e.g.:
 - `build(infra): add the local docker compose environment`
 - `ci: add the deployment pipeline`
 
-Keep the document commits /kickoff, /architect and /design already made.
+In the add mode, the commits cover only the added component or kind. Keep the document commits /kickoff, /architect and /design already made.
 
-### 9. GitHub repository
+### 9. GitHub repository (first stage only)
 
-Ask the user whether the repository is public or private (private repositories on GitHub Free cannot use branch rules or manual approval for production, so the workflow relies on discipline) and what to call it. After approval run `gh repo create <name> --<public or private> --source . --push`.
+Skip this step when the repository already exists on GitHub, which is always the case in the add modes.
+
+Ask the user whether the repository is public or private (private repositories on GitHub Free cannot use branch rules or manual approval for production, so the workflow relies on discipline) and what to call it. After approval run `gh repo create <name> --<public or private> --source . --push` for the main branch. Then push the spike branches (`spike/*`) and the spike archive tags that were kept local because the repository had no remote (see /spike): `git push origin <branch>` and `git push origin <tag>` for each. Spike branches are pushed and never deleted.
 
 ### 10. Set up the review workflow
 
-Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. The kinds of tests the project uses go into the Tests section of CLAUDE.md: each heavy kind with its command, the throwaway environment it prepares and removes, what it holds (the fixed ports it needs or the environment variable that sets them, output directories, whether it uses containers, roughly how much memory), what runs before each commit and before the PR, and its CI job; every kind not used with one line on why; how a change maps to the tests it affects; and the time targets for the stages before a commit and before the PR.
+Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. The kinds of tests the project uses go into the Tests section of CLAUDE.md: each heavy kind with its command, the throwaway environment it prepares and removes, what it holds (the fixed ports it needs or the environment variable that sets them, output directories, whether it uses containers, roughly how much memory), what runs before each commit and before the PR, and its CI job; every kind not used with one line on why; how a change maps to the tests it affects; and the time targets for the stages before a commit and before the PR. In the add modes, tell it to update only the parts for the added component or test kind.
 
 ### 11. Report and next step
 
-Report: the components created, the versions used (runtimes, frameworks, TypeScript, and so on), any version trade-offs and the user's choices, the standards and checks each component got, the kinds of tests set up with their commands, the decision point results, the self-check results, how to start it locally, the deployment pipeline and the platform settings the user still has to make, and the repository URL. Tell the user to run /roadmap next to split requirements and design into issues; if /design has not been done yet, run /design first.
+Report: the components created, the versions used (runtimes, frameworks, TypeScript, and so on), any version trade-offs and the user's choices, the standards and checks each component got, the kinds of tests set up with their commands, the decision point results, the self-check results, how to start it locally, the deployment pipeline and the platform settings the user still has to make, and the repository URL. In the first stage, also list the components the architecture has that this stage does not create, and the stage that will.
+
+Next step: in the first stage, tell the user to run /roadmap next to split the stage's requirements and design into issues; if the scope's design is not done yet, run /design first. In an add mode, report the added part and return to the change that called this skill.

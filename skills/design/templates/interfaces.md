@@ -1,6 +1,7 @@
 # Interface definitions
 
-- Status: {{AI draft, awaiting confirmation / Confirmed (YYYY-MM-DD)}}
+- Status: {{AI draft, awaiting confirmation / Confirmed}}
+- Last changed: {{kickoff / design / #issue number (YYYY-MM-DD)}}
 
 Write only the parts this system has; delete the other sections.
 

@@ -1,6 +1,8 @@
 # Architecture overview
 
-Related decisions are in `docs/adr/`. When this document conflicts with an ADR, the latest ADR with the status "Accepted" wins, and this document is corrected promptly.
+- Last changed: {{#issue number (YYYY-MM-DD), or architect (YYYY-MM-DD) before any issue exists}}
+
+Related decisions are in `docs/adr/`. Where this document and an ADR disagree, the ADR's decision holds, and this document is corrected in the same change.
 
 ## Architecture metrics
 
@@ -108,4 +110,4 @@ Non-functional targets: {{only those in the requirements, e.g. a page loads in u
 
 ## Evolution
 
-- {{extension points not built now but left room for, and their triggers, e.g. split the worker into its own service above 10,000 daily active users}}
+- {{extension points not built yet but left room for, and their triggers, e.g. split the worker into its own service above 10,000 daily active users}}
