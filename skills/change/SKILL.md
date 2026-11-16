@@ -37,6 +37,24 @@ Whenever something the user can see or notice changes (screens, fields, validati
 
 Use AskUserQuestion in the user's language, 2 to 4 questions per round, 2 to 4 concrete options per question, the recommended option first with "(Recommended)". Ask only about this change.
 
+## Ideas are welcome; the user decides each one
+
+The skill is encouraged to find what the user has not thought of: a related change that is needed for this one to work, a cleanup that would pay off, a risk to the existing data, a cheaper route to the same result. Each one is a **suggestion**, and it is not added to the plan as an issue, requirement or refactoring until the user approves that specific item.
+
+Present every suggestion so the user can decide from it alone:
+
+- **Plain language.** Say what it is in everyday words, and explain any technical term in a few words.
+- **What it changes**: which part of the product or code it touches, with a concrete example of what the user would notice or what would be different.
+- **What it costs**: extra issues, time, risk, and anything that has to be decided later.
+- **The simpler alternative**, including leaving it out.
+- Then ask with AskUserQuestion, **one suggestion per question**, with the options "Add it", "Not now" and "Do not add". Put the recommended option first with "(Recommended)" when you have one.
+
+Rules for approval:
+
+- Each suggestion is decided on its own. "Sounds good" about a list approves only the items it names; anything not named stays pending.
+- "You decide" and "either is fine" apply only to a question the user has been offered options for, and then only to choosing among those options. They never approve a suggested issue or requirement.
+- Silence, a change of topic or a reply to a different question is not approval. Pending suggestions are left out of the created issues and listed in the final message.
+
 ## Start steps
 
 Every piece of work gets exactly one start step: the earliest step it must go through. Each one names the skill step to begin from.
@@ -72,7 +90,7 @@ The answers are recorded in the plan and in the issue bodies. The documents them
 
 **L0**: make sure there is an issue that reproduces the bug, using the bug template (steps to reproduce, expected, actual) with the label `type:bug`. Ask how to reproduce it. Compare with the design: when the implementation deviates from the design, the issue brings it back to the design; when the design was unclear and led the implementation astray, the issue starts at `design`. In a taken-over system without a design for this part, check whether a finding already describes it, and ask whether anyone relies on the current behavior before calling it a bug (old behavior is sometimes policy).
 
-**L1**: ask 1 or 2 rounds against the relevant items of `references/requirement-holes.md` in the kickoff skill (the kickoff directory next to this skill): who uses it, how, edge cases and failures, how it fits existing features. The requirement is written by the issue at `kickoff`.
+**L1**: ask 1 or 2 rounds against the relevant items of `references/requirement-holes.md` in the kickoff skill (the kickoff directory next to this skill): who uses it, how, edge cases and failures, how it fits existing features. Each item is a question to the user, not a requirement to add: a case the user does not want to handle becomes an open question or a suggestion. The requirement written by the issue at `kickoff` contains only what the user confirmed or approved.
 
 **L2**: list the affected requirements, design elements, code and existing data. Ask: what the new rule is, what happens to old data, whether old and new behavior coexist for a while, whether a feature flag is needed. The issue at `kickoff` removes every requirement that no longer holds from `docs/product/requirements.md` and writes the requirements that replace it in its place.
 
@@ -94,14 +112,17 @@ A piece belongs to the stage its requirements are planned for; a new requirement
 
 ### 4. Write the plan and get it confirmed
 
-Show the plan in the conversation, not in a file:
+Show the plan in the conversation, not in a file, in plain language:
 
 - both levels with the reason for each;
 - every issue: title, type label, start step, the planned steps in order, dependencies (other issues, by their place in the plan), stage, size and risk tier;
 - for D1 and D2, the refactoring issues first (step 5);
-- for each uncertain point, the spike issue.
+- for each uncertain point, the spike issue;
+- a "Suggestions" heading with every item the analysis found beyond the request, each explained as described under "Ideas are welcome"; these are not issues until the user approves them one by one.
 
-Confirm with AskUserQuestion: the two levels, the start step of each issue, and the issue list. Offer the recommended option first. Do not create any issue on GitHub before the user approves the plan.
+Every issue, requirement and design element in the plan traces to the request, to a rating of step 1, or to a decision the user made in steps 1 and 2. Anything else goes under "Suggestions".
+
+Confirm with AskUserQuestion: the two levels, the start step of each issue, and the issue list. Offer the recommended option first. Then ask about each suggestion on its own, as described above. Do not create any issue on GitHub before the user approves the plan and the suggestions they chose.
 
 ### 5. Design impact: refactoring and the migration series
 

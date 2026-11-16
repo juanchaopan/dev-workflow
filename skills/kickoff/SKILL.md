@@ -7,7 +7,7 @@ description: Requirements discovery for the first pass of a project, from wherev
 
 The goal is to turn whatever the user brings — an idea, a pile of old code, a document or a problem — into requirement documents that both people and AI can work from. Different entry points, same output: the vision, requirements, glossary and open questions under `docs/product/`, so /architect, /design, /roadmap and /implement never need to know where the requirements came from.
 
-Your role is an experienced product manager who keeps asking: think of what the user has not thought of, but let the user make the call.
+Your role is an experienced product manager who keeps asking. Bring up what the user has not thought of: good ideas are encouraged, and each one is put to the user as a suggestion that they decide on.
 
 ## How deep this step goes
 
@@ -23,10 +23,27 @@ What screens look like, whether a field is required, validation rules, table col
 - Each option's description says what the choice means and what follows from it, e.g. "Multi-user collaboration: needs accounts and permissions, roughly doubles the work".
 - Set `multiSelect: true` for questions that allow several answers.
 - One topic per round. When an answer changes direction, adjust the following questions. Questions already answered by the code or documents are not asked again; only ask the user to confirm the inference.
-- After each round, restate what you understood in three to five sentences, then list the holes found in this round (check against `references/requirement-holes.md`). Holes that need the user's decision go into the next round.
-- When the user says "you decide" or "either is fine", take the recommended option and record the source as "AI suggestion, user default".
+- After each round, restate what you understood in three to five sentences, then list the holes found in this round (check against `references/requirement-holes.md`). Holes that need the user's decision go into the next round. The items in `references/requirement-holes.md` are questions to ask, not requirements to write.
 - Do not make things up. What cannot be settled goes into the open questions. What needs a trial before it can be decided (e.g. "will users understand this interaction", "is this third-party service fast enough") is recorded with a suggestion to verify it with /spike.
 - The user can say "stop here" at any time: write up what is clear and put what was not asked into the open questions.
+
+## Ideas are welcome; the user decides each one
+
+The skill is encouraged to bring ideas: a feature the user did not mention, a role nobody named, an edge case that would hurt, a rule that would prevent a mess later. Each idea is a **suggestion**, and it is not written into the documents until the user approves that specific item.
+
+Present every suggestion so the user can decide from it alone:
+
+- **Plain language.** Say what it is in everyday words. If a technical term is needed, explain it in a few words. The user is not expected to know the jargon.
+- **What it does for the user**, with a concrete example of what would happen (e.g. "Customers can cancel an order until it ships; after that, they request a return").
+- **What it costs**: more screens or rules, more work, more things to maintain, and any decision the user would have to make later.
+- **The simpler alternative**, including leaving it out, so the user can choose the lighter option.
+- Then ask with AskUserQuestion, **one suggestion per question**, with the options "Add it", "Not now" and "Do not add". Put the recommended option first with "(Recommended)" when you have one.
+
+Rules for approval:
+
+- Each suggestion is decided on its own. "Sounds good" about a list approves only the items it names; anything not named is still pending.
+- "You decide" and "either is fine" apply only to a question the user has been offered options for, and then only to choosing among those options. They never approve a suggested feature, rule, role or constraint.
+- Silence, a change of topic or a reply to a different question is not approval. Suggestions still pending at the end are listed in the final report and left out of the documents.
 
 ## Step 0: find the entry point
 
@@ -74,9 +91,9 @@ Then follow the entry point's flow below.
 
 1. **Hear the idea**: use what the user already said, or ask them to describe it in their own words. Restate in one paragraph what problem it solves, for whom and roughly how, and have the user confirm you understood.
 2. **Round 1 — goals and users**: who will use it (there can be several roles); how they solve the problem today; why something new is needed; what success looks like, in measurable terms.
-3. **Round 2 — feature list and core scenarios**: list every feature you infer, by role and by module, one sentence each. Let the user confirm the module names, mark which features this stage builds (multi-select, within the stage scope from Step 1) and add what is missing. The list must be complete for the whole product: /design designs screens and interfaces from it. Then walk through the most important flow: where it starts, the steps, what comes out at the end.
+3. **Round 2 — feature list and core scenarios**: list the features the user has described, one sentence each, by role and by module, and let the user confirm the module names and mark which features this stage builds (multi-select, within the stage scope from Step 1). Ask the user what is missing from the list. Each feature you suggest is put to the user as a suggestion, as described in "Ideas are welcome", and enters the list only when approved. Then walk through the most important flow: where it starts, the steps, what comes out at the end.
 4. **Round 3 — business rules and data**: the key business objects; their states and transitions; who can see and change what; where data comes from, how long it is kept, whether it can be deleted and exported.
-5. **Round 4 — edge cases and failures**: concurrent edits, duplicate submissions, retries after failure, lost network, empty data, huge data, malicious use.
+5. **Round 4 — edge cases and failures**: concurrent edits, duplicate submissions, retries after failure, lost network, empty data, huge data, malicious use. Each is a question to the user; a case the user does not want to handle becomes an open question or a suggestion, not a requirement.
 6. **Round 5 — scale and constraints**: number of users, data volume, peak load, response time, availability, deployment environment, budget, compliance, launch date, who maintains it. These answers drive the /architect decisions, so get orders of magnitude, e.g. "under 100 / 10,000 / 1 million users".
 7. **Round 6 — scope and priorities**: within the stage scope, what the first version (MVP) does, what comes later, what is explicitly out.
 8. Go to "Final hole check".
@@ -99,7 +116,7 @@ None of it is correct just because the old system does it. Build on it, and ask:
 5. **Round 5 — findings that change requirements**: of the findings, those that decide what the system should do rather than how one screen behaves — e.g. a hidden rule users depend on ("customer 1042 never pays shipping"), a behavior that looks like a bug but may be policy, a permission the server never checked, a feature that never worked. Ask with the evidence, at most 4 per round; write the decision into the matching requirement and into the "Resolution" column of the finding. Findings about a single field or screen are left for /design.
 6. **Round 6 — transition**: acceptable downtime; whether old and new can run side by side for a while; business that must not break (e.g. payments); one cutover or gradual replacement (/architect designs the details; here ask for the user's constraints and risk tolerance). For a rewrite, also when the old system is switched off and who checks the migrated data.
 7. **Round 7 — scale and constraints**: as Round 5 of "Idea", but first confirm the current numbers (users, data volume from the profiling, current deployment) with the user, then ask about expectations.
-8. Go to "Final hole check". When writing requirements, features that stay in the old code as they are remain "Implemented"; features rebuilt in the target system (modernize, rewrite) and changed features become "Active", saying exactly what they become, with the old implementation under "Related"; features the user drops are not written into requirements.md and are named under "Out of scope" in vision.md; features that do not exist yet are "Active". Sources cite the evidence (e.g. "CUR-SCR-004, confirmed by user").
+8. Go to "Final hole check". When writing requirements, features that stay in the old code as they are remain "Implemented"; features rebuilt in the target system (modernize, rewrite) and changed features become "Active", saying exactly what they become, with the old implementation under "Related"; features the user drops are not written into requirements.md and are named under "Out of scope" in vision.md; features that do not exist yet are "Active" only when the user asked for them or approved them. Sources cite the evidence (e.g. "CUR-SCR-004, confirmed by user").
 
 ## Document
 
@@ -120,7 +137,7 @@ None of it is correct just because the old system does it. Build on it, and ask:
 
 ## Final hole check
 
-Go through everything against `references/requirement-holes.md` and list the problems: contradictions, missing roles or flows, features missing from the feature list, goals that cannot be measured, expectations that do not match the scale, scope that is too large, requirements that conflict with the current system, findings that change requirements but are still open. Give a suggestion for each. Let the user choose with AskUserQuestion where a decision is needed.
+Go through everything against `references/requirement-holes.md` and list the problems: contradictions, missing roles or flows, features the user has not listed, goals that cannot be measured, expectations that do not match the scale, scope that is too large, requirements that conflict with the current system, findings that change requirements but are still open. Give a suggestion for each, explained as described in "Ideas are welcome". Let the user choose with AskUserQuestion where a decision is needed; a suggestion that is not chosen is left out of the documents.
 
 ## Write the documents
 
@@ -130,9 +147,9 @@ Write them from this skill's `templates/`, in the project's document language: t
 |---|---|
 | `docs/README.md` | Documentation index (only when the file does not exist) |
 | `docs/product/vision.md` | One-line positioning, target users, success criteria, stage scope (which modules this stage builds, which later stages cover, and the research questions when the stage is research only), scope, constraints, assumptions; for existing code also "Current state", "Why change" and the decision on screens and style |
-| `docs/product/requirements.md` | Requirements numbered from REQ-001 (continue existing numbering), at least one per feature, each with its module, its planned stage, a user story and acceptance criteria (Given/When/Then), priority, status, source and "Last changed" |
+| `docs/product/requirements.md` | Requirements numbered from REQ-001 (continue existing numbering), at least one per feature the user confirmed, each with its module, its planned stage, a user story and acceptance criteria (Given/When/Then), priority, status, source and "Last changed" |
 | `docs/product/glossary.md` | Business terms and the one name to use for each; for existing code, also the old names used in code and data where they differ |
-| `docs/product/open-questions.md` | Open questions with the requirements they affect and the latest date they must be settled; mark those that need /spike |
+| `docs/product/open-questions.md` | Open questions with the requirements they affect and the latest date they must be settled; mark those that need /spike; pending suggestions are listed here too, marked as suggestions |
 
 On the first pass every requirement's "Last changed" line reads `kickoff (<date>)`. When called by /change, the changed requirements read `#<issue number> (<date>)`.
 

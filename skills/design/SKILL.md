@@ -7,7 +7,7 @@ description: Detailed design that code and tests can be written from, for the mo
 
 The requirements (`docs/product/`) say what the system must do; the architecture (`docs/architecture/`, `docs/adr/`) says which technologies and which components. This step details the elements of the stage or issue that calls it until nothing is left to guess during development: what each screen looks like, the rules of each input, the columns of each table, the errors each interface returns. /implement writes code and tests from the design of its issue.
 
-Your role is an experienced system designer: think every detail through for the user, but let the user confirm every screen and every rule.
+Your role is an experienced system designer: think every detail through for the user, bring up your own ideas, and let the user decide every screen, every rule and every idea.
 
 ## What is designed here
 
@@ -40,17 +40,26 @@ IDs: screens SCR-001, data entities ENT-001, interfaces API-001, scheduled and b
 
 Every element file and index row carries a `Last changed` field: `kickoff`, `architect` or `design` for work done before any issue exists, otherwise `#<issue number> (<YYYY-MM-DD>)`.
 
-## Nothing is added without the user's approval
+## Ideas are welcome; the user decides each one
 
-Every screen, field, validation rule, message, column, table, interface, parameter, job, permission, state, action and business rule in the design must either trace back to a requirement in `docs/product/` or be a decision the user has made in this design. The designer does not add anything on its own initiative, even when it believes the product would be better with it: an extra field, a status column, soft deletion, an audit table, export, pagination, a notification, a second role, a shortcut or a different layout.
+The designer is encouraged to bring ideas: a clearer layout, a check that prevents a mistake, a field the user may have overlooked, a better flow. Each idea is a **suggestion**, and it is not written into the design until the user approves that specific item.
 
-When the designer thinks something should be added or done better, it makes a **suggestion** and does not write it into the design. A suggestion says what it is, why it would help, and what it costs or changes (e.g. "Suggestion: an `archived` status on orders, so deleted orders stay for reporting; costs one column and one more filter on the list"). Suggestions are listed in the conversation, not in the element files. They are written into the design only after the user explicitly approves that specific item in their own words.
+Present every suggestion so the user can decide from it alone:
 
-- Approval is item by item. "Sounds good" about a list of suggestions approves only the items it names; anything not named is still pending.
-- "You decide" and "either is fine" apply only to a question the user has been offered options for, and then only to choosing among those options. They never approve a suggestion or an addition.
-- "Do the rest as you see fit" lets the designer finish the elements already in scope. It does not extend the scope and does not approve additions.
-- Silence, a change of topic or a reply to a different question is not approval. When a suggestion is still pending at the end of the design, list it in the report and leave it out.
-- Technical details that no user can see or notice (how the code is split, internal names, the exact index types) are not part of this rule; /implement decides them within the standards.
+- **Plain language.** Say what it is in everyday words. If a technical term is needed, explain it in a few words. The user is not expected to know the jargon.
+- **What it does for the user**, with a concrete example of what they would see or what would change (e.g. "Orders that were deleted by mistake can be restored: the order is hidden, not erased, and a Restore button appears in the admin list").
+- **What it costs**: extra screens or fields, more work, more things to maintain, more to test, and any new decision the user would have to make later.
+- **The simpler alternative**, including doing nothing, so the user can choose the lighter option.
+- Then ask with AskUserQuestion, **one suggestion per question**, with the options "Add it", "Not now" and "Do not add". Put the recommended option first with "(Recommended)" when you have one.
+
+Rules for approval:
+
+- Each suggestion is decided on its own. "Sounds good" about a list approves only the items it names; anything not named is still pending.
+- "You decide" and "either is fine" apply only to a question the user has been offered options for, and then only to choosing among those options. They never approve a suggestion.
+- "Do the rest as you see fit" lets the designer finish the elements already in scope. It does not extend the scope and does not approve suggestions.
+- Silence, a change of topic or a reply to a different question is not approval. A suggestion still pending at the end of the design is listed in the report and left out.
+- Approved suggestions are written into the element files and prototypes in the same way as any other decision.
+- Technical details that no user can see or notice (how the code is split, internal names, the exact index types) are not suggestions; /implement decides them within the standards.
 
 ## How to ask
 
@@ -122,13 +131,13 @@ Then, following the main flow of the screen flow, one screen at a time:
 1. **Write the screen definition**: set its status to "In progress" in the index. Write `docs/design/screens/SCR-xxx-<short-name>.md` from `templates/screen.md`: purpose, entry and exits, layout, field definitions (type, required, length or range, default, validation rules, error message and data source of every displayed and input field), actions and events (which interface is called, what happens on success and failure), states, permission differences. For an existing system, fill in "From the current system": the old screens it is based on, and every old field rule, business rule and finding touching it, with a proposed decision each. A screen that existed before and is changed by the issue is edited in place.
 2. **Write the prototypes**: one HTML file per state from `templates/screen.html`, named like the definition file with a suffix for the state: `SCR-001-login.html` (normal), `SCR-001-login--error.html` (validation errors), `SCR-001-login--empty.html` (empty data), `SCR-001-login--loading.html` (loading). Draw at least the normal and validation-error states; add empty data for lists; when roles see different content, draw one per role. Prototypes are for people to look at: plain HTML and CSS using `tokens.css`, no frameworks, no scripts. Use realistic sample data (real-looking names, addresses and amounts, text of different lengths), not placeholders like "test1" or "xxx"; for an existing system, data shaped like the real data (lengths, value ranges) without copying personal data. For mobile screens set the screenshot size to `390x844`. A screen kept exactly as it is gets no prototype (see "An existing system"). Prototype files of a changed screen are overwritten with the new state.
 3. **Render and self-check**: run `node <this skill's directory>/render-screens.mjs docs/design/screens/SCR-xxx-*.html`. The script renders each HTML file to a PNG of the same name with Playwright's bundled Chromium (free; downloaded on first run). Then hand the check to a subagent with the Agent tool: give it the definition file and the PNG paths, have it look at the images and compare them with the definition for misalignment, overflowing text, garbled characters, missing or misordered fields and text that differs from the definition, and report a list of problems as text only. Fix problems and render again until none are left. The self-check looks for layout and consistency problems only; it never adds elements to the screen.
-4. **Ask the user to confirm**: run `node <this skill's directory>/render-screens.mjs --open <the HTML files of these PNGs> [<the old screenshots>]` to open the screenshots in the system image viewer (PNG files given by name are opened as they are, so the old screen appears next to the new one). In your message say which screen this is (n of total); the full path of each image and its state; the key points (a summary of the field definitions, the requirements covered, the decisions you made for the user); any suggestions for this screen, listed separately as pending and not in the prototypes; for an existing system, what changes from the old screen and the decisions still needed on old rules and findings, asked in the same round. Then ask with AskUserQuestion, with the options "Confirm this screen" and "Skip for now, review later", and say in the question that comments or questions go into "Other".
+4. **Ask the user to confirm**: run `node <this skill's directory>/render-screens.mjs --open <the HTML files of these PNGs> [<the old screenshots>]` to open the screenshots in the system image viewer (PNG files given by name are opened as they are, so the old screen appears next to the new one). In your message say which screen this is (n of total); the full path of each image and its state; the key points (a summary of the field definitions, the requirements covered, the decisions you made for the user), in plain language; any suggestions for this screen, each explained as described in "Ideas are welcome", listed separately as pending and not in the prototypes; for an existing system, what changes from the old screen and the decisions still needed on old rules and findings, asked in the same round. Then ask with AskUserQuestion, with the options "Confirm this screen" and "Skip for now, review later", and say in the question that comments or questions go into "Other".
    - The user comments: change the definition and prototypes, render, self-check and open again, and ask again.
    - The user asks a question: answer it first, and change what needs changing.
    - The user approves a suggestion: write only that item into the definition and the prototypes, then render and ask again.
 5. **Save progress**: once the user confirms, set the status in the definition file and in the index to "Confirmed", and set `Last changed` to the issue number (or "design" for the first pass). For an existing system, fill in "Used by" of the old screens and "Resolution" of the findings settled in `docs/design/as-is/README.md`. Commit the screen's definition, prototypes and screenshots (`docs(design): confirm SCR-xxx <name>`; inside an issue, the commit is pushed with a comment on the issue), tell the user "Progress is saved; you can compact the conversation now", then go to the next screen. For "Skip for now", set the status to "AI draft, awaiting confirmation" and commit the same way.
 
-When the user says "do the rest as you see fit", finish the remaining screens of the scope as usual, render and self-check them, set their status to "AI draft, awaiting confirmation" and list them in step 8. The user must confirm these screens, and the decisions on old rules and findings in them, before they are developed. Suggestions made along the way stay pending until the user approves them item by item.
+When the user says "do the rest as you see fit", finish the remaining screens of the scope as usual, render and self-check them, set their status to "AI draft, awaiting confirmation" and list them in step 8. The user must confirm these screens, and the decisions on old rules and findings in them, before they are developed. Suggestions made along the way stay pending until the user decides each one.
 
 ### 3. Data
 
@@ -140,7 +149,7 @@ Write `docs/design/data.md` from `templates/data.md`, for the entities of the sc
 - Without a database, write the structure of files, configuration and messages (field, type, required, default, example).
 - For an existing system, each entity's "From the current system" section maps the old tables and columns to the new ones, with the conversion and the handling of dirty data found by profiling (e.g. "412 orders with status 9: become cancelled, confirmed by the user"). Old columns holding data that nothing maps are listed and decided (dropped, archived, kept).
 
-Show entities to the user as tables, one to three at a time; ask about trade-offs with AskUserQuestion. A column, table or constraint that is not required by a requirement, a screen or a confirmed decision is a suggestion, not part of the table. After each confirmed group, update the index and commit.
+Show entities to the user as tables, one to three at a time; ask about trade-offs with AskUserQuestion. A column, table or constraint that is not required by a requirement, a screen or a confirmed decision is a suggestion, explained in plain language and decided on its own, not part of the table. After each confirmed group, update the index and commit.
 
 ### 4. Interfaces
 
@@ -152,7 +161,7 @@ Write `docs/design/interfaces.md` from `templates/interfaces.md`, only the parts
 - **Scheduled and batch jobs**: when they run, inputs, outputs, how to rerun after a failure, whether running twice is safe.
 - **External integrations**: whom it calls and for what, timeouts, retries, what happens when the other side fails.
 
-Interface validation matches the screens (validation on screens never replaces validation in interfaces). For an existing system, every old interface with outside callers states its decision (compatible, versioned, or changed with the callers) and every old job is kept, changed or dropped. An endpoint, parameter, job or error that no requirement or confirmed screen needs is a suggestion. Confirm with the user by feature; after each confirmed group, update the index and commit.
+Interface validation matches the screens (validation on screens never replaces validation in interfaces). For an existing system, every old interface with outside callers states its decision (compatible, versioned, or changed with the callers) and every old job is kept, changed or dropped. An endpoint, parameter, job or error that no requirement or confirmed screen needs is a suggestion, explained and decided on its own. Confirm with the user by feature; after each confirmed group, update the index and commit.
 
 ### 5. Permissions and complex logic
 
@@ -168,7 +177,7 @@ Check the design of the scope against `references/design-checklist.md`. With man
 - **Permissions**: actions no role can perform; actions a role can perform but should not.
 - **Three-way consistency**: screen fields, interface fields and data columns agree on type, required and length.
 - **Current system** (existing systems): every old element in scope is used or dropped; every old rule touching the scope has a decision; every finding in scope is resolved; every old column holding data is mapped or decided; every interface with outside callers has a compatibility decision.
-- **Unapproved additions**: every element in the design traces to a requirement or a user decision. Anything that does not is removed from the design and listed as a pending suggestion.
+- **Untraced elements**: every element in the design traces to a requirement or a user decision. Anything that does not is removed from the design and listed as a pending suggestion, explained in plain language.
 
 Give a suggestion for each problem, ask with AskUserQuestion where the user must decide, and check again after fixing.
 
@@ -178,7 +187,7 @@ Complete `docs/design/README.md` from `templates/README.md`: element index (ID, 
 
 ### 8. Report and next step
 
-Report how many screens, entities, interfaces and logic items were designed, how many the user confirmed, which problems the completeness check found and fixed, and what is still "AI draft, awaiting confirmation". List every suggestion still pending, so the user can approve or drop each one. For an existing system, also how many old elements were used and dropped, how many old rules were kept, changed and dropped, and how many findings were resolved.
+Report how many screens, entities, interfaces and logic items were designed, how many the user confirmed, which problems the completeness check found and fixed, and what is still "AI draft, awaiting confirmation". List every suggestion still pending, in plain language, so the user can decide each one. For an existing system, also how many old elements were used and dropped, how many old rules were kept, changed and dropped, and how many findings were resolved.
 
 - Called by the first stage: run /scaffold to create the project if it does not exist yet, then /roadmap.
 - Called by an issue: the issue continues with its next planned step, the implementation on its branch (see /implement). Screens still "AI draft, awaiting confirmation" block the issue's code steps until they are confirmed; running /design again resumes with them.
