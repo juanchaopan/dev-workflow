@@ -12,6 +12,8 @@
 2. {{skill}}: {{what it produces and what the user must confirm}}
 3. implement: tests, code and PR, after the steps above are confirmed
 
+Each step is pushed to the issue's branch and followed by a comment on the issue (step name, commit, date). The pull request is opened after the last step, and CI on it must be green before the merge.
+
 ## Goal
 
 {{What the user can do once it is done, in a sentence or two. Refactoring: "restructure into what, and why"; spike: "the question to answer"; data migration: "which data moves where".}}

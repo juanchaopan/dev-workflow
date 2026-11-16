@@ -1,13 +1,13 @@
 ---
 name: implement
-description: Develops GitHub issues from branch to merge and beyond, one PR per issue: runs the document steps the issue plans (kickoff, architect, design, scaffold) on its branch, reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next picks the issues that can start (blocked ones left out, conflicts rated, rounds planned), then asks once whether to develop them in parallel (one background subagent per issue in its own worktree, mechanical follow-up work on cheaper short-lived agents) or one after another (every plan made and every question asked up front, then developed one by one), and who adds the human-reviewed label on medium and high risk PRs: the user (default) or, for that run only, the agent after an independent full-diff review. Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
+description: Develops GitHub issues from branch to merge and beyond, one branch and one PR per issue: runs the planned steps the issue lists (kickoff, architect, design, scaffold, then the code steps) on its branch, pushes and comments each finished step on the issue, resumes an interrupted issue from those comments, reads the issue with its requirements, architecture, design and standards, works in small test → implement → refactor commits, compares changed screens with the prototypes, opens the PR with /open-pr once every step is done, handles every AI review comment, follows the PR until it merges, and counts the issue done only when CI on the base branch passes and staging runs it. Heavy tests run by the stage table of the scaffold skill's shared/testing.md against throwaway environments. /implement next picks the issues that can start (blocked ones left out, conflicts rated, rounds planned), then asks once whether to develop them in parallel (one background subagent per issue in its own worktree, mechanical follow-up work on cheaper short-lived agents) or one after another (every plan made and every question asked up front, then developed one by one), and who adds the human-reviewed label on medium and high risk PRs: the user (default) or, for that run only, the agent after an independent full-diff review. Branches stay on the remote. Usage: /implement next, /implement &lt;issue&gt;, or /implement &lt;issue&gt; &lt;issue&gt; ...
 ---
 
 # Developing issues
 
 | Call | What happens |
 |---|---|
-| `/implement next` | Picks the issues that can start now and plans them (N1–N3), asks once how to run them and who adds the `human-reviewed` label (N4), then develops them in parallel ("Several issues in parallel") or one after another (N5) |
+| `/implement next` | Picks the issues that can start and plans them (N1–N3), asks once how to run them and who adds the `human-reviewed` label (N4), then develops them in parallel ("Several issues in parallel") or one after another (N5) |
 | `/implement <number>` | Develops that issue in this session ("One issue") |
 | `/implement <number> <number> ...` | Takes the given issues as the candidates and goes on as `/implement next` does |
 
@@ -15,9 +15,11 @@ Talk to the user in their language.
 
 An issue is done when its PR has merged, CI on the base branch has passed for the merge commit, and staging runs that commit (when the project has staging). Merging alone is not done.
 
+Each issue has one branch and one PR. Every planned step of the issue is done on that branch, pushed, and commented on the issue. The PR opens once every planned step is done, and CI runs on it.
+
 Branches are never deleted on the remote: once work is merged, only the local branch (and, in parallel work, the worktree) is removed. Never run `git push origin --delete`, `gh pr merge --delete-branch` or anything else that removes a remote branch.
 
-Documents reach main only through the issue's PR, together with the code. Issue work never gets a separate docs branch or a docs-only PR.
+Documents reach main only through the issue's PR, together with the code. The branch holds the issue's document changes and code changes, so the documents on main describe what is implemented.
 
 ## Spending little
 
@@ -38,7 +40,7 @@ Issues developed side by side pay off only when they do not get in each other's 
 - `/implement next`: the open issues of the earliest unfinished milestone whose dependencies are all closed (`gh issue list --milestone "<milestone>" --state open --json number,title,body,labels`). Without milestones, the open issues by number.
 - `/implement <number> <number> ...`: the given issues; check their dependencies the same way.
 
-Leave out, and note why for each: issues still blocked by open issues (including other candidates), `type:spike` issues (for /spike), and issues that need a real environment or manual steps (hardware, production credentials, third-party accounts). An issue whose document steps still need the user's answers is a candidate; those steps run first on its branch (step 4).
+Leave out, and note why for each: issues still blocked by open issues (including other candidates), `type:spike` issues (for /spike), and issues that need a real environment or manual steps (hardware, production credentials, third-party accounts). An issue whose document steps still need the user's answers is a candidate; those steps run on its branch in their planned order (step 4).
 
 Read each candidate's start step, planned steps, expected files and design element IDs, and estimate which files each one will change.
 
@@ -95,11 +97,13 @@ Candidates are few, so compare whole batches. The later rounds are a forecast: t
 
 ## One issue
 
-In a serial run, steps 2 and 3 were done up front (N5); the issue starts at step 4.
+In a serial run, steps 2 and 3 are done up front (N5); the issue starts at step 4.
 
 ### 0. Pick the issue
 
 `gh issue view <number> --comments`. `type:spike` issues go to /spike. The issue body gives the start step (the earliest skill step the work goes through, set by /change) and the planned steps in order, from that start step down to implementation.
+
+**Resuming.** When the issue already has step-done comments, or its branch exists on the remote, the work continues from where the comments stop: the first planned step without a done comment is the one to start. Fetch and switch to the branch (`git fetch origin`, then `git switch <branch>`, or `git switch --track origin/<branch>` when only the remote has it). A step whose commits are on the branch but has no done comment is finished first: its tests, its self-check and the commit message check run, and its push is commented as in step 5. Steps with a done comment are not done again. Document steps resume as their own skill says (design resumes from its index statuses), and each keeps its own confirmation with the user at the user's pace.
 
 ### 1. Read the context
 
@@ -116,27 +120,26 @@ Then read the design elements the issue cites: the common rules in `docs/design/
 
 ### 3. A small plan
 
-List the steps, in order: the document steps and scaffold steps the issue plans (they run first, in step 4), then the code steps, each with the files it changes and the tests it adds, at the lowest level that can catch the behavior (a field rule is a unit test, only a key flow is end-to-end). When the structure must be adjusted locally first (e.g. a function split), make that the first code step, committed on its own. Size S starts right away; for size M, or more than 500 changed lines expected, show the plan to the user first.
+List the planned steps in order, as the issue body gives them, from its start step to implementation: the document steps and scaffold steps first, then the code steps. Each code step names the files it changes and the tests it adds, at the lowest level that can catch the behavior (a field rule is a unit test, only a key flow is end-to-end). When the structure must be adjusted locally first (e.g. a function split), make that the first code step, committed on its own. Size S starts right away; for size M, or more than 500 changed lines expected, show the plan to the user first.
 
-One issue is one PR, documents included. Every extra PR costs a full CI run (often 15 minutes or more), a review, a merge wait and another rebase, so splitting is the exception: only when the diff would be too large to review in one sitting, or when a D2 change needs its refactoring merged first (the change's plan says so), into as few PRs as possible (two or three), along lines a reviewer would read separately (a behavior-preserving refactor, the server side, the screens), not by size. Tell the user what the split costs and let them decide.
+One issue is one branch and one PR, documents included. Every extra PR costs a full CI run (often 15 minutes or more), a review, a merge wait and another rebase, so an issue is never split into several PRs inside its own work. When the diff would be too large to review in one sitting, or a change needs its refactoring merged first (the change's plan says so), stop and tell the user: /change splits such work into separate issues, each with its own branch and PR.
 
-### 4. Create the branch, then run the document steps
+### 4. Create the branch, then run the planned steps
 
-Read "Branches and commits" in CLAUDE.md. Base branch: main for GitHub Flow; for Git Flow, develop for feature, fix and refactor, main for hotfix. `git fetch origin`, switch to the base branch, `git pull --ff-only`, create the branch by the naming rules (e.g. `feature/12-email-login`, `fix/31-empty-list`, `refactor/40-payment-strategy`). The branch holds the document changes and the code changes of the issue.
+Read "Branches and commits" in CLAUDE.md. Base branch: main for GitHub Flow; for Git Flow, develop for feature, fix and refactor, main for hotfix. `git fetch origin`, switch to the base branch, `git pull --ff-only`, create the branch by the naming rules (e.g. `feature/12-email-login`, `fix/31-empty-list`, `refactor/40-payment-strategy`). When the branch already exists on the remote, check it out instead of creating it (see Resuming in step 0).
 
 `git config core.hooksPath` should print `.githooks` (the project's SessionStart hook sets it). When it does not, tell the user the local commit message hook is off and suggest `! git config core.hooksPath .githooks`. Work goes on either way: step 5 checks every message itself.
 
-**Document steps.** Run the document steps of the plan on this branch, in the planned order, before any code step:
+**Planned steps.** Run the steps of the plan in their planned order on this branch, document and code steps alike, and finish each one as described in "Finishing a step" in step 5. The plan puts the document steps before the code steps that rely on them, so a code step starts only after the document steps it depends on have their done comment.
 
-- **kickoff, architect, design**: invoke the matching skill (`dev-workflow:kickoff`, `dev-workflow:architect`, `dev-workflow:design`) with the Skill tool. Tell it the step it must start from (the issue's start step or the first document step still planned), the elements this issue covers, and that its result goes on this issue's branch. Each skill confirms with the user where it says so (design confirms each changed screen, one at a time).
+- **kickoff, architect, design**: invoke the matching skill (`dev-workflow:kickoff`, `dev-workflow:architect`, `dev-workflow:design`) with the Skill tool. Tell it the step it must start from (the issue's start step, or the first document step without a done comment), the elements this issue covers, and that its result goes on this issue's branch. Each skill confirms with the user where it says so (design confirms each changed screen, one at a time), and the user sets the pace of these confirmations.
 - **scaffold**: invoke `dev-workflow:scaffold` with the Skill tool in its add-to-existing mode, for the components, test kinds and deployment targets the plan names. Its commits follow step 5.
 - **Commit each document change** as `docs(product|architecture|design|adr): <what> (#<number>)`, with the commit message check of step 5.
-- **Consistency**: once the document steps are done, check that every document that refers to an affected element (requirements, architecture overview, ADRs, design index and element files, roadmap, README) agrees with the change; fix what does not, in one more document commit.
-- **Gate**: the code steps start only when every document step is done and confirmed on the branch. The branch stays open until then.
+- **Consistency**: before a document step is finished, check that every document that refers to an affected element (requirements, architecture overview, ADRs, design index and element files, roadmap, README) agrees with the change; fix what does not, in one more document commit.
 
 ### 5. Implement in small steps
 
-Document commits come first. The code steps then follow the planned order.
+Steps are done in the planned order. Document commits come first where the plan puts document steps first.
 
 **Preparatory refactoring** (first among the code steps, when step 3 listed it): structure only, no behavior change. The same tests pass before and after; when the code has no tests, first add tests that pin down its current behavior. Commit as `refactor(<scope>): <what was restructured> (#<number>)`. A `type:refactor` issue is entirely this, with no behavior change at all.
 
@@ -146,7 +149,7 @@ Document commits come first. The code steps then follow the planned order.
 2. **Implement**: make the tests pass, rerunning only the tests just changed (watch mode, seconds). Field names, order, messages and formats follow the design and its common rules.
 3. **Refactor**: once the tests pass, tidy this step's code and what is around it (duplication, names, long functions) so it reads as if written in one go (see "How to write code" in CLAUDE.md). Do not keep adding layers of conditionals to old functions.
 4. **Self-check**: the self-check commands in CLAUDE.md for the components you changed must pass, plus the heavy tests the stage table gives for "before each commit" for what this step changed.
-5. **Commit**: one commit does one thing, with a Conventional Commits message that includes the issue number and a first line of at most 100 characters, e.g. `feat(auth): support e-mail sign-in (#12)`. Then run `node .github/scripts/check-commit-message.mjs --range origin/<base>..HEAD` (the rules of CI's `commit-lint`) and fix what it reports at once with `git commit --amend -m "<message>"` while the commit is local. Do not rely on `.githooks/commit-msg`: it runs only in clones whose `core.hooksPath` is set, and judging the length by eye misses the limit.
+5. **Commit**: one commit does one thing, with a Conventional Commits message that includes the issue number and a first line of at most 100 characters, e.g. `feat(auth): support e-mail sign-in (#12)`. Judge the message against the check of the next paragraph and fix what it reports while the commit is not pushed (`git commit --amend -m "<message>"`). Do not rely on `.githooks/commit-msg`: it runs only in clones whose `core.hooksPath` is set, and judging the length by eye misses the limit.
 
 Rules:
 
@@ -157,11 +160,18 @@ Rules:
 - When the design does not cover a situation: decide pure technical details (names, how internal functions are split) yourself; for behavior users can see, business rules and data structures, stop and ask the user, update the design once they confirm, then continue.
 - Never commit secrets, tokens, personal data or generated build output.
 
+**Finishing a step.** A planned step ends when its last commit is made and its checks pass:
+
+1. Run `node .github/scripts/check-commit-message.mjs --range origin/<base>..HEAD` (the rules of CI's `commit-lint`) and fix what it reports, amending the commits that are not pushed yet.
+2. Push the branch (`git push -u origin <branch>` the first time). The CI workflows run on pull requests and on pushes to main, master and develop, so this push runs no CI: the checks of this step are the local ones.
+3. Comment on the issue (`gh issue comment <number> --body "<text>"`) with the step name, the commit hashes pushed with it and the date. A step pushed in several parts gets a comment for each push, and the push that completes the step says it is done.
+
+Every push of a fix later on (review round or CI fix, see step 7) is commented the same way.
+
 **Heavy checks** (integration, end-to-end, snapshot such as visual regression, delivery, and non-functional where the table asks for it; the Tests section of CLAUDE.md has the commands) are the slowest part and strain the machine most, so they run exactly where the stage table puts them and leave nothing running.
 
 - Before each commit: only the heavy tests that cover what the commit changed (the project's way of mapping a change to tests; when unsure, run more).
 - Before opening the PR: as the "Before the PR" column of CLAUDE.md says, either every heavy kind in full on the main environment, or only the tests that cover the whole branch's change with the full set left to CI. When CLAUDE.md is silent, run the related ones. Delivery tests also run when packaging, migrations or permissions changed, non-functional ones when the change may move a target. Collect all the failures, fix them together, then rerun only what failed and what the fixes affected.
-- A PR split into a stack runs this once, on the top, before the first PR opens; the PRs below rely on CI, and each PR that changes screens commits its own regenerated baselines.
 - When a stage runs past the time target in CLAUDE.md, do not drop the check: select by change, shard, cache or move it to a later stage, and tell the user which.
 - A failure that passes after one rerun is a flaky test: say so, open an issue for it, and do not count on reruns.
 - A check this machine cannot run at all is left to CI, and the PR says it was not run locally and why.
@@ -189,11 +199,11 @@ Each heavy check:
 
 ### 6. Open the PR
 
-Run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs the self-check, simplification and local review, writes the PR from the template with `Closes #<number>` in the body, and enables auto-merge. The PR description lists the document changes with the code changes, says which heavy kinds ran locally, which did not and why.
+When every planned step has its done comment, run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs the self-check, simplification and local review, writes the PR from the template with `Closes #<number>` in the body, and enables auto-merge. This is the one PR of the issue. The PR description lists the document changes with the code changes, says which heavy kinds ran locally, which did not and why.
 
 ### 7. Handle review comments
 
-1. Wait for the checks with one background command that prints only the verdict: `gh pr checks <PR> --watch --interval 60 >/dev/null; gh pr checks <PR> | grep -v -w -e pass -e skipping` (the AI review takes a few minutes). Do nothing else about this PR until it returns.
+1. Wait for the checks with one background command that prints only the verdict: `gh pr checks <PR> --watch --interval 60 >/dev/null; gh pr checks <PR> | grep -v -w -e pass -e skipping` (the AI review takes a few minutes). Do nothing else about this PR until it returns. The PR merges only when CI is fully green.
 2. Read the unresolved review threads:
 
    ```
@@ -215,16 +225,16 @@ Run `open-pr` with the Skill tool (the project's `/open-pr` command). It runs th
    - Fixed: reply "Fixed in <commit>" and resolve the thread.
    - Reply: `gh api repos/<owner>/<repo>/pulls/<PR>/comments/<comment databaseId>/replies -f body="<text>"`
    - Resolve: `gh api graphql -F id=<thread id> -f query='mutation($id: ID!) { resolveReviewThread(input: {threadId: $id}) { thread { isResolved } } }'`
-4. Fix everything of one round together in the same PR, following step 5 (e.g. `fix(auth): address review: validate the e-mail format (#12)`), rerun only the checks the fix affects, run the commit message check once more and push only when it passes. Pushing starts a new review round; go back to 1.
-5. When CI fails, read the log (`gh run view <run id> --log-failed`, filtered) and the artifacts it uploaded (failure screenshots, traces), then reproduce the failure locally under the same conditions (same command, test, environment, a real database) before fixing it; repeat a test that fails only sometimes. Push the fix only once the reproduced failure passes locally. When it cannot be reproduced, say in the PR what was tried and why the fix should work, and tell the user the test may be unstable; a failure that appeared once is not ignored because a rerun passed. For visual regression failures, download the comparison images to tell unexpected changes from intended ones. When `commit-lint` fails on a commit already pushed, a new commit cannot fix it: ask the user whether to reword the branch and push it with `git push --force-with-lease`, or to move the work to a new branch and PR.
+4. Fix everything of one round together on the same branch, following step 5 (e.g. `fix(auth): address review: validate the e-mail format (#12)`), rerun only the checks the fix affects, run the commit message check and push only when it passes, then comment on the issue for the push as in "Finishing a step". Pushing starts a new review round; go back to 1.
+5. When CI fails, read the log (`gh run view <run id> --log-failed`, filtered) and the artifacts it uploaded (failure screenshots, traces), then reproduce the failure locally under the same conditions (same command, test, environment, a real database) before fixing it; repeat a test that fails only sometimes. Push the fix only once the reproduced failure passes locally, as a fix commit on the same branch and PR, never as a new PR. When it cannot be reproduced, say in the PR what was tried and why the fix should work, and tell the user the test may be unstable; a failure that appeared once is not ignored because a rerun passed. For visual regression failures, download the comparison images to tell unexpected changes from intended ones. When `commit-lint` fails on a commit already pushed, a new commit cannot fix it: ask the user whether to reword the branch and push it with `git push --force-with-lease`, or to move the work to a new branch and PR.
 6. When the AI review hits its round limit, stop, tell the user, and suggest a smaller PR or a different approach.
 
 ### 8. Merge
 
-- Low risk: merges automatically once every check passes and every thread is handled.
-- Medium and high risk: the PR waits for the `human-reviewed` label and merges automatically once it is on. The label is added by the user, or by the agent in the one case below.
-  - **The user adds it** (the default): give them the PR link and risk tier and ask them to read the whole diff and add the label once satisfied. Handle changes they ask for as in step 7 (a new commit removes the label and the user confirms again).
-  - **The agent adds it**, only when the user chose it in N4 for this run: the session itself, never the agent that wrote the code, adds the label once both gates hold. (1) An independent review: a new agent on the session's model, given only the PR number, the issue, the design elements it cites and the standards, reads the whole diff (`gh pr diff <PR>`) and answers "may label" or "must change first", with its reasons. On "must change first" the findings are fixed as in step 7 and a new agent reviews the new diff. (2) The PR's own review is handled: every check green, every [Important] and [Security] thread fixed and resolved. A thread the author thinks should stay unfixed remains with the user, who then adds the label themselves. Then `gh pr edit <PR> --add-label human-reviewed`, and a PR comment with the verdict and its reasons. A new commit removes the label, and both gates run again. This authorization ends with the run; nothing carries it to the next.
+- Low risk: merges automatically once CI is fully green and every thread is handled.
+- Medium and high risk: the PR waits for the `human-reviewed` label, which is added once CI is fully green, and merges automatically once it is on. The label is added by the user, or by the agent in the one case below.
+  - **The user adds it** (the default): give them the PR link and risk tier and ask them to read the whole diff and add the label once CI is green and they are satisfied. Handle changes they ask for as in step 7 (a new commit removes the label and the user confirms again).
+  - **The agent adds it**, only when the user chose it in N4 for this run: the session itself, never the agent that wrote the code, adds the label once both gates hold. (1) An independent review: a new agent on the session's model, given only the PR number, the issue, the design elements it cites and the standards, reads the whole diff (`gh pr diff <PR>`) and answers "may label" or "must change first", with its reasons. On "must change first" the findings are fixed as in step 7 and a new agent reviews the new diff. (2) CI is fully green and the PR's own review is handled: every [Important] and [Security] thread fixed and resolved. A thread the author thinks should stay unfixed remains with the user, who then adds the label themselves. Then `gh pr edit <PR> --add-label human-reviewed`, and a PR comment with the verdict and its reasons. A new commit removes the label, and both gates run again. This authorization ends with the run; nothing carries it to the next.
 - With PR preview environments, give the user the preview URL.
 
 Watch the PR until it merges, at every risk tier, with one background command that checks slowly and prints only the end state, for at most an hour: `for i in $(seq 30); do [ "$(gh pr view <PR> --json state -q .state)" != OPEN ] && break; sleep 120; done; gh pr view <PR> --json state,mergeCommit`. When the PR is still open after the checks pass and the label is on, read why (`gh pr checks <PR>`, unresolved threads, `gh pr view <PR> --json mergeStateStatus`) and handle it or tell the user. Merge it yourself only when the user asks, and then without deleting the branch.
@@ -235,15 +245,15 @@ Watch the PR until it merges, at every risk tier, with one background command th
 2. **The issue**: check it closed (`gh issue view <number> --json state`); `Closes #<number>` occasionally fails, so close it with `gh issue close <number> --comment "Done in #<PR>"`.
 3. **CI on the base branch**: take the merge commit from `gh pr view <PR> --json mergeCommit`, list its runs with `gh run list --commit <sha> --json databaseId,workflowName,status,conclusion` (they can take a minute to appear), wait for each with `gh run watch <run id>` in the background, then judge by `gh run list --commit <sha> --json workflowName,conclusion`: `success` and `skipped` are fine, `failure`, `cancelled` and `timed_out` are not. Do not use `--exit-status`: it returns 1 for a run whose jobs were all skipped.
 4. **Staging** (when CLAUDE.md names one): confirm staging runs the merge commit or a later commit containing it (`git merge-base --is-ancestor <sha> <deployed sha>`), the way CLAUDE.md says (e.g. its version endpoint) or from the deployment records: `gh api "repos/<owner>/<repo>/deployments?environment=staging&sha=<sha>"`, then `gh api repos/<owner>/<repo>/deployments/<id>/statuses` until the latest status is `success`. When no deployment starts within the workflow's usual time, look at the deploy workflow's runs. The smoke flows the pipeline runs against staging count as part of this check.
-5. **When something fails**: read the log (filtered) and tell the user what failed and why; reproduce a test failure locally first, as in step 7.5. A failure caused by the change gets a fix through a new branch and PR (steps 4 to 8, the same issue number). A failure that does not come from the change (an unstable test, a platform outage) still goes to the user, with a new issue for an unstable test; rerun the failed jobs (`gh run rerun <run id> --failed`) only once the user knows. The issue is not done while either check is red.
+5. **When something fails**: read the log (filtered) and tell the user what failed and why; reproduce a test failure locally first, as in step 7.5. A failure caused by the change gets a fix through a new branch and PR (steps 4 to 8, the same issue number), since the merged branch is not reopened. A failure that does not come from the change (an unstable test, a platform outage) still goes to the user, with a new issue for an unstable test; rerun the failed jobs (`gh run rerun <run id> --failed`) only once the user knows. The issue is not done while either check is red.
 
 ### 10. Report
 
-Which issue was done, the PR link, what changed (documents and code), which refactorings were made, which review comments were handled, whether the implementation differs from the prototypes, which heavy checks ran locally and which were left to CI, who added the `human-reviewed` label (and the independent review's verdict when the agent did), the result of CI on the base branch and of staging, and anything the user should know. In a serial run, say which issue comes next and go on to it; otherwise ask whether to continue with `/implement next`.
+Which issue was done, its branch and PR link, the planned steps and their done comments, what changed (documents and code), which refactorings were made, which review comments were handled, whether the implementation differs from the prototypes, which heavy checks ran locally and which were left to CI, who added the `human-reviewed` label (and the independent review's verdict when the agent did), the result of CI on the base branch and of staging, and anything the user should know. In a serial run, say which issue comes next and go on to it; otherwise ask whether to continue with `/implement next`.
 
 ## Several issues in parallel
 
-This session becomes the coordinator: it talks to the user, decides the merge order, watches CI and merges, does the small jobs itself, starts agents for follow-up work, and wraps up. Each issue gets a background subagent (Agent tool, `isolation: "worktree"`) that does steps 1 to 6 of "One issue" in its own git worktree and branch, and ends when its PR is open (or, when it is not first in the merge order, when its work is ready locally). Planning, development and local checks run side by side; merges are in order, and heavy checks that conflict wait for each other. The end result must equal doing the issues one after another in the merge order.
+This session becomes the coordinator: it talks to the user, decides the merge order, watches CI and merges, does the small jobs itself, starts agents for follow-up work, and wraps up. Each issue gets a background subagent (Agent tool, `isolation: "worktree"`) that does steps 1 to 6 of "One issue" in its own git worktree and branch, pushing and commenting each finished step, and ends when its PR is open (or, when it is not first in the merge order, when its work is ready locally). Planning, development and local checks run side by side; merges are in order, and heavy checks that conflict wait for each other. The end result must equal doing the issues one after another in the merge order.
 
 Subagents never ask the user anything: they return questions and plans to the coordinator, so the user only ever deals with this session.
 
@@ -268,9 +278,9 @@ One background subagent per issue (`isolation: "worktree"`, `run_in_background: 
 
 - The issue number and title, and that it works for the coordinator, never asks the user, and returns everything for the user to the coordinator.
 - Its place in the merge order, the issues ahead of it and the files they expect to change.
-- Steps 1 to 3 of "One issue" in its own worktree, then stop and return the plan in a few lines: document steps, code steps, files and tests, size, whether it needs splitting (only when the diff is too large to review in one sitting, or a D2 change needs its refactoring first), problems that block it, and the decisions the user must make, each with concrete options and a recommendation. Document steps are planned here, not run.
-- After the answers: develop through step 6 (the PR opened when it is first in the merge order, otherwise everything done and checked locally), return a short report and end.
-- "Spending little", B4, the commit message check after every commit and before every push, the rule for pushed history (B5), the pitfalls (B7), and that it never deletes a remote branch.
+- Steps 1 to 3 of "One issue" in its own worktree, then stop and return the plan in a few lines: planned steps (document, scaffold and code), files and tests, size, whether it is too large for one PR (then /change splits it, as step 3 says), problems that block it, and the decisions the user must make, each with concrete options and a recommendation. Document steps are planned here, not run.
+- After the answers: develop through step 6 (the PR opened when it is first in the merge order, otherwise everything done, pushed and checked locally), return a short report and end.
+- "Spending little", B4, the commit message check before every push, the rule for pushed history (B5), the pitfalls (B7), and that it never deletes a remote branch.
 
 ### B3. Settle the decisions with the user
 
@@ -284,7 +294,7 @@ When an answer overturns a plan: when it changes behavior users can see, first u
 
 ### B4. Development in the subagents
 
-Each subagent follows steps 4 and 5 of "One issue" in its worktree:
+Each subagent follows steps 4 and 5 of "One issue" in its worktree, finishing each planned step as in "Finishing a step":
 
 - Branch from the latest base branch and install dependencies in the worktree itself (`npm ci`, `uv sync`...); nothing is shared between worktrees.
 - Develop against the base branch as it was at the start. Never merge, cherry-pick or adapt to the commits or branch of another issue that has not merged: its intermediate states are not final, and following them means redoing the work whenever they change. The one rebase comes in B5.
@@ -303,16 +313,15 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 
 ### B5. Open PRs in order
 
-- The first issue in the merge order opens its PR as soon as it is done locally (step 6).
-- Every later issue finishes locally first (all commits made, all checks passing), reports "ready, waiting for #<previous>" and ends; it is not left waiting. Once the issue ahead of it has merged, the coordinator starts a mechanical agent for it: `git fetch origin`, rebase once onto the latest base branch, settle the light overlaps with what has merged, check as under "After a rebase", then open the PR. When something needs judgment about the code, the agent stops and reports.
+- The first issue in the merge order opens its PR as soon as every planned step is done locally (step 6).
+- Every later issue finishes locally first (all planned steps done and pushed, all checks passing), reports "ready, waiting for #<previous>" and ends; it is not left waiting. Once the issue ahead of it has merged, the coordinator starts a mechanical agent for it: `git fetch origin`, rebase once onto the latest base branch, settle the light overlaps with what has merged, check as under "After a rebase", then open the PR. When something needs judgment about the code, the agent stops and reports.
 - Once a branch is pushed, its history is not rewritten: keep it in sync with the base only by merging (`git merge origin/<base>`) and add commits instead of changing pushed ones. When `commit-lint` fails on a pushed commit, the agent reports it and the coordinator asks the user whether to reword the branch and push with `git push --force-with-lease`, or to move the work to a new branch and PR.
-- An issue split into several PRs stacks the later PRs locally on the earlier one; once the earlier one merges, move the next onto the base branch once with `git rebase --onto origin/<base> <old base of the stack> <branch>`, then check as under "After a rebase".
 
 ### B6. Reviews, merging and wrap-up
 
 - **Watching**: the coordinator waits for each PR's checks with the one-command wait of step 7.1 and watches each PR until it merges with the command of step 8, so a label added by the user is followed through to the merge. No agent polls.
-- **The label on medium and high risk PRs** (step 8): when the user adds it, the coordinator tells the user which PRs need their review and in which order. When the user chose the agent in N4, the coordinator runs both gates of step 8 itself for each such PR: it starts the independent review agent, and adds the label itself. No subagent that wrote code adds a label or merges anything.
-- **Review comments and CI failures** (step 7): the coordinator reads the verdict and the unresolved threads itself. For something to fix it starts one new agent per PR with a short brief (the PR, branch, worktree, the threads or the filtered failure log, what is decided) on the session's model, which fixes everything of the round together, reproduces CI failures locally first, pushes, replies in and resolves the threads as step 7 says, and returns one line. A [Nit] to reject, or a thread that needs the user, the coordinator handles itself.
+- **The label on medium and high risk PRs** (step 8): when the user adds it, the coordinator tells the user which PRs need their review, once their CI is green, and in which order. When the user chose the agent in N4, the coordinator runs both gates of step 8 itself for each such PR: it starts the independent review agent, and adds the label itself once CI is green. No subagent that wrote code adds a label or merges anything.
+- **Review comments and CI failures** (step 7): the coordinator reads the verdict and the unresolved threads itself. For something to fix it starts one new agent per PR with a short brief (the PR, branch, worktree, the threads or the filtered failure log, what is decided) on the session's model, which fixes everything of the round together on the same branch, reproduces CI failures locally first, pushes, comments on the issue for each push, replies in and resolves the threads as step 7 says, and returns one line. A [Nit] to reject, or a thread that needs the user, the coordinator handles itself.
 - After each merge the coordinator does steps 9.2 to 9.5 itself: the issue closed, CI on the base branch for the merge commit, staging. It starts the next issue's mechanical agent in the order right away, so the rebase and local checks overlap with that CI; when CI or staging fails for the merge, it tells the user, and the next agent does not open its PR until the user has decided. A merge frees a slot but starts nothing outside the batch.
 - **Removing a worktree**, once its issue is done (merged, CI and staging green) or taken out of the batch:
   1. Check nothing would be lost: `git -C <worktree> status --porcelain` prints nothing, and `git -C <worktree> log --oneline @{u}..HEAD` prints nothing (never pushed: `... origin/<base>..HEAD`). Otherwise keep it and ask the user whether to push or drop.
@@ -325,7 +334,7 @@ Each subagent follows steps 4 and 5 of "One issue" in its worktree:
 ### B7. Exceptions and pitfalls
 
 - **GitHub Actions or GitHub is down**: agents report it and keep doing local work. The coordinator watches https://www.githubstatus.com and, once it recovers, reruns failed runs (`gh run rerun <run id> --failed`) itself.
-- **A worktree disappears** (they can be cleaned up automatically): recreate it from the main repository with `git worktree add <path> <branch>` and continue; commit often so nothing is lost.
+- **A worktree disappears** (they can be cleaned up automatically): recreate it from the main repository with `git worktree add <path> <branch>` and continue; commit and push often so nothing is lost.
 - **A background script moved the worktree to another commit** (e.g. a per-commit check): wait for it to finish and confirm `git status` shows the branch again.
 - **Stale dependencies after switching branches or rebasing**: when the lock file changed, reinstall before running checks.
-- **A subagent is stuck or keeps failing**: the coordinator stops it, tells the user, and takes the issue out of the batch; it can be done alone with `/implement <number>`. No other issue takes its place. Its worktree is removed as in B6 only after the check shows nothing would be lost.
+- **A subagent is stuck or keeps failing**: the coordinator stops it, tells the user, and takes the issue out of the batch; it can be done alone with `/implement <number>`, which resumes from the issue's step comments. No other issue takes its place. Its worktree is removed as in B6 only after the check shows nothing would be lost.

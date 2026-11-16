@@ -5,7 +5,7 @@ description: Splits one stage of the project into milestones and GitHub issues. 
 
 # Planning
 
-Turn one stage into issues that can each be developed, reviewed and merged on their own. One issue maps to one PR. Every extra issue repeats CI, review, merge, rebase and the checks, so issues are not cut smaller than a behavior the user can notice (the rule is "Pull request size" in the scaffold skill's `shared/testing.md`). Issue content comes from the design: which screen, which interfaces, which rules, so nobody has to guess during development.
+Turn one stage into issues that can each be developed, reviewed and merged on their own. One issue maps to one branch and one PR. Every extra issue repeats CI, review, merge, rebase and the checks, so issues are not cut smaller than a behavior the user can notice (the rule is "Pull request size" in the scaffold skill's `shared/testing.md`). Issue content comes from the design: which screen, which interfaces, which rules, so nobody has to guess during development.
 
 A stage is a scope: a whole product, one foundation module, a set of modules, or only research (spikes). The first stage's scope is chosen at kickoff; each later stage's scope is chosen by the change that creates it. This skill splits only the stage it is given. It does not split the whole product again.
 
@@ -23,7 +23,7 @@ A stage is a scope: a whole product, one foundation module, a set of modules, or
 
 Every issue has one start step: the earliest skill step its work must go through. The options are kickoff, architect, design, scaffold and implement. A change plan gives each of its issues the start step; first-stage issues start at implement unless they set up a component, a test kind or a deployment target, which starts at scaffold.
 
-Each issue also lists its planned steps in order, from its start step down to implement. Every planned step names the skill that runs it and what that skill must confirm with the user before the next step starts. The last planned step is always implement.
+Each issue also lists its planned steps in order, from its start step down to implement. Every planned step names the skill that runs it and what that skill must confirm with the user before the next step starts. The last planned step is always implement. All planned steps run on the issue's one branch: each is pushed and commented on the issue, and the issue's one PR is opened after the last of them.
 
 ## Steps
 
