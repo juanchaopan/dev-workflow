@@ -1,158 +1,97 @@
 ---
 name: scaffold
-description: Creates the project from docs/architecture/ and the design of the stage's scope: generates each component the stage uses with its official generator on the latest versions (runtimes on the current LTS, nothing hard-coded; when a tool lags behind a new major, explains it and lets the user choose), installs the standards library's code standards, architecture checks, lint and formatting per the architecture's decision points, plus design tokens, Storybook and visual regression tests when chosen, and for every kind of test the architecture chose (unit, component, integration, end-to-end, snapshot, delivery, non-functional) the project command that prepares and removes its own throwaway environment, configurable ports and paths, a way to run only the tests a change affects and a CI job; writes a multi-instance docker compose setup and the deployment pipeline (staging, production, PR previews); in the first stage creates the GitHub repository and pushes the spike branches and tags kept local; runs /setup-ai-review. Can also add a stack's standards to an existing project with a baseline, or add a component or test kind for a later stage without recreating the repository. Stacks: Angular, Spring Boot (Maven or Gradle), Python, React (TypeScript), Node.js (TypeScript), .NET Blazor. Use after /design for the first stage; /change calls it for a later stage that needs a component, deployment target or test kind; followed by /roadmap.
+description: The scaffold step of an issue, for any language, stack and code platform. Carries out what the architecture decided - generates components with their official generators on the latest pinned versions, installs the task runner, git hooks, CI jobs for every check and test subject, the step, title and risk checks and the approval label job, CD to staging, a manually started deployment job per target, the performance test job, test commands that bring up and remove their own throwaway environments, the migration program, screenshot comparison, the first smoke tests, README and AGENTS.md - then, after the user confirms, sets the platform's branch rules and required checks, guides installing the platform apps, creates infrastructure and sets environment variables and secrets with the platforms' command-line tools, never showing a secret's value. Use for "/scaffold <issue>".
+argument-hint: <issue number>
 ---
 
-# Creating the project
+# Scaffold
 
-This skill's directory (the Base directory shown when the skill loads) contains:
+Read `../issue/workflow.md` first. Every rule there applies here. This step changes everything outside `.docs/`; its commits carry `Step: scaffold`. Subagents write the files and run the generators; the main agent coordinates and asks.
 
-- `stacks/<stack>/`: the standards library, one directory per stack.
-  - `stack.md`: how to recognize it, required tools, decision points, versions, how to create it, which standards and checks to install afterwards, self-check commands, how each kind of test is done on the stack, format hook rules, CI steps, where the version number lives, references.
-  - `rules.md`: code standards for AI, including layering rules, copied to the project's `.claude/rules/`.
-  - `files/`: lint, formatting and architecture check configuration, copied to the component directory.
-- `shared/`: what several stacks share.
-  - `versions.mjs`: looks versions up: the current LTS of a runtime; the highest version of an npm package that a given set of tools supports.
-  - `arch-check.mjs`: wrapper around dependency-cruiser (used by Angular, React and Node).
-  - `testing.md`: the kinds of tests, how a project chooses them, what runs at each stage, how to stay thorough without being slow, and the size of PRs. Every skill that talks about tests refers to it.
-  - `visual-testing.md`, `playwright.config.ts`: design tokens, Storybook, visual regression tests.
-  - `deployment.md`, `deploy.yml`: environments, deployment platforms, PR previews and the deployment pipeline.
-- `common/`: files every project root needs (`.editorconfig`, `.gitattributes`, `.gitignore`, the feature request issue template).
+## Scope
 
-## Two uses
+- Carry out only what `.docs/architecture.md` decided. When something needed is not decided, go back to the architect step.
+- "Set up the project" builds everything below. A later issue does only what its architect step changed: a new library, a new component, a new check, a new test subject, a new resource, a new secret.
+- Do not upgrade an older runtime on the developer's machine in the middle of an issue.
+- The tools' details, and where each tool publishes its latest release, are in the architect step's reference lists: `../architect/references/static-check-tools.md`, `test-tools.md`, `test-subjects.md`, `data-migration-tools.md`, `infrastructure-tools.md` and `dependency-updates.md`. The platform's commands and fallbacks are in `../issue/references/platforms.md`.
 
-- **First stage of a project**: steps 0 to 11. The stage's scope comes from `docs/product/` (the stage's scope written by /kickoff). This use creates the repository once, and the components, standards, tests, compose file, deployment pipeline and review workflow that the stage's scope needs. Components that the architecture lists but the stage does not use are not created; the report names them and the stage that creates them.
-- **Add to an existing project**, in one of two modes:
-  - **Add standards with a baseline** (asked by the user, or called by /onboard): steps 0, 4, 5 and 10. Recognize stacks with the "How to recognize it" section of each `stack.md`. Do not overwrite existing configuration files: compare them, tell the user how you plan to merge, and change them after approval. When the directory structure does not match the library's layering conventions, do not move code around on a large scale; install the tools and rules first and record existing violations as a baseline as in step 8 of the onboard skill. Changes go through a branch and /open-pr.
-  - **Add a component or a test kind for a later stage** (called by /change): steps 0, 2, 3, 4, 6, 7, 8, 10 and 11, only for the component or the test kind the change names. The repository, the common root files, the CI basics and the GitHub repository already exist: do not recreate them (skip steps 5 and 9). The compose file, the deployment workflow and CI get an entry for the added part only. Changes go through the issue's branch as in /implement.
+## Generate
 
-Talk to the user in their language. Project documents follow the project's document language (the `Language` line in its CLAUDE.md, otherwise the user's language).
+- Generate each component with its official generator, on the latest version, then pin every version.
+- List the files the generator created by default and have the user confirm the list once. Ask about anything added beyond the defaults, one item at a time.
+- Set the version in every component file that has a version field (`package.json`, `pom.xml`, `pyproject.toml` and the like) to the value in `VERSION`. A component without a version field gets none.
 
-## Versions: looked up, never hard-coded; the user decides trade-offs
+## The task runner
 
-A project is created on the latest versions of the day it is created. This library cannot know what those are, so no version number is written into its documents or configuration; everything is looked up on the spot:
+Install the task runner chosen in architect in three places: on the developer's machine, in CI (a step that installs it), and in `README.md` (how others install it).
 
-| What | How |
+The command names are fixed, in kebab-case; define each one the project has, and write what it runs:
+
+| Command | Runs |
 |---|---|
-| Runtimes (Node.js, Java, .NET) | The current LTS: `node <this skill's directory>/shared/versions.mjs lts <product>`, with the products `nodejs`, `eclipse-temurin`, `dotnet` |
-| Python | The latest stable release: `node <this skill's directory>/shared/versions.mjs lts python` |
-| Generators | `@latest`, or the generator's own latest (e.g. `npx -y @angular/cli@latest`, Spring Initializr's defaults) |
-| Libraries and tools | The latest release |
-| Maven plugins and dependencies | `<release>` in the Maven Central metadata; see the Spring Boot `stack.md` |
+| `dev` | every component locally |
+| `format`, `lint`, `typecheck`, `build` | the static checks of those subjects |
+| `check` | every static check |
+| `test-unit`, `test-component`, `test-integration`, `test-contract`, `test-e2e`, `test-security`, `test-migration` | that test subject |
+| `test-smoke` | the smoke-tagged tests against the address it is given; with an option, only the production-safe ones |
+| `test-security-scan` | the automatic security scan |
+| `test-perf` | the load scripts, against the target address it is given |
+| `migrate`, `rebuild` | the migrations and the rebuilds of every data kind |
 
-The library picks tools that do not constrain versions where it can (e.g. architecture checks parse source with SWC and Node.js linting defaults to Oxlint, neither of which depends on the TypeScript JS API), so most of the time the latest release is used without asking.
+## Tests
 
-When there is a conflict, the user decides; do not choose for them. When a chosen tool does not support a new major release yet (the "Versions" section of `stack.md` says how to check with `versions.mjs npm <package> <tools>...`), stop and tell the user: what the latest release is, up to which version the tool supports it, and why. Then let them choose with AskUserQuestion:
+- Every test command except `test-smoke` and `test-perf` starts its own throwaway environment and removes it afterwards, for example Testcontainers, or `docker compose -p <random name> up -d` and `down -v`. Ports are random, so they never clash with the developer's own. Nothing is left behind, and the developer's machine and CI run the same command.
+- `test-smoke` and `test-perf` run against a deployed target, with the data rules of `workflow.md` ("Tests against deployed targets").
+- For "Set up the project", write one smoke test per target that has an address, tagged production-safe: its address answers normally.
+- Screenshot comparison is set up for every project with a user interface: a fixed rendering environment (for browsers, a pinned container image), fixed test data and time, animations off, volatile areas masked, and a way to hold an animation at a chosen moment for the key frames the design names.
+- Install the performance test tool and `test-perf`, which reads the target address from its argument.
 
-- Use the latest release and switch to a tool or configuration that already supports it (listed in `stack.md`); say what is lost by switching.
-- Keep the tool and use the highest version it supports; say how far behind that is. Once the tool catches up, Dependabot brings existing projects along (step 10).
+## Migrations
 
-Record the choice and the reasons in the component's technical details ADR. Never pin an old version on your own, and never quietly switch a check off to use a newer version. Versions tied to a framework (e.g. TypeScript in Angular and NestJS) follow the framework and are not upgraded separately.
+Set up the migration program: import the tool chosen in architect, or write one. CD and the deployment jobs run the `migrate` command. A program the project writes itself gets tests for applying scripts in order, recording which versions ran, and stopping with an error when a script that already ran has changed; an imported tool already does these.
 
-## Steps
+## Hooks
 
-### 0. Read the architecture and the design of the scope
+With the hook tool chosen in architect:
 
-Read the stage's scope in `docs/product/` (the vision or roadmap document names what this stage builds and what is left for later). Read `docs/architecture/overview.md` and `docs/adr/`, and list every component the stage uses: name, directory, stack, the decision points recorded in the ADRs (build tool, lint tool, data access, component layering, Storybook and visual regression tests, and so on), the kinds of tests the architecture chose for it and the deployment. Components the architecture lists that the scope does not use are noted for the report and left for later stages. In the add mode for a later stage, the component or test kind the change names replaces the stage scope, and the ADRs that decide it are read in full. Without architecture documents, tell the user to run /architect first. When an ADR leaves a decision point open, ask the user with the recommended option from the `stack.md` decision table; when it does not say which kinds of tests the project uses, ask the seven questions of `shared/testing.md` ("Choosing kinds"). When a component's stack is not in the library, tell the user it can still be created, but a set of standards must be added (write one modeled on a directory in `stacks/`, at least lint, formatting and an architecture check).
+- the commit-msg hook checks, by the kind of branch (`workflow.md`, "Branches and commits"): on an issue branch, the step table, the Conventional Commits format, the first line's length, and that the commit type matches the branch's issue type; on a scratch branch, the format only; merge commits that bring `main` in are skipped;
+- the pre-commit and pre-push hooks run the checks the architecture placed at those timings.
 
-Then read the design of the scope: `docs/design/README.md` and the element files of the modules in the scope. `docs/design/screens/tokens.css`, used by the screen prototypes, is the source of the frontend design tokens. Designs of modules outside the scope are not read here. When the scope has no design yet, remind the user to run /design for the scope before /roadmap splits issues; they may still create the project first.
+## CI and CD
 
-### 1. Confirm the directory structure
+- One CI job per test subject and per static check subject, at the timings the architecture set. A job with a path filter decides inside itself whether to run, so a skipped required check still reports success; filters name `.docs/` where they need it.
+- The PR checks by the kind of branch: on an issue branch, the step check on the PR's commits and the PR title type matching the branch; on a release branch, the title `chore(release): <version>`; on a dependency update branch, a `fix(deps)` or `chore(deps)` title.
+- The required checks: the step check, the title check, `risk-gate`, and every job placed at the PR CI timing.
+- The risk rules file from architect, the jobs `risk` and `risk-gate`, and the job that removes the human approval when a new commit arrives, with the platform's mechanism and any token its fallback needs (`../issue/references/platforms.md`).
+- The AI review in CI when the architecture asks for it: claude-code-action on GitHub; on other platforms a job that runs Claude Code headless, reads `REVIEW.md` and `AGENTS.md` first and posts its comments through the platform's API (`../implement/references/claude-code.md`).
+- After a release PR merges: tag the version and create the platform's release.
+- The dependency update tool from architect step 12, with the PR title types it set. Pin third-party CI actions and images to a commit or digest, updated by that tool.
+- CD, when there is staging: after a merge to `main`, deploy to staging, run `migrate` and `rebuild`, then `test-smoke` against staging. CD deploys code and runs migrations; it does not create infrastructure.
+- A manually started deployment job for each target, which /deploy starts: it takes the version to deploy, stops the service when the target needs downtime, runs `migrate` and `rebuild`, deploys, and runs `test-smoke` against the target, only the production-safe tests on production. A target without an address gets a job that publishes and confirms the new version is visible, such as in the package registry. The job uses the target's own secrets, so they never pass through the agent.
+- When the project has performance tests, a manually started job that /perf-test starts: it takes the target, runs `test-perf` against its address with the load source architect chose, and keeps the results.
+- Paths that are not checked, such as generated code, are decided here and written into each check tool's own configuration (for example ESLint's `ignores`, ruff's `exclude`). A later issue that adds generated code updates them the same way.
 
-Default structure for a monorepo with several components:
+## Project files
 
-```
-<project>/
-├── apps/<component>/   every independently deployable component
-├── libs/<name>/        code shared between components (only when needed)
-├── infra/              docker-compose.yml, deployment configuration
-├── docs/               requirements, architecture, design, decisions, roadmap
-├── .claude/rules/      code standards per component
-└── .github/            CI, review, deployment, templates
-```
+- `README.md`: one sentence on the project, and how to run it locally.
+- `AGENTS.md`: the languages from the brief, the task runner commands, how changes are checked, the branch and commit rules, and the platform's issue reference format.
+- `CLAUDE.md`: one line, `@AGENTS.md`.
+- `REVIEW.md`: the review standards the architecture holds.
+- `.gitignore` includes `secrets.local.env`.
 
-With a single component it can live at the repository root. Only the components the scope uses get a directory. If the directory is not yet a git repository, initialize one with `main` as the default branch. Show the user the tree and create it after confirmation.
+## Outside the repository
 
-### 2. Check tools and versions
+Once CI is written, list for the user everything to be done outside the repository, and do it with each platform's command-line tool once they confirm:
 
-Check each stack's "Required tools" in `stack.md`, e.g. `node --version`, `java --version`, `dotnet --version`, `uv --version`, `docker --version`. Compare runtimes with the current LTS from the "Versions" section: when the local one is older, tell the user the current LTS and how to upgrade, and let them decide whether to upgrade first or create the project with the local version (when an ADR chose a different version, follow the ADR). Tell the user how to install missing tools; never install system software yourself.
+- **Branch rules and required checks.** Check the plan first: set what it allows, and tell the user what it does not. The check names are known from the CI just written, so they can be required before CI has ever run.
+- **Apps.** The platform apps the architecture names, such as the AI review app and the dependency update tool's app. Installing one is done on the platform's website: walk the user through it and wait until it is done.
+- **Infrastructure.** List each new resource and its rough monthly cost; create it once the user confirms, the way architect step 6 chose. Afterwards go back to the architect step and record each address in "Deployment targets".
+- **Environment variables and secrets**, set with the platform's tool and, for a deployment target, with that target's own tool, the value always read from standard input or a file (`workflow.md`, "Secrets"):
+  - generated at random (a session signing key): generate it and pipe it straight into the setting command;
+  - produced when a resource is created (a new database's connection string): take it from the creating command's output and pass it straight on;
+  - only the user has it (a payment provider's key, the AI review's API key, an external account's credentials): create `secrets.local.env` listing the names with empty values, have the user fill it in an editor, set the secrets from the file with the tool without opening it, and delete it.
+- A later issue that changes any of this does it in its own scaffold step.
 
-Then check each `stack.md` "Versions" section for conflicts, and when there is one, let the user choose as described there.
+## Finish
 
-### 3. Create the components
-
-For each component, generate the project in its directory with the "Create" commands of `stack.md`. Use the official generators; never hand-write a project skeleton. When a generator asks questions, answer them with arguments or take the defaults.
-
-### 4. Install standards and checks
-
-For each component, do every step of the "After creating" section of `stack.md`, following the branch the decision points chose (e.g. Maven or Gradle, Oxlint or typescript-eslint). That covers:
-
-- lint, formatting, and complexity and length limits;
-- the architecture check (dependency-cruiser, ArchUnit, import-linter or ArchUnitNET) and the layered directories `rules.md` prescribes;
-- copying `rules.md` to `.claude/rules/<component>.md`, replacing the `paths` placeholder in its frontmatter with the component directory and filling in placeholders such as component and package names in the body;
-- Storybook and visual regression tests when the decision points chose them, from the "Optional" sections of `stack.md` and `shared/visual-testing.md`, including the project's own visual command that `visual-testing.md` describes;
-- design tokens (with a frontend): create `src/styles/tokens.(s)css`. When there is a `docs/design/screens/tokens.css`, use its variable names and values so the implemented screens match the confirmed prototypes; with design files, take the values from them; otherwise start with a basic set of colors, font sizes and spacing.
-
-**Tests, kind by kind.** For every kind of test the architecture chose for the component (`shared/testing.md`), set up how it runs, following the "Tests by kind" section of the stack's `stack.md`, and give it:
-
-- a first working test that fails when the code is wrong, so the setup is proven (unit, component and the like start with the smoke test `stack.md` describes);
-- for each heavy kind (integration, end-to-end, snapshot, delivery, non-functional), one project command (an npm script, a Makefile target or a script file) that does the whole sequence in one go: prepare its own throwaway environment, run, and remove what it started whether the run passed or failed. A kind that needs a database or another service uses the same image and version as CI, a random password, 127.0.0.1 on a free port, the same databases CI creates, and migrations first. Browser tests that need the database run through it too;
-- configurable ports and paths: every port or directory a check needs comes from an environment variable with a default, never a value fixed in the code. End-to-end and preview servers read it in the test configuration (`E2E_PORT` in `shared/playwright.config.ts`); the database command picks a free port itself and passes it to the tests the same way. A server or test that can only use a fixed port is the exception: CLAUDE.md names it as holding that port;
-- the way to run only what a change affects: the test tool's own option when it has one, otherwise a mapping from directories to test files, written in the project and named in CLAUDE.md;
-- the CI job of the kind, from the stack's "CI steps" and `testing.md` ("What each kind needs from the project"), with the environment matrix of the stage table where it asks for one; a scheduled workflow for non-functional tests.
-
-Finally run every self-check command of `stack.md` in the component directory, and each heavy command once; all must pass, and `docker ps` shows nothing they started. When generated code violates the standards (architecture checks and complexity limits included), fix it until it complies; do not relax the rules.
-
-### 5. Common root files
-
-Copy the files in `common/` to the repository root, merging with existing ones. Keep the `.gitignore` files generators create in component directories; the root one holds only common entries.
-
-### 6. Local environment
-
-Write `infra/docker-compose.yml` following the deployment design in the architecture:
-
-- One service per component, built from the component's Dockerfile (a multi-stage Dockerfile in the stack's usual style, with a base image on the component's runtime version).
-- Stateless components get several instances as designed (`deploy.replicas`) behind a reverse proxy that load-balances, so several instances can be seen locally.
-- Databases, caches, message queues and other dependencies use official images with data in named volumes.
-- Every service has a health check; dependencies use `depends_on` with `condition: service_healthy`.
-- Configuration comes in through environment variables, with example values in `infra/.env.example`; the real `.env` is never committed.
-
-Check it with `docker compose -f infra/docker-compose.yml config`. Ask the user whether to start it now.
-
-### 7. Deployment pipeline
-
-Following the deployment chosen in the architecture and `shared/deployment.md`:
-
-- Platforms that need a workflow: write `.github/workflows/deploy.yml` from `shared/deploy.yml` with the integration branch (develop for Git Flow, main for GitHub Flow), the component list and the platform's deployment steps. In the add mode, only the added component's entry is added to the existing workflow.
-- Platforms with their own Git integration (e.g. static hosting): no workflow; list the settings the user makes on the platform's website (connect the repository, component directory, build command, which branch deploys to which environment, PR previews).
-- List what the user must do: create the platform account, create `staging` and `production` environments on GitHub, set Required reviewers on `production`, store the platform token as an environment secret.
-- With the delivery kind: deploying to staging is one delivery test, so the pipeline runs the project's smoke flows (end-to-end, key flows only) against staging after the deployment.
-
-### 8. Commit
-
-Split into several Conventional Commits, each doing one thing, e.g.:
-
-- `chore: initialize the repository structure`
-- `feat(<component>): generate the <stack> skeleton with <generator>` (one per component)
-- `build(<component>): add code standards, architecture checks and lint configuration` (one per component)
-- `test(<component>): add the <kind> test setup and its project command` (one per heavy kind)
-- `build(infra): add the local docker compose environment`
-- `ci: add the deployment pipeline`
-
-In the add mode, the commits cover only the added component or kind. Keep the document commits /kickoff, /architect and /design already made.
-
-### 9. GitHub repository (first stage only)
-
-Skip this step when the repository already exists on GitHub, which is always the case in the add modes.
-
-Ask the user whether the repository is public or private (private repositories on GitHub Free cannot use branch rules or manual approval for production, so the workflow relies on discipline) and what to call it. After approval run `gh repo create <name> --<public or private> --source . --push` for the main branch. Then push the spike branches (`spike/*`) and the spike archive tags that were kept local because the repository had no remote (see /spike): `git push origin <branch>` and `git push origin <tag>` for each. Spike branches are pushed and never deleted.
-
-### 10. Set up the review workflow
-
-Run `setup-ai-review` with the Skill tool. Tell it: this project was just created by /scaffold (or just got its standards); components, directories, self-check commands and CI steps are in each stack's `stack.md`; `.claude/hooks/format.config.json` follows the "Format hook rule" of each `stack.md`, with each rule's `dir` set to the component directory; Dependabot is configured per component package manager, and npm components keep the template's group that upgrades the TypeScript toolchain together. The kinds of tests the project uses go into the Tests section of CLAUDE.md: each heavy kind with its command, the throwaway environment it prepares and removes, what it holds (the fixed ports it needs or the environment variable that sets them, output directories, whether it uses containers, roughly how much memory), what runs before each commit and before the PR, and its CI job; every kind not used with one line on why; how a change maps to the tests it affects; and the time targets for the stages before a commit and before the PR. In the add modes, tell it to update only the parts for the added component or test kind.
-
-### 11. Report and next step
-
-Report: the components created, the versions used (runtimes, frameworks, TypeScript, and so on), any version trade-offs and the user's choices, the standards and checks each component got, the kinds of tests set up with their commands, the decision point results, the self-check results, how to start it locally, the deployment pipeline and the platform settings the user still has to make, and the repository URL. In the first stage, also list the components the architecture has that this stage does not create, and the stage that will.
-
-Next step: in the first stage, tell the user to run /roadmap next to split the stage's requirements and design into issues; if the scope's design is not done yet, run /design first. In an add mode, report the added part and return to the change that called this skill.
+Run every check and test that applies, fix what fails, commit with `Step: scaffold`, push, and comment on the issue.

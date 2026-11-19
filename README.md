@@ -1,239 +1,100 @@
-# dev-workflow: a general-purpose AI development workflow
+# dev-workflow
 
-A Claude Code plugin that takes a project from "I have an idea" (or "I inherited a pile of old code") through requirements, architecture, detailed design, project skeleton and plan, to developing, reviewing, merging and releasing feature after feature. For individual developers and small teams, with any stack, for new and existing projects.
+A Claude Code plugin that takes a project from a first idea to released and deployed versions, for any language, any stack and any code platform (GitHub, Azure DevOps, GitLab, Bitbucket Cloud, Gitea and Forgejo). It is made for individual developers and small teams.
 
-The skills hand over to each other through documents in the project repository, not conversation memory: `docs/` (requirements, architecture, design, decisions, roadmap) and `CLAUDE.md` (components, commands, standards, branching strategy). What you discuss today and what you discuss in three months, the AI reads the same "project truth".
+It works issue by issue. Every issue goes through the same five steps, and every decision is asked before anything is written: the agent proposes, you choose.
 
-The plugin itself is written in English. It talks to you in your language, and writes project documents in the language your project's CLAUDE.md sets (by default, the language you talk to it in).
+The plugin is written in English. It talks to you in your language, and writes the project's documents, screens and issues in the languages the project brief sets.
 
 ## Installation
 
-Either way works:
-
-- **On your own machine**: clone the repository to `~/.claude/skills/dev-workflow/` (`git clone <repository URL> ~/.claude/skills/dev-workflow`), and Claude Code loads it as a plugin automatically (`claude plugin list` shows `dev-workflow@skills-dir`).
-- **From GitHub through the marketplace**: run in Claude Code:
-
-  ```
-  /plugin marketplace add <your GitHub user>/<repository>
-  /plugin install dev-workflow@dev-workflow
-  ```
-
-Type commands such as `/kickoff` or `/implement` in Claude Code; when another plugin has the same name, add the plugin name: `/dev-workflow:kickoff`. Without a command, Claude also picks the right skill from what you say. Each session loads the skill summaries, roughly 2,500 tokens.
-
-## Updating the plugin
-
-1. **See what changed**: the commit history on GitHub. Commits follow Conventional Commits, and a `!` after the type (e.g. `feat(implement)!:`) marks a change in how you use a command.
-2. **Get the new version**, the way you installed it:
-   - Cloned into `~/.claude/skills/dev-workflow/`: `git -C ~/.claude/skills/dev-workflow pull --ff-only`. A folder copied there without git does not update: delete it and clone the repository in its place.
-   - From the marketplace: `/plugin marketplace update dev-workflow`, or turn on auto-update for the marketplace in `/plugin` so it updates by itself.
-3. **Check the version**: `claude plugin list` shows the version of dev-workflow; it should match `version` in `.claude-plugin/plugin.json` on GitHub.
-4. **Start a new session**: an open Claude Code session keeps what it loaded at startup, so exit it and start `claude` again. Work already running in an old session, such as parallel issues in `/implement next`, finishes with the rules it started with; the new version applies from the next command in a new session.
-5. **Bring projects set up earlier up to date**: updating the plugin never changes a project's own files (CLAUDE.md, REVIEW.md, the GitHub workflows, `/open-pr`, hooks, lint and test configuration, project commands) or its GitHub settings, so a project created earlier falls behind. "Bringing an existing project up to date" below makes the agent do it with one prompt.
-
-## Bringing an existing project up to date
-
-The goal: after the update, the project matches what the installed plugin would create for a new project today, except for what is specific to the project (its code, its documents' content, its own choices). It works for any earlier version, because the agent compares the project with the plugin as it is now instead of replaying a list of changes.
-
-In a new Claude Code session in the project (after "Updating the plugin" steps 2 to 4), give the agent this prompt:
+In Claude Code:
 
 ```
-Bring this project up to date with the installed dev-workflow plugin so that it matches what the plugin would create for a new project today: follow the section "Bringing an existing project up to date" in the plugin's README.md (`claude plugin list` shows where the plugin is). Work on a branch, show me the plan before changing anything, and tell me what you skipped and why.
+/plugin marketplace add <owner>/<repository>
+/plugin install dev-workflow@dev-workflow
 ```
 
-What the agent does, in order:
+Or clone the repository into `~/.claude/skills/dev-workflow/`. Commands such as `/kickoff` work directly; when another plugin uses the same name, write `/dev-workflow:kickoff`.
 
-1. **Learn the project and the plugin.** The plugin version (`claude plugin list`) and, for hints on what changed, the plugin's commit history since the project was set up. The project's components and their stacks (the "How to recognize it" section of each `skills/scaffold/stacks/*/stack.md`), its branching strategy and the kinds of tests it uses (CLAUDE.md), whether it has `docs/`.
-2. **Compare, group by group, and write the plan** as a table: item, what the plugin has, what the project has (missing, differs, up to date), proposed action, risk. Nothing changes before the user confirms the table.
+To update, run `/plugin marketplace update dev-workflow` (or `git pull` in the clone), then start a new Claude Code session.
 
-   | Group | Compared with | How it is brought up to date |
-   |---|---|---|
-   | Review workflow: CLAUDE.md, AGENTS.md, REVIEW.md, CI and other workflows, hooks, scripts, risk rules, PR template, `/open-pr`, dependency updates, `.jscpd.json` | `skills/setup-ai-review/template/` | `/setup-ai-review` again: adds what is missing, shows how existing files differ and merges once the user agrees. Project-specific content (the component table, REVIEW.md's judgments, risk paths) stays; sections and lines the template gained are added, and the choices the template asks for (the merge method, running heavy checks in full or only the related ones before the PR) are asked once |
-   | Code standards of each component: `.claude/rules/`, lint, formatting, architecture check configuration, scripts, self-check commands, format hook rule, CI steps | `skills/scaffold/stacks/<stack>/` (`rules.md`, `files/`, `stack.md`) and `skills/scaffold/shared/` | `/scaffold` in its "add standards to an existing project" mode. Violations of rules the project did not have before go into a baseline, as in step 8 of `/onboard`; a rule is never relaxed and a check never switched off to make the project pass |
-   | Tests: the Tests section of CLAUDE.md, a project command per heavy kind, configurable ports, the way to run only what a change affects, a CI job per heavy kind, visual command | `skills/scaffold/shared/testing.md`, "Tests by kind" in each `stack.md`, step 4 of `skills/scaffold/SKILL.md` | The seven questions of `testing.md` answered for each component with the user; missing commands and jobs added, existing ones kept |
-   | Documents: `docs/architecture/overview.md`, ADRs, `docs/README.md`, the roadmap | The templates of `/architect`, `/kickoff` and `/roadmap` | Structure only: sections the template gained are added and marked inferred until the user confirms; existing content is never rewritten |
-   | GitHub settings: labels, branch rules, repository options, secrets | Step 8 of `skills/setup-ai-review/SKILL.md` | Differences are listed; nothing changes without the user's approval |
+## Commands
 
-3. **Apply the confirmed plan** on a `chore/` branch, one commit per group, so a reviewer can read them separately. CI, lint, architecture check and risk rule files are high-risk paths: they go in their own commits and the PR says why. A file that differs because the project chose differently is asked about, never overwritten. Dependency versions are left to Dependabot.
-4. **Check.** Run every self-check command and each heavy command once, confirm nothing they started is still running, run `node .github/scripts/check-commit-message.mjs --range origin/<base>..HEAD` after each commit, then `/open-pr`.
-5. **Report**: what was brought up to date, what was skipped and why, what the update found that the project must decide (e.g. violations baselined, a kind of test the project lacks and an issue to set it up).
-
-## Workflow
-
-```
-First stage of a project:
-  /kickoff ──► /architect ──► /design ──► /scaffold ──► /roadmap ──► /implement ──► /release
-  requirements  stack and       screens,      project and    milestones    one issue at a time   release
-                architecture    data and      standards      and issues    or several in parallel
-                                interfaces    + review
-                                confirmed one
-                                by one
-
-Every later change:
-  /change ──► issues, each with its start step (kickoff, architect, design, scaffold or implement)
-          ──► /implement, one issue at a time or in parallel ──► /release
-
-Existing project:
-  /onboard ──► gathers evidence of what the old system does (not trusted), baseline, you choose a direction
-     ├── maintain:   /change ──► issues with their start steps (design redesigns each touched element from the evidence) ──► /implement
-     ├── extend:     /kickoff ──► /design ──► /roadmap ──► /implement
-     ├── modernize:  /kickoff ──► /architect (target + migration) ──► /design (everything in scope) ──► /roadmap ──► /implement
-     └── rewrite:    /kickoff ──► /architect ──► /design (everything) ──► /scaffold ──► /roadmap (incl. data migration, cutover)
-
-Whenever unsure (any stage):
-  /spike ──► time-boxed verification ──► evidence for you ──► you decide ──► ADR ──► real implementation
-```
-
-An issue is one branch and one PR. Each of its planned steps is pushed to that branch and followed by a comment on the issue (step name, commit, date). The PR is opened after the last step; CI runs on the PR and must be green before the merge.
-
-| Skill | What it does | What you do |
-|---|---|---|
-| `/kickoff` | From an idea, existing code, a document or a problem: asks which stage is built (the whole product, one foundation module, several modules, or research only), then rounds of multiple-choice questions on goals, the complete feature list, business rules and scale, finds logical holes, writes the requirements. For old systems: what to keep, change or drop, whether screens and style are redone, findings that change requirements | Choose the stage; answer; confirm the requirements |
-| `/onboard` | Takes over an existing project without trusting it: inventory, whether it builds and runs, which kinds of tests it has and lacks, current architecture and its contradictions, features in use, the full current design (real screenshots, fields as enforced on screen, server and database, actual data, interfaces and their callers, business rules buried in code), findings (suspected bugs, contradictions, dirty data), quality baseline; standards set up with a baseline when the old code stays | Say which features are still used; choose maintain, extend, modernize or rewrite |
-| `/architect` | Architecture metrics, choices layer by layer, each stack's detailed decisions (e.g. Maven or Gradle, Oxlint or typescript-eslint), which kinds of tests the project uses and where they run, deployment and PR previews, visual verification, distributed design, migration plans with data migration and cutover | Choose technologies; confirm the architecture |
-| `/design` | Screens (type, required, length, validation and error message of every field), data (tables and columns, or file formats), interfaces, permissions, complex logic; every screen drawn as a prototype screenshot and confirmed with you one at a time; for old systems each screen next to its real screenshot, with every old rule and finding kept, changed or dropped by you, and the data migration mapped; checks requirement coverage, the CRUD matrix and the permission matrix | Look at screenshots, comment, confirm each screen; decide on old rules; confirm data and interfaces |
-| `/spike` | Time-boxed spikes: question and criteria, minimal implementation, evidence, conclusion as an ADR. All spike code lives on its `spike/<name>` branch; only the conclusion and the evidence are merged to main. The branch stays on GitHub with an archive tag | Try it, decide |
-| `/scaffold` | Generates components with official generators on the latest versions (looked up, never hard-coded), installs code standards and architecture checks, sets up every kind of test the architecture chose with its own project command, configurable ports, a way to run only what a change affects and a CI job, writes docker compose and the deployment pipeline, creates the repository, sets up the review workflow | Confirm the structure; choose when a tool lags behind a new version; register the deployment platform |
-| `/setup-ai-review` | CI, AI code review, security review, risk tiers, commit message checks, duplicate code detection, automatic dependency updates, `@claude` | Choose the branching strategy and the merge method; choose whether heavy checks run in full before the PR or only the related ones; store the secret |
-| `/roadmap` | Milestones and issues from requirements and design, one branch and one PR per issue, acceptance criteria taken from the design; spikes and the skeleton first; for old systems characterization tests, data migration rehearsals and cutover | Confirm scope and order |
-| `/implement` | One branch and one PR per issue: each planned step is pushed with a comment on the issue, and the PR is opened after the last step; CI must be green before the merge. Branch, refactor first when needed, small "test → implement → refactor" commits (tests derived from the design's rules), screens compared with the confirmed screenshots, PR, review handling, automatic merge. `next` picks the issues that can start, rates which conflict and plans them, then asks once how to run them (in parallel with one subagent each, only batches that do not conflict; or one after another, with every plan made and every question asked up front) and who adds `human-reviewed` | Choose how to run and who adds the label; answer plan questions; read the diff of medium and high risk PRs and add `human-reviewed`, unless you chose the agent for that run |
-| `/change` | Triage of an idea, feature or issue. Rates it twice: how much the requirements change, and how hard it hits the code structure. For every affected piece of work it decides the start step (kickoff, architect, design, scaffold, or implement directly), creates one or several issues with dependencies, and confirms the plan before creating them. Updates requirements, architecture and design in place, and has changed screens confirmed again | Confirm the levels, the start step of each issue and the issue list; answer; confirm changed screens |
-| `/release` | Computes the version, writes the CHANGELOG, runs the tests reserved for before a release, runs the release branch, tags, creates the Release, follows the production deployment | Confirm the version; approve the production deployment |
-
-## How far each step goes
-
-| Stage | What gets settled | Skill |
-|---|---|---|
-| Requirements | What the system does, for whom, the feature list, business rules, scale and scope | /kickoff |
-| Architecture | Which technologies, which components, who owns which data, how it is deployed, which kinds of tests and where they run | /architect |
-| Design (basic and detailed) | What each screen looks like; type, required, length, validation and error message of every field; every column of every table (or the format of files and configuration without a database); parameters and errors of every interface; permissions; state transitions, decision tables, calculations | /design |
-| Code internals | How classes and functions are split | /implement, within the standards and architecture checks, not written in advance |
-
-Requirements stop at the requirement level; fields, validation and table structure wait for /design, when the technology is chosen and every screen can actually be drawn for you. /roadmap splits issues from the design, so each issue cites specific screens, interfaces and rules and nobody has to guess.
-
-How screens are confirmed: the AI writes an HTML prototype of every state of every screen (normal, validation errors, empty data...), renders it to PNG with Playwright's bundled Chromium (free, no external service), opens it in your image viewer and lists the screen's fields in the conversation. You comment or ask questions directly, the AI revises and renders again, and once you confirm, it moves to the next screen. Development starts only after every screen is confirmed, and the confirmed screenshots are committed as the reference for development and review. Progress is saved and committed after every confirmed screen, so you can compact the conversation or stop at any time; running /design again continues where it left off.
-
-## Taking over an old system
-
-An old system's code may have bugs, parts may not run, its architecture may contradict itself, and its screens may be redone completely, so nothing it does is taken as correct. But only the old system knows its hidden business rules, what its data really means and who depends on its interfaces; requirement interviews alone miss them, and that is how rewrites lose features. So the work is split:
-
-1. **/onboard gathers evidence** in `docs/design/as-is/`, area by area: every screen (captured from the running system with Playwright when it runs; `--storage` handles sign-in), each field's required flag, length and validation as enforced separately on screen, server and database, the tables and what the data actually contains (aggregate profiling on a copy, with your permission), interfaces and who calls them, scheduled jobs, and the business rules buried in code with their location. Everything is marked observed, inferred from code or conflicting, and whatever looks wrong becomes a finding with its evidence, undecided. You are not asked to confirm the old design, only what only you know, e.g. whether a screen is still used.
-2. **/kickoff decides the direction**: what to keep, change or drop, whether the screens, controls or style are redone, and the findings that change requirements (e.g. a hidden rule users depend on).
-3. **/design builds the target design from the evidence**: each screen is shown next to its real screenshot; every old field rule, business rule and finding touching it gets your decision — keep, change or drop — so nothing is carried over or lost silently; the data design maps every old column that holds data, including what happens to dirty data; interfaces with outside callers get a compatibility decision.
-4. **/roadmap** adds characterization tests for kept code, data migration rehearsals and cutover; kept rules' worked examples become test cases.
-
-## Versions
-
-Nothing in the plugin pins a version. When /scaffold creates a project it looks versions up on the spot: runtimes (Node.js, Java, .NET) on their current LTS, Python on its latest release, libraries and tools on their latest release. The standards library prefers tools that do not hold versions back (architecture checks parse with SWC; Node.js linting defaults to Oxlint in type-aware mode), so new majors such as TypeScript 7 are used right away. When a tool you chose does not support a new major yet, /scaffold explains the situation and lets you choose: switch tools, or stay a version behind until the tool catches up (Dependabot then upgrades them together).
-
-## Testing
-
-`skills/scaffold/shared/testing.md` is the one place that defines tests; every skill refers to it and none of them names tests of its own.
-
-**Kinds.** Tests are grouped by what they check, not by what they use (a database, a browser, an emulator, a device is a test's environment, not a kind): static checks, unit, component, integration, end-to-end, snapshot (visual regression is one), delivery (install, upgrade from the last release) and non-functional (performance, resources, security, accessibility, compatibility). Nothing in it is specific to the web: a mobile app, a desktop program, a command line tool, a library, a game or a spreadsheet picks from the same list.
-
-**Each project chooses.** /architect answers seven questions with you (own logic? a UI? anything outside the process? multi-step user flows? output assertions cannot describe? installed, upgraded or deployed? targets for performance and the like?). Each "yes" is a kind the project uses; each "no" is recorded with one line on why, so a review can tell a gap from a choice. The result is the Tests section of the project's CLAUDE.md: per heavy kind its command, the throwaway environment it prepares and removes, what it holds, what runs before each commit and before the PR, and its CI job.
-
-**Stages.** The stage table says what runs when: while coding only the related tests (seconds); before each commit everything light plus the heavy tests covering the change; before the PR the heavy kinds, by one choice the project makes: `all` (every kind in full, for machines with room to spare) or `related` (only the tests covering the change, CI runs the full set, for small machines where Docker and the checks compete for memory); in CI the full set, with a few representative environments; after a merge the scheduled and smoke checks; before a release every environment combination, real devices, the upgrade from the last release and the non-functional comparison. After a rebase the light checks run once on the head of the branch, plus the heavy tests the rebase touched; a project that squashes on merge never checks the commits in between one by one, and a project that keeps every commit also checks those where a conflict was settled. CI failures are reproduced locally before the fix is pushed.
-
-**Thorough without being slow**, by doing nothing twice rather than testing less: each behavior tested at the lowest level that can catch it; only the tests a change affects run while developing; all heavy failures are collected and fixed together; dependencies, builds and images are cached and test environments restored from snapshots; checks that share nothing run in parallel; environments widen stage by stage; baselines are updated only for intended changes; flaky tests are fixed as bugs, not rerun; what the machine cannot run is left to CI and reported as "not run locally"; check output is filtered down to the failures and the last lines, and reports state conclusions instead of logs.
-
-**Checks whose answer changes with the outside world** (dependency scans, link checks, contract tests against someone else's service) block a PR only for what the change can act on, a new finding or a high or critical one in what ships; the rest runs on a schedule and opens an issue.
-
-**Heavy checks run against throwaway environments of the same images and versions CI uses** (random password, bound to 127.0.0.1, migrations first, removed afterwards), and leave nothing running. /scaffold generates the project commands for them. Their ports are configurable: the end-to-end port comes from an environment variable (`E2E_PORT`) and the database container takes a free port, so the same check can run in several worktrees at once; a port that cannot be changed stays a lock.
-
-**An issue is one PR by default.** It is split only when the diff is too large to review in one sitting, and you are told the price first, because every extra PR repeats a full CI run, a review, a merge wait and a rebase.
-
-## Developing several issues at once
-
-`/implement next` first lists the issues that can start now (dependencies done) with the files each expects to change, and rates every pair: no overlap; a light overlap, where they share a few files but change separate places that a rebase settles; or a conflict, where they change the same code, screens, tables or interfaces, or one needs the other's result. It splits the issues into rounds without conflicts inside a round: the first round holds as many issues as possible, and among rounds of the same size it takes the one that leaves the rest able to run together next time. Then it asks you once, in a single question:
-
-- **How to run**: in parallel, with a first round or a smaller batch that holds no conflicting pair, or one after another in the order of the plan. One after another means every issue is planned first, by short-lived read-only agents, and all questions of all issues are asked together; then the issues are developed one by one without further questions, each starting only when the one before is done (merged, CI and staging green) and after a quick check that what has merged has not changed what its plan rests on. `/implement 128 133 134` does the same with the issues you name. The issues not taken wait for the next `/implement next`, which plans again against what has merged.
-- **Who adds the `human-reviewed` label** on medium and high risk PRs: you, after reading the diff (the default), or, for this run only, the agent, once a separate agent has read the whole diff and said it may be labeled and the PR's own review is handled. The choice is not remembered and is asked again next time.
-
-For a parallel batch, this session coordinates and each issue gets a background subagent in its own git worktree. The subagents plan first, and you answer all their questions in one place; the merge order is fixed up front so the result equals doing the issues one by one. A subagent develops against the base branch as it was at the start and never follows the unmerged work of another issue; the later issues rebase once, after the issue ahead of them has merged, and settle the light overlaps. Heavy checks run side by side on their own free ports unless they need the same thing (a port that cannot be changed, an output directory, a test account); starting them is serialized by a lock, so that only one agent at a time looks at the free memory and starts a check, and they wait when the machine's memory or CPU would not carry them.
-
-**Keeping the cost down.** A subagent that has worked for hours holds a context of hundreds of thousands of tokens, and its prompt cache lasts about five minutes, so waking it after a pause rebuilds all of it, even for a one-line reply. A subagent therefore ends when its PR is open (or, when it is not first in the merge order, when its work is ready locally) and is not woken again. The coordinator watches CI and merges itself with one-command waits that print only a verdict, does the small jobs itself (closing issues, checking CI and staging), and gives follow-up work to new agents with a short brief: rebasing, rerunning checks and opening PRs on a cheaper model, review findings and CI failures on the session's model. It tells you which PRs need your review, starts the next rebase after each merge, and summarizes the batch with the round the next `/implement next` would offer.
-
-## Branches stay on GitHub
-
-Feature, fix, refactor, release, hotfix and spike branches are never deleted on GitHub: /setup-ai-review leaves GitHub's "Automatically delete head branches" off, and /spike pushes its branch before cleaning up. Once a branch is merged or archived, only its local copy and worktree are removed, and only after checking that everything on it is pushed.
-
-## Where you step in
-
-1. **Answering questions and choosing**: /kickoff, /architect, /design, /change and /spike ask you, with a recommended option.
-2. **Confirming screens**: /design shows you each screen's screenshots; you comment and ask until you are satisfied.
-3. **Deciding on old behavior**: for a taken-over system, /kickoff and /design ask you whether each old rule and finding is kept, changed or dropped.
-4. **Confirming documents**: requirements, architecture, data, interfaces and plans are shown to you when written.
-5. **Verifying spikes**: open the URL, look at the evidence, adopt or drop.
-6. **Medium and high risk PRs**: read the diff yourself and add the `human-reviewed` label. Low risk merges automatically. Only when you choose it in `/implement next`, for that run, does the agent add the label itself, after an independent review of the whole diff.
-7. **Releases**: confirm the version, add `human-reviewed` to the release PR, approve the production deployment.
-8. **When the AI is unsure**: where business rules, architecture or design leave something open, the AI stops and asks instead of deciding.
-9. **Updating a project**: confirm the plan the agent shows before it changes anything.
-
-## Common scenarios
-
-**An idea**: say `/change I want users to export their orders` in Claude Code. It rates the change, asks, updates the requirements, draws prototypes for the changed screens for you to confirm, and creates the issues, each with its start step and its dependencies, then you run `/implement <issue>`. You can also record an issue with the "Feature" template on GitHub or your phone and run `/change #45` back at your computer. For small, clearly described changes, comment `@claude implement this` on the issue and it is done in the cloud.
-
-**An idea that reshapes existing classes and interfaces**: /change rates it D2 and writes the structure redesign in `docs/design/refactor/` for you to confirm, then creates the issues in dependency order: "characterization tests → refactor → expand with new interfaces → migrate callers → remove old interfaces" as the refactor issue, and the feature issue after it. Each PR can ship on its own; the refactor issue is split into as few PRs as stay readable.
-
-**A complex, uncertain idea**: /kickoff, /architect, /design and /change suggest /spike first. UI spikes give you a URL to open (local, or a PR preview environment) to try yourself before deciding; spike code never enters the main branch, the conclusion goes into an ADR, and the real implementation follows the normal workflow.
-
-**Taking over an old project to modernize or rewrite it**: see "Taking over an old system" above. /onboard gathers the evidence and you choose the direction; /kickoff (existing code entry) settles the goals and what to keep; /architect designs the target and the migration steps that ship one at a time (e.g. strangler fig), with data migration and cutover; /design redesigns every screen, table and interface from the evidence with your decisions on every old rule; /roadmap splits the migration into issues.
-
-**A project created with an older version of the plugin**: update the plugin, then give the agent the prompt in "Bringing an existing project up to date".
-
-## Where the code standards come from
-
-`skills/scaffold/stacks/` is the standards library, one set per stack, in three parts:
-
-| Part | Content | Enforced by |
-|---|---|---|
-| Tool checks | Lint, formatting, complexity and function length limits: Angular with angular-eslint and Prettier, Spring Boot with Spotless, Checkstyle and PMD, Python with ruff and mypy, React with oxlint and Prettier, Node.js with Oxlint (type-aware) or typescript-eslint and Prettier, .NET with `.editorconfig`, `dotnet format` and analyzers | The format hook (after every changed file) and CI |
-| Architecture checks | Layering rules: frontend pages (containers) apart from presentational components, which never call APIs; backend controller → service → repository; a domain layer free of frameworks; features that do not reference each other; no circular dependencies. dependency-cruiser for Angular, React and Node.js, ArchUnit for Spring Boot, import-linter for Python, ArchUnitNET for .NET | Self-check commands and CI; violations fail |
-| Judgment rules | `rules.md`: what tools cannot check, distilled from official style guides, the Google style guides, the Alibaba Java Coding Guidelines, Microsoft's coding conventions and common layering practice | Installed into the project's `.claude/rules/`, read by Claude when it changes matching directories, and used by the AI reviewer |
-
-Each stack's `stack.md` also lists "decision points" (e.g. build tool, lint tool, state management, data access) that /architect asks you instead of hard-coding them, a "Tests by kind" section saying how each kind of test is done on that stack, and a "Versions" section on how versions are looked up. To add a stack, write a set modeled on any directory — `stack.md`, `rules.md`, `files/` — plus a `tests/stacks/<stack>.sh` smoke test.
-
-## Keeping code from turning into patchwork
-
-| Point | How |
+| Command | What it does |
 |---|---|
-| Design | /design settles screens, data, interfaces and rules up front, so nothing is guessed while coding; /change assesses design impact and, when the structure cannot take a change, writes a redesign and refactors before adding the feature |
-| Writing code | "How to write code" in the project's CLAUDE.md; every /implement step is "test → implement → refactor" |
-| After writing | /open-pr runs a `simplify` pass first |
-| Review | "Patchwork and bloat" in REVIEW.md, which the AI reviewer checks specifically; it also checks behavior against `docs/design/` |
-| Machine checks | Complexity and length limits, jscpd duplicate detection, architecture checks; changes to lint and architecture check configuration are always high risk, so rules are never relaxed to fit the code |
+| `/kickoff` | Starts a project: the brief, the code platform, the repository, the labels and the first commit |
+| `/change` | Turns what you say into issues, each with a type, a size, dependencies, a goal, scope and acceptance criteria; also the analysis of a reference project |
+| `/issue <number>` | Works that issue from where it stands to done |
+| `/issue next` | Merges the dependency updates that passed CI, then picks the next issue that can start and works it to done |
+| `/kickoff <n>`, `/architect <n>`, `/design <n>`, `/scaffold <n>`, `/implement <n>` | Runs one step of an issue |
+| `/release` | Computes the version and releases it through a release PR, a tag and the platform's release |
+| `/deploy <target>` | Deploys a target from the architecture: production gets the latest release, staging the latest `main` |
+| `/perf-test <target>` | Runs the load tests against a deployment target |
 
-## Visuals and layout
+## How a project goes
 
-What a screen should look like is defined by design files (when you have them; Claude can read Figma through its MCP server) or by the prototype screenshots confirmed in /design. Colors, font sizes and spacing become design tokens with the same values as the prototypes' `tokens.css`; /implement puts the implemented screen next to the prototype screenshot in the PR; presentational components are checked one by one in Storybook; visual regression tests compare Playwright screenshots, and an unexpected change fails the PR with comparison images. The project gets its own command for the visual checks, which reuses installed dependencies and updates only the baselines of the screens you changed. See `skills/scaffold/shared/visual-testing.md`.
+1. `/kickoff` asks for the brief: goals, users, scope, clients, the team's technologies, reference projects, languages, the code platform and the first version. It creates the repository with `.docs/brief.md` and `VERSION`.
+2. `/change` offers the first issue, "Set up the project". `/issue next` works it: the architect step settles the whole architecture with you, and the scaffold step builds the project, its checks, CI, CD and the settings outside the repository.
+3. From then on, `/change` turns each request into issues, and `/issue next` works them one at a time.
+4. `/release` cuts a version; `/deploy production` puts it into production.
 
-## Maintaining the plugin
+Each issue goes through five steps, each allowed to change only its own files:
 
-Tools and generators change every few months (e.g. create-vite moved from ESLint to oxlint, TypeScript 7 shipped without a JS API, PMD renamed rules). The plugin checks itself:
+| Step | What it settles | Writes |
+|---|---|---|
+| kickoff | Whether the brief changes; the analysis of a reference project | `.docs/brief.md`, `.docs/reference/` |
+| architect | Metrics, components, technologies, structure, deployment targets and infrastructure, data migration, checks, tests, review, risk rules, platform settings | `.docs/architecture.md`, `.docs/decisions/` |
+| design | Screens, fields, rules, data, interfaces, notifications, permissions, concurrent changes, errors; prototypes rendered to images you confirm | `.docs/design/` |
+| scaffold | Carries out the architecture: components, task runner, hooks, CI, CD, deployment jobs, test environments, migrations, then branch rules, apps, infrastructure and secrets | everything outside `.docs/` |
+| implement | Builds the code in work units with tests, compares screens with the design, runs the checks and AI reviews, opens one pull request and follows it to done | everything outside `.docs/` |
 
+A step with nothing to change says so in a comment. Each step ends with a push and a comment on the issue.
+
+## Where you decide
+
+- Every question comes with options and a recommendation; nothing is written that you have not answered.
+- You confirm every screen from its rendered images.
+- Pull requests are merged by risk tier. Low risk merges once every check passes. Medium and high risk need a person's approval, given by you or, when you choose it for one run, by a separate agent after an independent review of the whole change.
+- Costs are shown before anything outside the repository is created.
+- Secret values never appear in the conversation; deployments run as platform jobs that hold the secrets.
+
+## A project's files
+
+```text
+VERSION, CHANGELOG.md, README.md, AGENTS.md, CLAUDE.md (@AGENTS.md), REVIEW.md, the risk rules file, the task runner file
+.docs/brief.md, architecture.md, decisions/, design/, reference/
 ```
-node --test "tests/*.test.mjs"                     # unit tests of the scripts installed into projects, seconds
-RENDER_SMOKE=1 node --test "tests/*.test.mjs"      # plus real screenshots by the prototype renderer and the screen capture; downloads Chromium the first time
-bash tests/stacks/<stack>.sh                        # one stack's smoke test, creates a real project, minutes
-BUILD_TOOL=gradle bash tests/stacks/spring-boot.sh
-LINT=eslint bash tests/stacks/node-ts.sh
+
+## The plugin's files
+
+```text
+.claude-plugin/
+  plugin.json                       the plugin manifest
+  marketplace.json                  the marketplace entry
+skills/
+  issue/
+    SKILL.md                        /issue: picks and works an issue to done
+    workflow.md                     the rules every skill follows
+    references/platforms.md         each concept on each code platform: commands, plans, fallbacks
+  kickoff/
+    SKILL.md                        /kickoff: a new project, and the kickoff step
+    references/reference-analysis.md  how a reference project is analyzed
+  change/SKILL.md                   /change: turns requests into issues
+  architect/
+    SKILL.md                        the architect step: the thirteen steps
+    references/                     static check tools, test subjects, test tools, data migration tools,
+                                    infrastructure tools, dependency updates, risk rules
+  design/
+    SKILL.md                        the design step
+    references/                     design tools, design aspects
+  scaffold/SKILL.md                 the scaffold step
+  implement/
+    SKILL.md                        the implement step
+    references/claude-code.md       Claude Code facts: built-in commands, subagents, caching, CI
+  release/SKILL.md                  /release
+  deploy/SKILL.md                   /deploy
+  perf-test/SKILL.md                /perf-test
 ```
 
-Once pushed to GitHub, `.github/workflows/self-test.yml` runs every stack every Monday with the versions a project created that week would get (the current LTS runtimes, the latest tools), and opens an issue when something fails. To fix it, tell Claude Code which stack broke and paste the log; have it update that stack's `stack.md` and configuration, then run the smoke test again. Never fix it by pinning an old version.
-
-Each project's own Dependabot checks its dependencies weekly.
-
-After changing the plugin, commit with Conventional Commits, bump the version in `.claude-plugin/plugin.json` following semantic versioning, and push; installed copies then update as in "Updating the plugin". Anything the plugin creates in a project (files from `template/`, `stacks/` and `shared/`) is brought to existing projects by "Bringing an existing project up to date", which compares against these sources, so a new project file needs no separate upgrade note.
-
-## Not verified automatically
-
-These are in the documents and templates but need real accounts or environments, so the smoke tests do not run them; watch them the first time:
-
-- The deployment pipeline (`skills/scaffold/shared/deploy.yml`) and each platform's PR previews.
-- Generating visual regression baselines in Docker (Docker Desktop must be running).
-- Heavy test kinds that need a container, an emulator or a device (integration, end-to-end, delivery), run against throwaway environments (Docker must be running).
-- The GitHub workflows: AI review, security review, `@claude`, Dependabot, branch rules. They only run in a real repository.
-- Parallel development with `/implement next`, which depends on Claude Code's subagents and worktrees in a real project.
-- /onboard on a real legacy system: capturing screens behind a sign-in, data profiling on a database copy, and the subagent split by area.
-- Bringing an existing project up to date: the prompt works from the comparison tables above; try it on a copy of a real project first.
+The skills name concepts; what each code platform calls them and how to do them there is in `skills/issue/references/platforms.md`. The reference lists are starting points the agent reads before proposing tools, not limits.

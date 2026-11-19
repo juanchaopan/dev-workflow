@@ -1,6 +1,6 @@
 {
   "name": "dev-workflow",
-  "description": "A general-purpose AI development workflow plugin for individual developers, for new and existing projects with any stack.",
+  "description": "A general-purpose AI development workflow plugin for projects in any language, on any stack and any code platform.",
   "owner": {
     "name": "juanchaopan",
     "email": "p8499@126.com"
@@ -9,7 +9,7 @@
     {
       "name": "dev-workflow",
       "source": "./",
-      "description": "A complete AI development workflow starting from an idea, existing code or a document: requirements discovery, technology choices and architecture, detailed design of screens and data (prototype screenshots confirmed one by one), taking over old systems by gathering evidence of what they really do and redesigning from it, project scaffolding on the latest versions with code standards, AI review and risk gates, planning, development one issue at a time or several in parallel, change triage, technical spikes and releases."
+      "description": "A general-purpose AI development workflow for projects in any language, on any stack and any code platform: a project brief, then issues worked one at a time through five steps (kickoff, architect, design, scaffold, implement) with every decision asked before it is written, screens confirmed as rendered prototypes, checks and tests at chosen timings, one pull request per issue merged by risk tier, releases, deployments, performance tests and reference project analysis."
     }
   ]
 }
