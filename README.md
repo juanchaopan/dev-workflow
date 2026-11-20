@@ -6,6 +6,12 @@ It works issue by issue. Every issue goes through the same five steps, and every
 
 The plugin is written in English. It talks to you in your language, and writes the project's documents, screens and issues in the languages the project brief sets.
 
+## Poster
+
+A one-page overview of 5.0: how a project goes from `/kickoff` to `/deploy`, the five steps of an issue, the issue types, the architect's thirteen questions, risk tiers and merging, check timings, branches, versions, and how each code platform's gaps are covered. Click it for full size, or take the [PDF](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-poster.pdf) to zoom in.
+
+[![dev-workflow 5.0 overview poster](docs/poster.png)](docs/poster.png)
+
 ## Introduction videos
 
 Four episodes, one per level, all built on the same example project: BookIt, an online booking site for a barbershop. Each comes in Chinese and English, landscape and portrait, with burned-in subtitles. The subtitle files and cover images are in the [5.0.0 release](https://github.com/juanchaopan/dev-workflow/releases/tag/v5.0.0).
@@ -83,6 +89,8 @@ VERSION, CHANGELOG.md, README.md, AGENTS.md, CLAUDE.md (@AGENTS.md), REVIEW.md, 
 .claude-plugin/
   plugin.json                       the plugin manifest
   marketplace.json                  the marketplace entry
+docs/
+  poster.png                        the overview poster shown in this README
 skills/
   issue/
     SKILL.md                        /issue: picks and works an issue to done
