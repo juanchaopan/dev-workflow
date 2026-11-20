@@ -6,6 +6,17 @@ It works issue by issue. Every issue goes through the same five steps, and every
 
 The plugin is written in English. It talks to you in your language, and writes the project's documents, screens and issues in the languages the project brief sets.
 
+## Introduction videos
+
+Four episodes, one per level, all built on the same example project: BookIt, an online booking site for a barbershop. Each comes in Chinese and English, landscape and portrait, with burned-in subtitles. The subtitle files and cover images are in the [5.0.0 release](https://github.com/juanchaopan/dev-workflow/releases/tag/v5.0.0).
+
+| Episode | Level | English | Chinese |
+|---|---|---|---|
+| 1 | From an idea to production | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-en-portrait.mp4) (5:56) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-zh-portrait.mp4) (5:31) |
+| 2 | When requirements change | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-en-portrait.mp4) (3:27) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-zh-portrait.mp4) (3:10) |
+| 3 | Quality and review | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-en-portrait.mp4) (4:33) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-zh-portrait.mp4) (4:17) |
+| 4 | Production grade | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-en-portrait.mp4) (4:13) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-zh-portrait.mp4) (3:50) |
+
 ## Installation
 
 In Claude Code:
