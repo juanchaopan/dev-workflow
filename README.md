@@ -1,119 +1,107 @@
 # dev-workflow
 
-A Claude Code plugin that takes a project from a first idea to released and deployed versions, for any language, any stack and any code platform (GitHub, Azure DevOps, GitLab, Bitbucket Cloud, Gitea and Forgejo). It is made for individual developers and small teams.
+[![Release](https://img.shields.io/github/v/release/juanchaopan/dev-workflow)](https://github.com/juanchaopan/dev-workflow/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/juanchaopan/dev-workflow)](LICENSE)
 
-It works issue by issue. Every issue goes through the same five steps, and every decision is asked before anything is written: the agent proposes, you choose.
+**Build a whole project on your own, the way a good team would.**
 
-The plugin is written in English. It talks to you in your language, and writes the project's documents, screens and issues in the languages the project brief sets.
+dev-workflow is a Claude Code plugin that gives you the team: an architect, a designer, developers, reviewers and a release manager. You make the decisions. It does the work, one issue at a time, from the first idea to production.
 
-## Poster
+[![Watch episode 1: from an idea to production, 6 minutes](docs/video-thumbnail.jpg)](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-en-landscape.mp4)
 
-A one-page overview of 5.0: how a project goes from `/kickoff` to `/deploy`, the five steps of an issue, the issue types, the architect's thirteen questions, risk tiers and merging, check timings, branches, versions, and how each code platform's gaps are covered. Click it for full size, or take the [PDF](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-poster.pdf) to zoom in.
+<sub>Episode 1 in English. [中文版](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-zh-landscape.mp4), and all four episodes, [below](#learn-more).</sub>
 
-[![dev-workflow 5.0 overview poster](docs/poster.png)](docs/poster.png)
+## How a project goes
 
-## Introduction videos
+```mermaid
+flowchart LR
+  idea(["💡 Idea"]) --> kickoff["<b>/kickoff</b><br/>brief, repo"]
+  kickoff --> change["<b>/change</b><br/>issues"]
+  change --> issue["<b>/issue next</b><br/>design, code,<br/>review, merge"]
+  issue --> release["<b>/release</b><br/>v0.1.0"]
+  release --> deploy["<b>/deploy</b><br/>live"]
+  deploy --> users(["👥 Feedback"])
+  users -- next request --> change
+```
 
-Four episodes, one per level, all built on the same example project: BookIt, an online booking site for a barbershop. Each comes in Chinese and English, landscape and portrait, with burned-in subtitles. The subtitle files and cover images are in the [5.0.0 release](https://github.com/juanchaopan/dev-workflow/releases/tag/v5.0.0).
+Six commands, one loop. Here is a booking site for a barbershop going from a sentence to production:
 
-| Episode | Level | English | Chinese |
-|---|---|---|---|
-| 1 | From an idea to production | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-en-portrait.mp4) (5:56) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-zh-portrait.mp4) (5:31) |
-| 2 | When requirements change | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-en-portrait.mp4) (3:27) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-zh-portrait.mp4) (3:10) |
-| 3 | Quality and review | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-en-portrait.mp4) (4:33) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-zh-portrait.mp4) (4:17) |
-| 4 | Production grade | [landscape](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-en-landscape.mp4) · [portrait](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-en-portrait.mp4) (4:13) | [横屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-zh-landscape.mp4) · [竖屏](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-zh-portrait.mp4) (3:50) |
+```text
+/kickoff            "A booking site for my barbershop"    →  brief, repository, labels
+/change             "Customers book online"               →  #1 Set up the project
+/issue next         the architecture, in 13 questions     →  project, CI, CD, staging
+/change             "Customers book online"               →  #2 Book a time, #3 Staff view
+/issue next         screens you approve, code, tests      →  reviewed pull request, merged
+/release                                                  →  0.1.0
+/deploy production                                        →  live
+```
 
-## Installation
+Then the loop goes on. A bug becomes a `fix` issue whose first commit is a test that fails. An open question, such as which SMS provider to use, becomes a `spike` that tries the options before anyone builds on them. A change that needs new structure gets a `refactor` issue first, which must leave every test passing.
+
+## The team it gives you
+
+| On a real team | In dev-workflow |
+|---|---|
+| **Product owner**: decides what and why | **You.** Every question comes with options, a recommendation and the costs. Nothing you have not answered is written. |
+| **Architect** | Settles the stack, the structure, the checks and tests, and where it runs, and records each decision in `.docs/` |
+| **Designer** | Draws every screen as a prototype and shows it to you as images before any code |
+| **DevOps** | Sets up the repository, CI, CD, branch rules and secrets, and shows the monthly cost before creating anything |
+| **Developers** | Fresh agents build each issue in small units, with a test for every acceptance criterion |
+| **Reviewers** | AI code, simplification and security reviews on every pull request; you approve the risky ones |
+| **Release manager** | Picks the version from what was merged, writes the changelog, and deploys through your platform's jobs |
+
+Every issue moves through the same five steps, **kickoff → architect → design → scaffold → implement**, and each step may change only its own files. CI enforces this, so code cannot quietly rewrite the requirements. Secrets never pass through the conversation.
+
+It works for any language and stack, on GitHub, GitLab, Azure DevOps, Bitbucket Cloud, Gitea and Forgejo.
+
+## Get started
 
 In Claude Code:
 
 ```
-/plugin marketplace add <owner>/<repository>
+/plugin marketplace add juanchaopan/dev-workflow
 /plugin install dev-workflow@dev-workflow
 ```
 
-Or clone the repository into `~/.claude/skills/dev-workflow/`. Commands such as `/kickoff` work directly; when another plugin uses the same name, write `/dev-workflow:kickoff`.
+Start a new session and type `/kickoff`. You also need git and your code platform's command-line tool, such as `gh`. The agent tells you which one and how to sign in.
 
-To update, run `/plugin marketplace update dev-workflow` (or `git pull` in the clone), then start a new Claude Code session.
+The plugin adds about 2,000 tokens to a session. A command's instructions are read only when you run it.
+
+## Update
+
+```
+claude plugin marketplace update dev-workflow
+claude plugin update dev-workflow@dev-workflow
+```
+
+Then start a new session. Your projects do not change by themselves: the next command uses the new version, and an issue in progress picks up where it stopped. To bring something new from an update into a project, ask for it with `/change`. 5.0 is a complete rewrite and does not convert projects from earlier versions.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `/kickoff` | Starts a project: the brief, the code platform, the repository, the labels and the first commit |
-| `/change` | Turns what you say into issues, each with a type, a size, dependencies, a goal, scope and acceptance criteria; also the analysis of a reference project |
-| `/issue <number>` | Works that issue from where it stands to done |
-| `/issue next` | Merges the dependency updates that passed CI, then picks the next issue that can start and works it to done |
-| `/kickoff <n>`, `/architect <n>`, `/design <n>`, `/scaffold <n>`, `/implement <n>` | Runs one step of an issue |
-| `/release` | Computes the version and releases it through a release PR, a tag and the platform's release |
-| `/deploy <target>` | Deploys a target from the architecture: production gets the latest release, staging the latest `main` |
-| `/perf-test <target>` | Runs the load tests against a deployment target |
+| `/kickoff` | Starts a project: the brief, the code platform, the repository |
+| `/change` | Turns what you say into issues, each with a type, a size and acceptance criteria |
+| `/issue next` | Picks the next issue and works it to done; `/issue <n>` works a given one |
+| `/release` | Releases the next version |
+| `/deploy <target>` | Deploys to staging or production |
+| `/perf-test <target>` | Runs the load tests against a deployment |
 
-## How a project goes
+## Learn more
 
-1. `/kickoff` asks for the brief: goals, users, scope, clients, the team's technologies, reference projects, languages, the code platform and the first version. It creates the repository with `.docs/brief.md` and `VERSION`.
-2. `/change` offers the first issue, "Set up the project". `/issue next` works it: the architect step settles the whole architecture with you, and the scaffold step builds the project, its checks, CI, CD and the settings outside the repository.
-3. From then on, `/change` turns each request into issues, and `/issue next` works them one at a time.
-4. `/release` cuts a version; `/deploy production` puts it into production.
+Four short episodes follow the barbershop project:
 
-Each issue goes through five steps, each allowed to change only its own files:
-
-| Step | What it settles | Writes |
+| Episode | English | 中文 |
 |---|---|---|
-| kickoff | Whether the brief changes; the analysis of a reference project | `.docs/brief.md`, `.docs/reference/` |
-| architect | Metrics, components, technologies, structure, deployment targets and infrastructure, data migration, checks, tests, review, risk rules, platform settings | `.docs/architecture.md`, `.docs/decisions/` |
-| design | Screens, fields, rules, data, interfaces, notifications, permissions, concurrent changes, errors; prototypes rendered to images you confirm | `.docs/design/` |
-| scaffold | Carries out the architecture: components, task runner, hooks, CI, CD, deployment jobs, test environments, migrations, then branch rules, apps, infrastructure and secrets | everything outside `.docs/` |
-| implement | Builds the code in work units with tests, compares screens with the design, runs the checks and AI reviews, opens one pull request and follows it to done | everything outside `.docs/` |
+| 1. From an idea to production | [watch](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-en-landscape.mp4) (5:56) | [观看](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep1-zh-landscape.mp4) (5:31) |
+| 2. When requirements change | [watch](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-en-landscape.mp4) (3:27) | [观看](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep2-zh-landscape.mp4) (3:10) |
+| 3. Quality and review | [watch](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-en-landscape.mp4) (4:33) | [观看](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep3-zh-landscape.mp4) (4:17) |
+| 4. Production grade | [watch](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-en-landscape.mp4) (4:13) | [观看](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-ep4-zh-landscape.mp4) (3:50) |
 
-A step with nothing to change says so in a comment. Each step ends with a push and a comment on the issue.
+Portrait versions and subtitle files are in the [5.0.0 release](https://github.com/juanchaopan/dev-workflow/releases/tag/v5.0.0). For everything on one page, see the [poster](docs/poster.png) ([PDF](https://github.com/juanchaopan/dev-workflow/releases/download/v5.0.0/dev-workflow-5-poster.pdf)). The rules every step follows are in [`skills/issue/workflow.md`](skills/issue/workflow.md).
 
-## Where you decide
+## Feedback
 
-- Every question comes with options and a recommendation; nothing is written that you have not answered.
-- You confirm every screen from its rendered images.
-- Pull requests are merged by risk tier. Low risk merges once every check passes. Medium and high risk need a person's approval, given by you or, when you choose it for one run, by a separate agent after an independent review of the whole change.
-- Costs are shown before anything outside the repository is created.
-- Secret values never appear in the conversation; deployments run as platform jobs that hold the secrets.
+Questions, bugs and ideas are welcome in [Issues](https://github.com/juanchaopan/dev-workflow/issues). If dev-workflow helps you build something, a ⭐ helps others find it.
 
-## A project's files
-
-```text
-VERSION, CHANGELOG.md, README.md, AGENTS.md, CLAUDE.md (@AGENTS.md), REVIEW.md, the risk rules file, the task runner file
-.docs/brief.md, architecture.md, decisions/, design/, reference/
-```
-
-## The plugin's files
-
-```text
-.claude-plugin/
-  plugin.json                       the plugin manifest
-  marketplace.json                  the marketplace entry
-docs/
-  poster.png                        the overview poster shown in this README
-skills/
-  issue/
-    SKILL.md                        /issue: picks and works an issue to done
-    workflow.md                     the rules every skill follows
-    references/platforms.md         each concept on each code platform: commands, plans, fallbacks
-  kickoff/
-    SKILL.md                        /kickoff: a new project, and the kickoff step
-    references/reference-analysis.md  how a reference project is analyzed
-  change/SKILL.md                   /change: turns requests into issues
-  architect/
-    SKILL.md                        the architect step: the thirteen steps
-    references/                     static check tools, test subjects, test tools, data migration tools,
-                                    infrastructure tools, dependency updates, risk rules
-  design/
-    SKILL.md                        the design step
-    references/                     design tools, design aspects
-  scaffold/SKILL.md                 the scaffold step
-  implement/
-    SKILL.md                        the implement step
-    references/claude-code.md       Claude Code facts: built-in commands, subagents, caching, CI
-  release/SKILL.md                  /release
-  deploy/SKILL.md                   /deploy
-  perf-test/SKILL.md                /perf-test
-```
-
-The skills name concepts; what each code platform calls them and how to do them there is in `skills/issue/references/platforms.md`. The reference lists are starting points the agent reads before proposing tools, not limits.
+[MIT License](LICENSE)
