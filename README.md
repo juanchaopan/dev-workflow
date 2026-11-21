@@ -24,19 +24,20 @@ flowchart LR
   users -- next request --> change
 ```
 
-Six commands, one loop. Here is a booking site for a barbershop going from a sentence to production:
+Six commands, one loop. Here is a booking site for a barbershop going from a sentence to production, and around again:
 
 ```text
 /kickoff            "A booking site for my barbershop"    →  brief, repository, labels
-/change             "Customers book online"               →  #1 Set up the project
+/change             "Set up the project"                  →  #1 Set up the project
 /issue next         the architecture, in 13 questions     →  project, CI, CD, staging
 /change             "Customers book online"               →  #2 Book a time, #3 Staff view
-/issue next         screens you approve, code, tests      →  reviewed pull request, merged
+/issue next  (×2)   screens you approve, code, tests      →  #2, #3 reviewed and merged
 /release                                                  →  0.1.0
 /deploy production                                        →  live
+/change             "Let customers cancel a booking"      →  #4, #5 … and around again
 ```
 
-Then the loop goes on. A bug becomes a `fix` issue whose first commit is a test that fails. An open question, such as which SMS provider to use, becomes a `spike` that tries the options before anyone builds on them. A change that needs new structure gets a `refactor` issue first, which must leave every test passing.
+Every turn of the loop works the same way. A bug becomes a `fix` issue whose first commit is a test that fails. An open question, such as which SMS provider to use, becomes a `spike` that tries the options before anyone builds on them. A change that needs new structure gets a `refactor` issue first, which must leave every test passing.
 
 ## The team it gives you
 
