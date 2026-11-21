@@ -1,6 +1,6 @@
 ---
 name: design
-description: The design step of an issue, for any kind of client or none. Settles what code and tests are written from - screens and flow, fields, common rules, data, interfaces, notifications, permissions, complex rules, concurrent changes and errors - asking the user before anything is written, and has every screen drawn as a prototype on the issue's scratch branch, rendered to images and confirmed by the user, animations by their key frames. Writes .docs/design/. Use for "/design <issue>" or when another step comes back to the design.
+description: The design step of an issue, for any kind of client or none. Settles what code and tests are written from - screens and flow, fields, common rules, data, interfaces, notifications, permissions, complex rules, concurrent changes, errors and animations - going through every aspect with the user and writing into .docs/design/ only what the user has confirmed - every document's full text is shown before it is written, and every screen is drawn as a prototype on the issue's scratch branch, rendered to images and confirmed by the user, animations by their key frames. Use for "/design <issue>" or when another step comes back to the design.
 argument-hint: <issue number>
 ---
 
@@ -8,21 +8,25 @@ argument-hint: <issue number>
 
 Read `../issue/workflow.md` first. Every rule there applies here. This step changes only `.docs/design/`; its commits carry `Step: design`. Prototype sources go on the issue's scratch branch.
 
-## Ask before you write
+## Everything is confirmed before it is written
 
-Decisions about content are asked first, with multiple-choice questions, and only what the user has answered goes into the design documents and the prototypes: fields, whether they are required, validation rules, error messages, permissions, complex rules, concurrent changes, the errors the issue meets. The look - where buttons go, how a screen is laid out - is drawn by you and confirmed by the user on the images; changes the user asks for while looking are made. Judge from the amount of work how many questions to ask at once and how many screens to show at once.
+Every document in `.docs/design/`, every line in it and every image is something the user has confirmed.
+
+- **Every aspect.** Go through each aspect in `references/design-aspects.md` with the user. For an aspect this issue touches, ask its decisions with multiple-choice questions. For an aspect you judge it does not touch, tell the user why and have them confirm it. An aspect the issue needs that the list does not name is gone through the same way.
+- **Content is asked.** Screens and flow, fields and their rules and messages, common rules, data, interfaces, notifications, permissions, complex rules, concurrent changes, errors and animations come from the user's answers. A detail of your own is a suggestion, asked on its own.
+- **The look is shown.** Where buttons go and how a screen is laid out are drawn by you and confirmed by the user on the images. Changes the user asks for while looking are made and shown again.
+- **Every document's text is shown.** Before a document is written or changed, show the user the whole text it will hold, `.docs/design/README.md` and the `Last changed` line included, and write it once the user confirms it. Changes the user asks for are made and the whole text is shown again.
+- Judge from the amount of work how many questions to ask at once and how many screens to show at once.
 
 ## What to design
 
-Judge from the project and the issue which design documents are needed. `references/design-aspects.md` lists the aspects to think through, the usual approaches to concurrent changes, and the kinds of error; ask the user about the concurrent changes and the errors this issue meets.
+The design is the text of the design documents plus the confirmed images. The prototypes are only how the images are drawn.
 
-A layout that usually fits:
+Propose the documents this issue needs and confirm them with the user. A layout that usually fits:
 
 - `.docs/design/README.md`: where each screen's images are, and which scratch branch holds each screen's prototype source;
 - `.docs/design/screens/`: the confirmed images, in one folder per kind of client when there are several;
-- `data.md`, `interfaces.md`, `rules.md`, created only when needed.
-
-The design is the text of the design documents plus the confirmed images. The prototypes are only how the images are drawn.
+- `data.md`, `interfaces.md`, `rules.md`, when the issue needs them.
 
 ## Prototypes
 
@@ -38,7 +42,7 @@ The design is the text of the design documents plus the confirmed images. The pr
 
 - Prototype sources, and whatever renders them, are committed to the issue's scratch branch `scratch/<number>-<short-name>`, never to `main`.
 - Render one full-page image per state and per screen size, and show them to the user to confirm: one at a time, or in batches when there are many, a part drawn and confirmed before the next.
-- Confirmed images go into `.docs/design/screens/`.
+- Only confirmed images go into `.docs/design/screens/`.
 
 ## Animations
 
@@ -48,7 +52,7 @@ The design is the text of the design documents plus the confirmed images. The pr
 
 ## Changing an existing design
 
-- Change the existing documents in place; do not append.
+- Change the existing documents in place; do not append. The text shown to the user is the whole document after the change.
 - Show the user the whole of every screen the issue changes, not only the changed part.
 - Take the latest prototype source from the scratch branch `.docs/design/README.md` names, copy it to this issue's own scratch branch, change it there, and point the README at the new branch.
 
@@ -58,4 +62,4 @@ When the user brings up something beyond this issue, judge whether it belongs he
 
 ## Finish
 
-End each document with `Last changed: #<issue> (<date>)`, commit with `Step: design`, push the issue branch and the scratch branch, and comment on the issue.
+Every document ends with `Last changed: #<issue> (<date>)`. Commit with `Step: design`, push the issue branch and the scratch branch, and comment on the issue.

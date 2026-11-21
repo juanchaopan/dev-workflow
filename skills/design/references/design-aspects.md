@@ -1,12 +1,12 @@
 # Design aspects
 
-Reference list for the design step. It helps the design think of everything an issue may need settled. Use what the project and the issue need; it is not a checklist to fill, and aspects outside it are welcome.
+Reference list for the design step: the aspects it goes through with the user on every issue. For each aspect, the user either settles what the issue needs or confirms that the issue does not touch it. The details asked depend on the project and the issue. An aspect the issue needs that is not listed here is gone through the same way.
 
 ## Aspects
 
 | Aspect | What to settle |
 |---|---|
-| Screens and flow | Which screens exist and how one leads to another; each screen's layout, fields, actions and states |
+| Screens and flow | Which screens exist and how one leads to another; each screen's layout, fields, actions and states; the screen sizes each is drawn at |
 | Fields | Type, required or not, length, default, validation rules, the message shown on error |
 | Common rules | Rules every screen shares: date and amount formats, paging, how required fields are marked |
 | Data | Tables and columns, or the formats of files and messages |
@@ -16,10 +16,11 @@ Reference list for the design step. It helps the design think of everything an i
 | Complex rules | How states change, how several conditions decide an outcome, how amounts are calculated |
 | Concurrent changes | What happens when two people change the same data at the same time |
 | Errors | What the user sees, and what becomes of the data, in each kind of error |
+| Animations | Which animations matter; for each, what moves from where to where, how long it takes, and its key frames |
 
 ## Concurrent changes
 
-Ask the user which concurrent changes can happen in this issue. Three usual approaches, for reference; the details belong to the project:
+Ask the user which concurrent changes can happen in this issue, and how each is handled. Three usual approaches, for reference; the details belong to the project:
 
 - the later save is rejected and the user sees the newer data;
 - the later save overwrites;
@@ -27,7 +28,7 @@ Ask the user which concurrent changes can happen in this issue. Three usual appr
 
 ## Kinds of error
 
-Ask the user which of these this issue meets, and what the user sees in each:
+Ask the user which of these this issue meets, and what the user sees and what becomes of the data in each:
 
 - the input is wrong;
 - the business rules do not allow it (e.g. not enough stock, not enough balance);
