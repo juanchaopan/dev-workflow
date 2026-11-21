@@ -1,6 +1,6 @@
 ---
 name: design
-description: The design step of an issue, for any kind of client or none. Settles what code and tests are written from - screens and flow, fields, common rules, data, interfaces, notifications, permissions, complex rules, concurrent changes, errors and animations - going through every aspect with the user and writing into .docs/design/ only what the user has confirmed - every document's full text is shown before it is written, and every screen is drawn as a prototype on the issue's scratch branch, rendered to images and confirmed by the user, animations by their key frames. Use for "/design <issue>" or when another step comes back to the design.
+description: The design step of an issue, for any kind of client or none. Settles what code and tests are written from - screens and flow, fields, common rules, data, interfaces, notifications, permissions, complex rules, concurrent changes, errors and animations - going through every aspect with the user, checking the whole design for contradictions and gaps, and writing into .docs/design/ only what the user has confirmed - every document's full text is shown before it is written, and every screen is drawn as a prototype on the issue's scratch branch, rendered to images and confirmed by the user, animations by their key frames. Use for "/design <issue>" or when another step comes back to the design.
 argument-hint: <issue number>
 ---
 
@@ -59,6 +59,10 @@ Propose the documents this issue needs and confirm them with the user. A layout 
 ## Things outside this issue
 
 When the user brings up something beyond this issue, judge whether it belongs here, or becomes a new issue through /change with its dependency set.
+
+## After the aspects and screens
+
+Once every aspect and every screen is confirmed, and before any document's text is shown, check the whole design for contradictions and gaps on your own. Do not ask the user more questions about it; tell them what you found.
 
 ## Finish
 
