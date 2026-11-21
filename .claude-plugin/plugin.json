@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "dev-workflow",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "description": "A general-purpose AI development workflow for projects in any language, on any stack and any code platform: a project brief, then issues worked one at a time through five steps (kickoff, architect, design, scaffold, implement) with every decision asked before it is written, screens confirmed as rendered prototypes, checks and tests at chosen timings, one pull request per issue merged by risk tier, releases, deployments, performance tests and reference project analysis.",
   "author": {
     "name": "juanchaopan",
